@@ -382,6 +382,9 @@ enum PString {
     Bytes([u8; 15]),               // internal octets
     Utf8([u8; 15]),                // encoded bytes, beyond Latin-1
     Latin1([u8; 15]),              // code points, flag-independent
+    // The ASCII inline families also have literal twins
+    // (§2.2.9): same payload, provenance program text or
+    // `from_static`, never tainted.
     PackedNumeric([u8; 15]),       // nibbles, 16-30 chars, also
     PackedDateTimeZ([u8; 15]),     // two families; the alphabet
     PackedDateTimePlus([u8; 15]),  // has no byte — it IS the variant
@@ -1715,21 +1718,55 @@ inner tag would cost a word — the §2.3.6 nesting lesson):
   carrying its length implicitly beside a shorter family storing
   it in the byte the last character would have used.  The inline
   forms split into the two length families, and the tag
-  arithmetic is §2.2.3's: 196 of 256 (188 before the §2.2.9
-verbatim/compressed split, 124 before the §2.2.16 identifier
-families, 104 before the §2.2.15 view
-  forms).  NUL then stops being a special case anywhere: content
-  carrying one is stored inline like any other, which removes the
-  rejection from both constructors, the check from the append
-  path, and the hazard that a string need not *end* in a NUL to
-  *pass through* one — the same shape as the trailing-space
-  problem the packed families already solved.  Packing is an
-  **encoding, never a canonicalization**: exact byte round-trip
-  is the invariant, and a packed string is observationally
-  identical to its raw form in every operation — length, index,
-  substr, regex, numification and its warnings — a stated
-  test-battery obligation.  Every `%.15g` output and every `i64`
-  stringification fits the numeric alphabet.
+  arithmetic is §2.2.3's: 198 of 256 (196 before the literal
+  twins below, 188 before the §2.2.9 verbatim/compressed split,
+  124 before the §2.2.16 identifier families, 104 before the
+  §2.2.15 view forms).  NUL then stops being a special case
+  anywhere: content carrying one is stored inline like any other,
+  which removes the rejection from both constructors, the check
+  from the append path, and the hazard that a string need not
+  *end* in a NUL to *pass through* one — the same shape as the
+  trailing-space problem the packed families already solved.
+  Packing is an **encoding, never a canonicalization**: exact byte
+  round-trip is the invariant, and a packed string is
+  observationally identical to its raw form in every operation —
+  length, index, substr, regex, numification and its warnings — a
+  stated test-battery obligation.  Every `%.15g` output and every
+  `i64` stringification fits the numeric alphabet.
+
+  **Literal twins [DECISION].**  The two ASCII inline families
+  each have a *literal* twin: `InlineAsciiLiteral` and
+  `InlineAsciiFullLiteral`, payload and length byte identical to
+  the plain forms, carrying one extra fact — the content came
+  from program text, or from a standalone caller's `&'static str`
+  through `from_static`.  The compiler materializes every string
+  literal that fits the ASCII inline forms in its literal twin
+  (under `use utf8` an ASCII-only literal is unflagged, so no
+  flagged twin exists), and `from_static` selects it for
+  inline-sized ASCII content, so the same provenance is visible
+  to the interpreter and to crate users alike; longer literals
+  already carry the fact as the `Static` heap forms.  A literal
+  is never tainted, so the twins take only the unflagged,
+  untainted corner: two discriminants, 198 of 256.  The twin is
+  provenance, not content: equality, ordering, hashing, `length`,
+  every read, and the layout law treat it exactly as the plain
+  form, and it survives copying, since a copy is the sixteen
+  bytes.  Any operation that produces a new string produces a
+  plain form, and the taint-on transition maps a literal twin to
+  the plain tainted form — tainted content is no longer program
+  text.  What the fact serves: a hash whose keys have all been
+  literals is a record, and the hash engine can hold it in a
+  packed body keyed by a shared shape (`docs/ideas.md`, shaped
+  hashes); the twins are the trigger that makes the detection a
+  property of the contents, mechanical and hint-free, rather
+  than a guess about usage — and a `Static`-keyed store on an
+  engine that never sees the op tree could not otherwise tell a
+  literal from a computed key of the same bytes.  Literal keys
+  in the other inline classes are rare enough (Unicode identifiers
+  under `use utf8`) that they count as computed; extending the
+  twins to the flagged Latin-1 and non-Latin-1 families would
+  cost four more discriminants and is deferred until a workload
+  asks for it.
 - **Heap, thin pointer** to the string node; the §2.2.3-§2.2.6
   buffer architecture (single-fetch, scan header, COW) carries
   forward unchanged.
@@ -1756,10 +1793,10 @@ heap cost is per-distinct-key-per-hash, not per-operation.
 
 **Where the cache bytes live, and why the obvious placements
 fail.**  The discriminant is not a byte the layout sets aside: it
-occupies the niche in `PString`'s own tag, which uses 196 of its
-256 values (188 before the §2.2.9 verbatim/compressed split, 124
-before the §2.2.16 identifier families, 104 before the §2.2.15
-view forms).  Rust's
+occupies the niche in `PString`'s own tag, which uses 198 of its
+256 values (196 before the §2.2.9 literal twins, 188 before the
+§2.2.9 verbatim/compressed split, 124 before the §2.2.16
+identifier families, 104 before the §2.2.15 view forms).  Rust's
 niche-filling requires every other variant's data to avoid that
 byte, and it lays a variant out as a self-contained struct
 *before* placing it — so a field wanting eight-byte alignment
@@ -3497,13 +3534,15 @@ lock it would be replacing (`benchmarking.md`).  Ruled: no demotion;
 reads through a slot's cell pointer hold no claim.
 
 **The tag budget, corrected.**  Niche filling is per-type, so the
-layers form a *chain*, not a sum: `PString` spends 196 of 256;
-`Value` inherits those and adds its own; `Slot` and `Scalar` are
-parallel branches above `Value` and do not compete with each other.
-Measured room above `Value`: between 32 and 39 unit variants before
-it leaves 16 bytes.  Earlier prose quoting 60 was counting
-`PString`'s spare without subtracting `Value`'s claim on it.  Every
-future packed-string family is subtracted from every chain at once.
+layers form a *chain*, not a sum: `PString` spends 198 of 256
+(196 before the §2.2.9 literal twins); `Value` inherits those and
+adds its own; `Slot` and `Scalar` are parallel branches above
+`Value` and do not compete with each other.  Measured room above
+`Value`: between 32 and 39 unit variants before it leaves 16
+bytes, less the two the twins take from every chain.  Earlier
+prose quoting 60 was counting `PString`'s spare without subtracting
+`Value`'s claim on it.  Every future packed-string family is
+subtracted from every chain at once.
 
 What remains open, each with what decides it:
 
