@@ -1,0 +1,16 @@
+setlocale: de_DE.UTF-8
+de: '3,5'+0 = 3,5 flags=f_NOK,f_POK,p_IOK,p_NOK,p_POK
+  outside: cached x+0=3.5 copy y+0=3.5 fresh '3,5'+0=3
+  stringify 3.5 in de: 3,5 flags=f_NOK,p_NOK
+  stringify 3.5 in C: 3.5
+de: '3.5'+0 = 3,5 flags=f_NOK,f_POK,p_IOK,p_NOK,p_POK
+de: '3,5'|0 = 3 flags=f_NOK,f_POK,p_IOK,p_NOK,p_POK
+de: %.17g of '3,5' = 3,5 flags=f_NOK,f_POK,p_NOK,p_POK
+de nv-path then C: x+0=3.5 flags=f_NOK,f_POK,p_IOK,p_NOK,p_POK
+use locale but LC_NUMERIC=C: '3,5'+0=3 flags=f_POK,p_IOK,p_NOK,p_POK
+  then de, cached: 3
+  fresh in de: 3,5
+de: '1e3,5'+0=1000 flags=f_POK,p_IOK,p_NOK,p_POK
+de: '3,5x'+0=3,5 flags=f_POK,p_IOK,p_NOK,p_POK
+str after: 3,5
+3.5 stringified in de: [3,5]; then outside: [3.5]

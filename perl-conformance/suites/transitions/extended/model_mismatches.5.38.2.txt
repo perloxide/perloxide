@@ -1,0 +1,3 @@
+oracle=/usr/bin/perl depth=3 starts=18 transitions=179452 model_mismatches=0 states=7943
+# the nine starts that hit the 60s child timeout in the first run were rerun with a 600s timeout:
+oracle=/usr/bin/perl depth=3 starts=9 transitions=161704 model_mismatches=0 states=6833
