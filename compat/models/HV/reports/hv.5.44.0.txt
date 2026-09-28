@@ -1,0 +1,5 @@
+oracle=/usr/local/bin/perl ok=28 bad=0
+EXCLUDED structure.seedX_perturb2.5 (DETERMINISTIC perturbation depends on all prior hash activity in the process): hash-values match, buckets differ
+EXCLUDED structure.seedX_perturb2.40 (DETERMINISTIC perturbation depends on all prior hash activity in the process): hash-values match, buckets differ
+EXCLUDED structure.seedX_perturb2.700 (DETERMINISTIC perturbation depends on all prior hash activity in the process): hash-values match, buckets differ
+EXCLUDED structure.seedX_perturb2.5000 (DETERMINISTIC perturbation depends on all prior hash activity in the process): hash-values match, buckets differ
