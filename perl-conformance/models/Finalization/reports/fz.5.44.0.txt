@@ -1,0 +1,1 @@
+oracle=/usr/local/bin/perl scenarios=114 ok=114 bad=0 (allowed-state rows: 2)
