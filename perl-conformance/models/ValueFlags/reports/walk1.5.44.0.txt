@@ -1,0 +1,12 @@
+oracle=/usr/local/bin/perl projection=full walks=125 seed=20260924 depth=1 starts=24 transitions=1250 model_mismatches=11 states=411
+f0       NOK,pNOK|N:0|T:NV                            --asgi --> perl: IOK,pIOK|N:10|T:IV                           model: IOK,pIOK|N:10|T:PVNV   [recipe: not]
+f1e19    NOK,pNOK|N:1e+19|T:NV                        --asgi --> perl: IOK,pIOK|N:10|T:IV                           model: IOK,pIOK|N:10|T:PVNV   [recipe: not]
+f1e19    NOK,pNOK|N:1e+19|T:NV                        --inc  --> perl: NOK,pNOK|N:1e+19|T:PVNV                      model: NOK,pNOK|N:1e+19|T:NV   [recipe: not]
+f3       NOK,pNOK|N:3|T:NV                            --asgi --> perl: IOK,pIOK|N:10|T:IV                           model: IOK,pIOK|N:10|T:PVNV   [recipe: neg]
+f3_5     NOK,pNOK|N:3.5|T:NV                          --asgi --> perl: IOK,pIOK|N:10|T:IV                           model: IOK,pIOK|N:10|T:PVNV   [recipe: spg]
+f3_5     NOK,pNOK|N:3.5|T:NV                          --inc  --> perl: NOK,pNOK|N:4.5|T:PVNV                        model: NOK,pNOK|N:4.5|T:NV   [recipe: spg]
+i0       IOK,pIOK|N:0|T:IV                            --asgn --> perl: NOK,pNOK|N:3.5|T:NV                          model: NOK,pNOK|N:3.5|T:PVNV   [recipe: cpl]
+i10      IOK,pIOK|N:10|T:IV                           --asgn --> perl: NOK,pNOK|N:3.5|T:NV                          model: NOK,pNOK|N:3.5|T:PVNV   [recipe: spd]
+iMax     IOK,pIOK|N:9223372036854775807|T:IV          --asgn --> perl: NOK,pNOK|N:3.5|T:NV                          model: NOK,pNOK|N:3.5|T:PVNV   [recipe: cpl]
+s1e19    POK,pPOK,IsCOW|P:1e19|L:16|T:PV|C:1          --dec  --> perl: IOK,pIOK,IsUV|N:9999999999999999999|B:4/16|T:PVNV model: IOK,pIOK,IsUV|N:9999999999999999999|B:4/16|T:PVIV   [recipe: sps]
+s1e19    POK,pPOK,IsCOW|P:1e19|L:16|T:PV|C:1          --inc  --> perl: IOK,pIOK,IsUV|N:10000000000000000001|B:4/16|T:PVNV model: IOK,pIOK,IsUV|N:10000000000000000001|B:4/16|T:PVIV   [recipe: sps]
