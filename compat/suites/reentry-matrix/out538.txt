@@ -1,0 +1,151 @@
+rows=2304 values_ok=2154 values_bad=0 flag_mismatch_on_value_ok_rows=0 crash=114 ub_rows=36
+CRASH  12x/n99/iv/spg (signal 0)
+CRASH  12x/n99/nv/spg (signal 0)
+CRASH  12x/n99/none/spg (signal 0)
+CRASH  12x/n99.5/iv/spg (signal 0)
+CRASH  12x/n99.5/nv/spg (signal 0)
+CRASH  12x/n99.5/none/spg (signal 0)
+UB     12x/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     12x/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     12x/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  12x/undef/iv/spg (signal 0)
+CRASH  12x/undef/nv/spg (signal 0)
+CRASH  12x/undef/none/spg (signal 0)
+CRASH  12.5x/n99/iv/spg (signal 0)
+CRASH  12.5x/n99/nv/spg (signal 0)
+CRASH  12.5x/n99/none/spg (signal 0)
+CRASH  12.5x/n99.5/iv/spg (signal 0)
+CRASH  12.5x/n99.5/nv/spg (signal 0)
+CRASH  12.5x/n99.5/none/spg (signal 0)
+UB     12.5x/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     12.5x/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     12.5x/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  12.5x/undef/iv/spg (signal 0)
+CRASH  12.5x/undef/nv/spg (signal 0)
+CRASH  12.5x/undef/none/spg (signal 0)
+CRASH  abc/n99/iv/spg (signal 0)
+CRASH  abc/n99/nv/spg (signal 0)
+CRASH  abc/n99/none/spg (signal 0)
+CRASH  abc/n99.5/iv/spg (signal 0)
+CRASH  abc/n99.5/nv/spg (signal 0)
+CRASH  abc/n99.5/none/spg (signal 0)
+UB     abc/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     abc/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     abc/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  abc/undef/iv/spg (signal 0)
+CRASH  abc/undef/nv/spg (signal 0)
+CRASH  abc/undef/none/spg (signal 0)
+CRASH  empty/n99/iv/spg (signal 0)
+CRASH  empty/n99/nv/spg (signal 0)
+CRASH  empty/n99/none/spg (signal 0)
+CRASH  empty/n99.5/iv/spg (signal 0)
+CRASH  empty/n99.5/nv/spg (signal 0)
+CRASH  empty/n99.5/none/spg (signal 0)
+UB     empty/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     empty/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     empty/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  empty/undef/iv/spg (signal 0)
+CRASH  empty/undef/nv/spg (signal 0)
+CRASH  empty/undef/none/spg (signal 0)
+CRASH  sp12x/n99/iv/spg (signal 0)
+CRASH  sp12x/n99/nv/spg (signal 0)
+CRASH  sp12x/n99/none/spg (signal 0)
+CRASH  sp12x/n99.5/iv/spg (signal 0)
+CRASH  sp12x/n99.5/nv/spg (signal 0)
+CRASH  sp12x/n99.5/none/spg (signal 0)
+UB     sp12x/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     sp12x/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     sp12x/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  sp12x/undef/iv/spg (signal 0)
+CRASH  sp12x/undef/nv/spg (signal 0)
+CRASH  sp12x/undef/none/spg (signal 0)
+CRASH  1e3x/n99/iv/spg (signal 0)
+CRASH  1e3x/n99/nv/spg (signal 0)
+CRASH  1e3x/n99/none/spg (signal 0)
+CRASH  1e3x/n99.5/iv/spg (signal 0)
+CRASH  1e3x/n99.5/nv/spg (signal 0)
+CRASH  1e3x/n99.5/none/spg (signal 0)
+UB     1e3x/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     1e3x/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     1e3x/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  1e3x/undef/iv/spg (signal 0)
+CRASH  1e3x/undef/nv/spg (signal 0)
+CRASH  1e3x/undef/none/spg (signal 0)
+CRASH  Infx/n99/iv/spg (signal 0)
+CRASH  Infx/n99/nv/spg (signal 0)
+CRASH  Infx/n99/none/spg (signal 0)
+CRASH  Infx/n99.5/iv/spg (signal 0)
+CRASH  Infx/n99.5/nv/spg (signal 0)
+CRASH  Infx/n99.5/none/spg (signal 0)
+CRASH  Infx/ref/iv/add (signal 0)
+CRASH  Infx/ref/iv/bor (signal 0)
+UB     Infx/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  Infx/ref/nv/add (signal 0)
+CRASH  Infx/ref/nv/bor (signal 0)
+UB     Infx/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  Infx/ref/none/add (signal 0)
+CRASH  Infx/ref/none/bor (signal 0)
+UB     Infx/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  Infx/undef/iv/spg (signal 0)
+CRASH  Infx/undef/nv/spg (signal 0)
+CRASH  Infx/undef/none/spg (signal 0)
+CRASH  nanx/n99/iv/spg (signal 0)
+CRASH  nanx/n99/nv/spg (signal 0)
+CRASH  nanx/n99/none/spg (signal 0)
+CRASH  nanx/n99.5/iv/spg (signal 0)
+CRASH  nanx/n99.5/nv/spg (signal 0)
+CRASH  nanx/n99.5/none/spg (signal 0)
+UB     nanx/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     nanx/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     nanx/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  nanx/undef/iv/spg (signal 0)
+CRASH  nanx/undef/nv/spg (signal 0)
+CRASH  nanx/undef/none/spg (signal 0)
+CRASH  -0x/n99/iv/spg (signal 0)
+CRASH  -0x/n99/nv/spg (signal 0)
+CRASH  -0x/n99/none/spg (signal 0)
+CRASH  -0x/n99.5/iv/spg (signal 0)
+CRASH  -0x/n99.5/nv/spg (signal 0)
+CRASH  -0x/n99.5/none/spg (signal 0)
+UB     -0x/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     -0x/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     -0x/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  -0x/undef/iv/spg (signal 0)
+CRASH  -0x/undef/nv/spg (signal 0)
+CRASH  -0x/undef/none/spg (signal 0)
+CRASH  0x1A/n99/iv/spg (signal 0)
+CRASH  0x1A/n99/nv/spg (signal 0)
+CRASH  0x1A/n99/none/spg (signal 0)
+CRASH  0x1A/n99.5/iv/spg (signal 0)
+CRASH  0x1A/n99.5/nv/spg (signal 0)
+CRASH  0x1A/n99.5/none/spg (signal 0)
+UB     0x1A/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     0x1A/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     0x1A/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  0x1A/undef/iv/spg (signal 0)
+CRASH  0x1A/undef/nv/spg (signal 0)
+CRASH  0x1A/undef/none/spg (signal 0)
+CRASH  1_000/n99/iv/spg (signal 0)
+CRASH  1_000/n99/nv/spg (signal 0)
+CRASH  1_000/n99/none/spg (signal 0)
+CRASH  1_000/n99.5/iv/spg (signal 0)
+CRASH  1_000/n99.5/nv/spg (signal 0)
+CRASH  1_000/n99.5/none/spg (signal 0)
+UB     1_000/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     1_000/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     1_000/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  1_000/undef/iv/spg (signal 0)
+CRASH  1_000/undef/nv/spg (signal 0)
+CRASH  1_000/undef/none/spg (signal 0)
+CRASH  12U/n99/iv/spg (signal 0)
+CRASH  12U/n99/nv/spg (signal 0)
+CRASH  12U/n99/none/spg (signal 0)
+CRASH  12U/n99.5/iv/spg (signal 0)
+CRASH  12U/n99.5/nv/spg (signal 0)
+CRASH  12U/n99.5/none/spg (signal 0)
+UB     12U/ref/iv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     12U/ref/nv/spg perl=[0 ADDR ADDR ADDR ADDR]
+UB     12U/ref/none/spg perl=[0 ADDR ADDR ADDR ADDR]
+CRASH  12U/undef/iv/spg (signal 0)
+CRASH  12U/undef/nv/spg (signal 0)
+CRASH  12U/undef/none/spg (signal 0)

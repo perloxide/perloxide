@@ -1,0 +1,1 @@
+oracle=/usr/bin/perl depth=3 transitions=1152 model_mismatches=0 states=123

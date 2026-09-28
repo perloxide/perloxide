@@ -1,0 +1,27 @@
+Argument "" isn't numeric in bitwise or (|) at /tmp/probe/consumers.pl line 18.
+== Int starts
+Int 10, stringify "$i"           IOK,pIOK                 -> IOK,pIOK,pPOK                CHANGED: isdual=1 DDxs=10 DDpp=10 JSON=[10] c_as=N- Storable=0808080201000000088a   (was: isdual=0 DDxs=10 DDpp=10 JSON=[10] c_as=N- Storable=0808080201000000088a)
+Int 10, regex match              IOK,pIOK                 -> IOK,pIOK,pPOK                CHANGED: isdual=1 DDxs=10 DDpp=10 JSON=[10] c_as=N- Storable=0808080201000000088a   (was: isdual=0 DDxs=10 DDpp=10 JSON=[10] c_as=N- Storable=0808080201000000088a)
+Int 10, * 1.5                    IOK,pIOK                 -> IOK,NOK,pIOK,pNOK            consumers unchanged
+Int 10, sqrt                     IOK,pIOK                 -> IOK,NOK,pIOK,pNOK            consumers unchanged
+Int 10, == 10.5                  IOK,pIOK                 -> IOK,NOK,pIOK,pNOK            consumers unchanged
+Int 10, / 3                      IOK,pIOK                 -> IOK,NOK,pIOK,pNOK            consumers unchanged
+Int 10, | ""                     IOK,pIOK                 -> IOK,pIOK                     consumers unchanged
+Int 10, stringify then *1.5      IOK,pIOK                 -> IOK,NOK,pIOK,pNOK,pPOK       CHANGED: isdual=1 DDxs=10 DDpp=10 JSON=[10] c_as=N- Storable=0808080201000000088a   (was: isdual=0 DDxs=10 DDpp=10 JSON=[10] c_as=N- Storable=0808080201000000088a)
+Int IV_MAX, ++                   IOK,pIOK                 -> IOK,pIOK,IsUV                CHANGED: isdual=0 DDxs='9223372036854775808' DDpp='9223372036854775808' JSON=[9223372036854775808] c_as=N- Storable=08080802010000000a1339323233333732303336383534373735383038   (was: isdual=0 DDxs='9223372036854775807' DDpp='9223372036854775807' JSON=[9223372036854775807] c_as=N- Storable=080808020100000006ffffffffffffff7f)
+Int 10, ++                       IOK,pIOK                 -> IOK,pIOK                     CHANGED: isdual=0 DDxs=11 DDpp=11 JSON=[11] c_as=N- Storable=0808080201000000088b   (was: isdual=0 DDxs=10 DDpp=10 JSON=[10] c_as=N- Storable=0808080201000000088a)
+== Float starts
+Float 3.0, stringify             NOK,pNOK                 -> NOK,pNOK                     consumers unchanged
+Float 3.5, stringify             NOK,pNOK                 -> NOK,pNOK                     consumers unchanged
+Float 3.0, + 1                   NOK,pNOK                 -> IOK,NOK,pIOK,pNOK            CHANGED: isdual=0 DDxs=3 DDpp=3 JSON=[3] c_as=N- Storable=08080802010000000883   (was: isdual=0 DDxs='3' DDpp=3 JSON=[3] c_as=N- Storable=08080802010000000883)
+Float 3.0, == 3                  NOK,pNOK                 -> IOK,NOK,pIOK,pNOK            CHANGED: isdual=0 DDxs=3 DDpp=3 JSON=[3] c_as=N- Storable=08080802010000000883   (was: isdual=0 DDxs='3' DDpp=3 JSON=[3] c_as=N- Storable=08080802010000000883)
+Float 3.0, | 0                   NOK,pNOK                 -> IOK,NOK,pIOK,pNOK            CHANGED: isdual=0 DDxs=3 DDpp=3 JSON=[3] c_as=N- Storable=08080802010000000883   (was: isdual=0 DDxs='3' DDpp=3 JSON=[3] c_as=N- Storable=08080802010000000883)
+Float 3.5, + 1                   NOK,pNOK                 -> NOK,pIOK,pNOK                consumers unchanged
+Float 3.5, int()                 NOK,pNOK                 -> NOK,pIOK,pNOK                consumers unchanged
+Float 3.5, sprintf %d            NOK,pNOK                 -> NOK,pIOK,pNOK                consumers unchanged
+Float 3.0, ++                    NOK,pNOK                 -> IOK,pIOK                     CHANGED: isdual=0 DDxs=4 DDpp=4 JSON=[4] c_as=N- Storable=08080802010000000884   (was: isdual=0 DDxs='3' DDpp=3 JSON=[3] c_as=N- Storable=08080802010000000883)
+Float 3.5, ++                    NOK,pNOK                 -> NOK,pNOK                     CHANGED: isdual=0 DDxs='4.5' DDpp='4.5' JSON=[4.5] c_as=N- Storable=0808080201000000070000000000001240   (was: isdual=0 DDxs='3.5' DDpp='3.5' JSON=[3.5] c_as=N- Storable=0808080201000000070000000000000c40)
+Float 1e19, | 0                  NOK,pNOK                 -> NOK,pIOK,pNOK,IsUV           consumers unchanged
+Float 3.0, +1 then ++            NOK,pNOK                 -> IOK,pIOK                     CHANGED: isdual=0 DDxs=4 DDpp=4 JSON=[4] c_as=N- Storable=08080802010000000884   (was: isdual=0 DDxs='3' DDpp=3 JSON=[3] c_as=N- Storable=08080802010000000883)
+== Int/Float results of ++ (fresh vs marked) as DD sees them
+3.0++ fresh: 4 flags IOK,pIOK | 3.0 marked then ++: 4 flags IOK,pIOK
