@@ -1,0 +1,15 @@
+lane     perl     holder   opset                    depth projection     transit  states     match   open  ver-div  defined
+matrix   5.38.2   fresh    handler matrix (2304 rows) 0     full              2304       -      2260     44        0      150
+matrix   5.44.0   fresh    handler matrix (2304 rows) 0     full              2304       -      2260     44        0      150
+locale   5.38.2   fresh    locale axis              1     flags+slots        504      80       474     30        0        0
+locale   5.44.0   fresh    locale axis              1     flags+slots        504      80       474     30        0        0
+core1    5.38.2   fresh    13-op core, 24 starts    1     full              2715     916      2432     41      242        0
+core1    5.44.0   fresh    13-op core, 24 starts    1     full              2715     921      2432     41      242        0
+full1    5.38.2   fresh    58-op set, 24 starts     1     full             25719    3625     23488    503     1728        0
+full1    5.44.0   fresh    58-op set, 24 starts     1     full             25719    3667     23156    835     1728        0
+walk1    5.38.2   fresh    58-op set, 3000 seeded walks 1     full              1250     411      1207      4       39        0
+walk1    5.44.0   fresh    58-op set, 3000 seeded walks 1     full              1250     411      1200     11       39        0
+copy     5.38.2   fresh    12-op core + copy        2     full              3081    3081      3081      0        0        0
+copy     5.44.0   fresh    12-op core + copy        2     full              3096    3096      3096      0        0        0
+
+projection column is the VF::Observe projection each lane records (flags = key only; full = key + Devel::Peek + fresh-per-block copy consumers); the key never changes between projections, so counts do not move.
