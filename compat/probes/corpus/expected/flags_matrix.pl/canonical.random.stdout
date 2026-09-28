@@ -1,0 +1,43 @@
+!$s                P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         IN/n
+"$s"               P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         INp/n
+"x" x $s           IP/s         iNP/s        inP/s        inP/s        inP/s        INP/s        IP/s         IPU/s        Ip/n         iN/n         IN/n
+$a[$s]             IP/s         iNP/s        inP/s        inP/s        inP/s        INP/s        IP/s         IPU/s        Ip/n         iN/n         IN/n
+$h{$s}             P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         INp/n
+$s * 1             IP/s         iNP/s        inP/s        inP/s        inP/s        INP/s        IP/s         IPU/s        Ip/n         iN/n         IN/n
+$s + 0             IP/s         iNP/s        inP/s        inP/s        inP/s        INP/s        IP/s         IPU/s        Ip/n         iN/n         IN/n
+$s .= ""           P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s
+$s .= "0"          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s
+$s <=> 1           IP/s         iNP/s        inP/s        inP/s        inP/s        INP/s        IP/s         IPU/s        Ip/n         iN/n         IN/n
+$s = "20"          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s
+$s = $s            P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         IN/n
+$s == 1            IP/s         iNP/s        inP/s        inP/s        inP/s        INP/s        IP/s         IPU/s        Ip/n         iN/n         IN/n
+$s =~ /0/          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         INp/n
+$s eq "10"         P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         INp/n
+$s | 0             IP/s         iNP/s        inP/s        inP/s        inP/s        INP/s        IP/s         IPU/s        Ip/n         iN/n         IN/n
+$s++               P/s          N/n          N/n          P/s          P/s          I/n          I/n          P/s          I/n          N/n          I/n
+(start)            P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         IN/n
+-$s                IP/s         iNP/s        inP/s        P/s          P/s          INP/s        IP/s         InPU/s       Ip/n         iN/n         IN/n
+--$s               I/n          N/n          N/n          N/n          N/n          I/n          I/n          IU/n         I/n          N/n          I/n
+abs $s             IP/s         iNP/s        inP/s        inP/s        inP/s        INP/s        IP/s         IPU/s        Ip/n         iN/n         IN/n
+chop               P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s
+chr $s             INP/s        iNP/s        inP/s        inP/s        inP/s        INP/s        INP/s        die          INp/n        iN/n         IN/n
+copy (report $t)   P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         IN/n
+if ($s)            P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         IN/n
+int $s             IP/s         iNP/s        inP/s        inP/s        inP/s        INP/s        IP/s         IPU/s        Ip/n         iN/n         IN/n
+length $s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         INp/n
+looks_like_number  P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         IN/n
+op \ start         "10"         "1.5"        "10abc"      "abc"        "Az"         "1e3"        "-0"         UV_MAX str   int, "$i"    float, $f|0  3.0, $f|0
+pos($s) = 0        P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         INp/n
+s/(.)/$1/          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s
+sort {$a<=>$b}     INP/s        iNP/s        inP/s        inP/s        inP/s        INP/s        INP/s        InPU/s       Ip/n         iN/n         IN/n
+sprintf "%d"       IP/s         iNP/s        inP/s        inP/s        inP/s        INP/s        IP/s         IPU/s        Ip/n         iN/n         IN/n
+sprintf "%g"       NP/s         NP/s         nP/s         nP/s         nP/s         NP/s         NP/s         InPU/s       INp/n        iN/n         IN/n
+sprintf "%s"       P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         INp/n
+substr 4-arg       P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s
+substr lvalue      P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s
+tr/1/2/            P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s
+undef $s           0/-          0/-          0/-          0/-          0/-          0/-          0/-          0/-          0/-          0/-          0/-
+utf8::encode       P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s
+utf8::upgrade      P8/s         P8/s         P8/s         P8/s         P8/s         P8/s         P8/s         P8/s         P8/s         P8/s         P8/s
+vec lvalue         P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s
+~$s                P/s          P/s          P/s          P/s          P/s          P/s          P/s          P/s          Ip/n         iN/n         IN/n

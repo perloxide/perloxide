@@ -1,0 +1,5 @@
+Data::Dumper-ish of 1e21: 1e+21  of 0.1+0.2: 0.3
+after numify:  [10]
+before numify: ["10"]
+created_as_number($s)=0 created_as_string($i)=0
+int stringified: [10]

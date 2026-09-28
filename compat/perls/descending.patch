@@ -1,0 +1,27 @@
+--- a/sv.c
++++ b/sv.c
+@@ -354,19 +354,19 @@
+     SvFLAGS(sva) = flags;			/* FAKE if not to be freed */
+
+     PL_sv_arenaroot = sva;
+-    PL_sv_root = sva + 1;
+
++    /* Instrumented build: thread the free list from the highest slot down, so
++       fresh heads are handed out in descending address order. */
+     svend = &sva[SvREFCNT(sva) - 1];
+-    sv = sva + 1;
+-    while (sv < svend) {
+-        SvARENA_CHAIN_SET(sv, (sv + 1));
++    PL_sv_root = svend;
++    for (sv = svend; sv > sva + 1; sv--) {
++        SvARENA_CHAIN_SET(sv, (sv - 1));
+ #ifdef DEBUGGING
+         SvREFCNT(sv) = 0;
+ #endif
+         /* Must always set typemask because it's always checked in on cleanup
+            when the arenas are walked looking for objects.  */
+         SvFLAGS(sv) = SVTYPEMASK;
+-        sv++;
+     }
+     SvARENA_CHAIN_SET(sv, 0);
+ #ifdef DEBUGGING

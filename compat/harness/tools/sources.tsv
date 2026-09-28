@@ -1,0 +1,72 @@
+# probe	file	pattern (first matching line)	what it establishes
+each_01_delete_current.pl	hv.c	HvLAZYDEL_on\(hv\);$	S_hv_delete_common: deleting the entry xhv_eiter points at sets HvLAZYDEL instead of freeing it
+each_01_delete_current.pl	hv.c	^Perl_hv_iternext_flags	Perl_hv_iternext_flags: advances from HeNEXT(oldentry), then frees a lazily deleted entry
+each_02_delete_other.pl	hv.c	HeNEXT\(HvAUX\(hv\)->xhv_eiter\) = HeNEXT\(entry\)	S_hv_delete_common: deleting the lazy entry's successor patches HeNEXT(xhv_eiter)
+each_03_insert.pl	hv.c	HvAUX\(hv\)->xhv_rand= \(U32\)PL_hash_rand_bits	Perl_hv_common: an insert into a hash with an aux struct updates xhv_rand
+each_03_insert.pl	hv.c	Use of each\(\) on hash after insertion	Perl_hv_iternext_flags: the warning fires when xhv_last_rand != xhv_rand and riter != -1
+each_03_insert.pl	hv.c	^S_hsplit	S_hsplit: doubling relinks entries, which produces duplicates and skips mid-iteration
+each_03_insert.pl	hv.c	define DO_HSPLIT	DO_HSPLIT: split only on a colliding insert when keys + keys/2 > max
+each_04_reset.pl	hv.c	^Perl_hv_iterinit	Perl_hv_iterinit: resets riter and eiter, freeing a lazily deleted entry
+each_05_clear.pl	hv.c	^Perl_hv_clear\(	Perl_hv_clear: frees entries and clears HvEITER without resizing HvARRAY
+each_05_clear.pl	hv.c	^Perl_hfree_next_entry	Perl_hfree_next_entry: frees entries walking HvARRAY[0..max] in raw bucket order
+each_06_tied.pl	hv.c	one HE per MAGICAL hash	Perl_hv_iternext_flags: tied iteration uses one synthetic HE per magical hash, freed via HvLAZYDEL
+each_07_tied_keys_void.pl	hv.c	^Perl_hv_iterinit	Perl_hv_iterinit: resetting a tied hash's iterator calls no methods
+order_01_model.pl	hv.h	define PERL_HASH_ITER_BUCKET\(iter\)      \(\(\(iter\)	PERL_HASH_ITER_BUCKET: traversal visits bucket (riter ^ xhv_rand) & max
+order_01_model.pl	ext/Hash-Util/Util.xs	^hash_traversal_mask	hash_traversal_mask: no prototype, so it needs a hash reference
+order_02_modes.pl	util.c	env_pv= PerlEnv_getenv\("PERL_HASH_SEED"\)	Perl_get_hash_seed: PERL_HASH_SEED=0 selects NO mode, any other seed DETERMINISTIC
+order_02_modes.pl	util.c	PL_hash_rand_bits= 0xbe49d17f	Perl_get_hash_seed: in NO and DETERMINISTIC modes the rand bits start from a constant mixed with the seed
+order_02_modes.pl	hv.c	define UPDATE_HASH_RAND_BITS_KEY	UPDATE_HASH_RAND_BITS_KEY: a global xorshift step; the key is used only for -D debug output
+order_02_modes.pl	hv.c	^S_hv_auxinit	S_hv_auxinit: aux allocation steps the global rand bits and seeds xhv_rand
+order_03_insert_warn_modes.pl	hv.c	if \(iter->xhv_last_rand != iter->xhv_rand\)	Perl_hv_iternext_flags: in NO mode xhv_rand never changes, so the warning cannot fire
+local_01_tied_elem.pl	-	-	probe only; scope.c was not read for this rule
+local_02_fresh_sv.pl	-	-	probe only; scope.c was not read for this rule
+num_01_warn_handler.pl	sv.c	^S_sv_2iuv_common	S_sv_2iuv_common: grok_number runs before not_a_number; flags are installed after it returns
+num_02_stale_cache.pl	sv.c	^S_sv_2iuv_common	S_sv_2iuv_common: the IV-path value comes from the pre-warning parse
+value_03_handler_reassign_by_path.pl	sv.c	^S_sv_2iuv_common	S_sv_2iuv_common: IV path parses (S_sv_setnv, Atof) before the warning
+value_03_handler_reassign_by_path.pl	sv.c	^Perl_sv_2nv_flags	Perl_sv_2nv_flags: NV path warns first, then calls Atof on the post-handler string
+value_03_handler_reassign_by_path.pl	sv.c	^S_sv_setnv	S_sv_setnv: Atof(SvPVX) on the current string
+destroy_01_weak.pl	sv.c	^Perl_sv_clean_objs	Perl_sv_clean_objs: DESTRUCT-phase order of the two globals follows arena position
+destroy_02_order.pl	hv.c	^Perl_hfree_next_entry	Perl_hfree_next_entry: hash values are destroyed in raw bucket order
+flags_01_observable.pl	cpan/JSON-PP/lib/JSON/PP.pm	sub _looks_like_number	_looks_like_number: default path tests length("" & $value), a flag-dependent bitwise op
+flags_matrix.pl	builtin.c	ST\(0\) = boolSV\(SvPOK\(arg\) && !SvIsBOOL\(arg\)\)	created_as_string: SvPOK && !SvIsBOOL
+flags_matrix.pl	builtin.c	ST\(0\) = boolSV\(SvNIOK\(arg\) && !SvPOK\(arg\)	created_as_number: SvNIOK && !SvPOK && !SvIsBOOL
+flags_matrix.pl	sv_inline.h	^Perl_SvIV\(	Perl_SvIV: returns SvIVX directly when SvIOK_nog (XS sees the cached value)
+value_01_stale_search.pl	sv.c	^Perl_sv_inc_nomg	Perl_sv_inc_nomg: numeric increment when SVp_IOK or SVp_NOK is set, magic string increment otherwise
+value_02_locale_radix.pl	numeric.c	^Perl_grok_numeric_radix	Perl_grok_numeric_radix: under IN_LC(LC_NUMERIC) matches PL_numeric_radix_sv
+locale_01_setlocale_after_cache.pl	locale.c	^S_new_numeric	S_new_numeric: setlocale(LC_NUMERIC) updates the radix used by later parses; existing caches are untouched
+locale_01_setlocale_after_cache.pl	numeric.c	^Perl_my_atof\(	Perl_my_atof: consults IN_LC(LC_NUMERIC) and PL_numeric_radix_sv at call time
+locale_01_setlocale_after_cache.pl	numeric.c	^S_strtod	S_strtod: STORE_LC_NUMERIC_SET_TO_NEEDED around libc strtod (the Atof path in d_strtod builds)
+locale_02_copy_across.pl	numeric.c	^Perl_my_atof\(	Perl_my_atof: the radix is chosen when parsing, never recorded on the scalar
+locale_03_sub_boundary.pl	perl.h	define IN_LC_RUNTIME	IN_LC_RUNTIME: lexical hints of the currently executing statement (PL_curcop)
+locale_04_handler_setlocale.pl	sv.c	^S_sv_2iuv_common	S_sv_2iuv_common: IV path parses before the handler, so it uses the pre-handler radix
+locale_04_handler_setlocale.pl	sv.c	^Perl_sv_2nv_flags	Perl_sv_2nv_flags: NV path parses after the handler, so it uses the post-handler radix
+locale_04_handler_setlocale.pl	numeric.c	^S_my_atof_infnan	S_my_atof_infnan: calls grok_infnan only; no radix is consulted there
+locale_04_handler_setlocale.pl	numeric.c	else if \(!seen_dp && GROK_NUMERIC_RADIX	my_atof3 USE_PERL_ATOF branch: manual radix match; not compiled in d_strtod builds such as these
+consts_01_literal_mark.pl	pp_ctl.c	define RANGE_IS_NUMERIC	RANGE_IS_NUMERIC: SvNIOKp on either operand, including a literal constant, makes the range numeric
+consumers_01.pl	pp.c	^PP\(pp_complement\)	pp_complement: numeric when SvNIOKp
+consumers_01.pl	pp.c	^PP\(pp_bit_and\)	pp_bit_and: numeric when either operand is SvNIOKp
+consumers_01.pl	pp_ctl.c	if \(SvNIOK\(e\) \|\| \(SvPOK\(e\) && looks_like_number\(e\) && SvNIOK\(d\)\)\)	do_smartmatch: numeric comparison rule tests public NIOK
+consumers_01.pl	dist/Data-Dumper/Dumper.xs	define DD_is_integer	DD_is_integer: SvIOK decides unquoted output
+consumers_01.pl	cpan/Scalar-List-Utils/ListUtil.xs	boolSV\(\(SvPOK\(sv\) \|\| SvPOKp\(sv\)\) && \(SvNIOK\(sv\) \|\| SvNIOKp\(sv\)\)\)	isdual: any POK plus any NIOK
+consumers_01.pl	cpan/Scalar-List-Utils/ListUtil.xs	^looks_like_number	looks_like_number: reparses when POK, otherwise tests numeric flags
+consumers_01.pl	pp_pack.c	if \(SvIOK\(fromstr\) \|\| anv < UV_MAX_P1\)	pack "w": numeric-string handling (independent of the mark in the probe)
+consumers_02_numeric_starts.pl	dist/Storable/Storable.xs	public string - go direct to string read	store_scalar: public POK is serialized as a string
+gd_01_order.pl	sv.c	^Perl_sv_clean_objs	Perl_sv_clean_objs: four visit passes (RVs, glob slots, IO slots, curse)
+gd_01_order.pl	sv.c	^S_visit	S_visit: walks PL_sv_arenaroot, ascending within each arena
+gd_01_order.pl	sv.c	^S_sv_add_arena	S_sv_add_arena: prepends new arenas, so the newest is walked first
+gd_01_order.pl	sv.c	^do_clean_objs	do_clean_objs: weak refs cleared without a decrement; strong refs decremented
+gd_01_order.pl	sv.c	^do_curse	do_curse: curse(sv, 0), DESTROY without a refcount check
+gd_01_order.pl	sv.c	if \(!curse\(sv, 1\)\) goto get_next_sv;	sv_clear: curse(sv, 1), resurrection check
+gd_01_order.pl	sv.c	DESTROY created new reference to dead object	S_curse: resurrection during PL_in_clean_objs croaks
+gd_01_order.pl	sv_inline.h	define PERL_ARENA_SIZE	PERL_ARENA_SIZE: 4080-byte arenas
+addr_01_reuse.pl	sv.c	define plant_SV	plant_SV: freed heads are pushed onto PL_sv_root (LIFO), except SVf_BREAK heads
+addr_01_reuse.pl	sv_inline.h	define uproot_SV	uproot_SV: heads are popped from PL_sv_root
+addr_02_observable.pl	sv.c	define plant_SV	plant_SV: one free list for heads of every SV type
+addr_03_insideout_warm.pl	sv.c	define plant_SV	plant_SV: a freed object's head is the next head allocated
+addr_04_order_nofree.pl	sv.c	^S_sv_add_arena	S_sv_add_arena: stock builds thread each arena's free list in ascending order
+threads_01_const_marks.pl	op.c	^Perl_op_relocate_sv	Perl_op_relocate_sv: under ithreads a constant's SV is moved into the pad because it is written to
+threads_01_const_marks.pl	peep.c	op_relocate_sv\(&cSVOPo->op_sv, &o->op_targ\);	peephole optimizer: relocates every OP_CONST's SV under USE_ITHREADS
+threads_01_const_marks.pl	op.h	define cSVOPx_sv\(v\)  \(cSVOPx\(v\)->op_sv \\	cSVOPx_sv: under ithreads a constant is read from PAD_SVl(op_targ)
+threads_01_const_marks.pl	sv.c	CvROOT\(dsv\) = OpREFCNT_inc\(CvROOT\(dsv\)\);	sv_dup: a cloned CV shares the parent's op tree by refcount
+threads_01_const_marks.pl	sv.c	PL_main_root\t= OpREFCNT_inc	perl_clone: the main op tree is shared, not copied
+probe_01_face_trace.pl	builtin.c	ST\(0\) = boolSV\(SvNIOK\(arg\) && !SvPOK\(arg\)	created_as_number as reported on fd 3

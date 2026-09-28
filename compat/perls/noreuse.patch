@@ -1,0 +1,11 @@
+--- a/sv.c
++++ b/sv.c
+@@ -259,7 +259,7 @@
+         FREE_SV_DEBUG_FILE(p);				\
+         POISON_SV_HEAD(p);				\
+         SvFLAGS(p) = SVTYPEMASK;			\
+-        if (!(old_flags & SVf_BREAK)) {		\
++        if (0 && !(old_flags & SVf_BREAK)) {	\
+             SvARENA_CHAIN_SET(p, PL_sv_root);	\
+             PL_sv_root = (p);				\
+         }						\

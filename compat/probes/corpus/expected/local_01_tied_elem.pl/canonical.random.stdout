@@ -1,0 +1,5 @@
+local $a[0] = 20: EXISTS(0) FETCH(0) STORE(0,undef) STORE(0,20) |scope-exit| STORE(0,10)
+local $a[0]:      EXISTS(0) FETCH(0) STORE(0,undef) |scope-exit| STORE(0,10)
+local $h{absent}=5: EXISTS(absent) STORE(absent,5) |scope-exit| DELETE(absent)
+local $h{k} = 20: EXISTS(k) FETCH(k) STORE(k,20) |scope-exit| STORE(k,10)
+local $h{k}:      EXISTS(k) FETCH(k) STORE(k,undef) |scope-exit| STORE(k,10)

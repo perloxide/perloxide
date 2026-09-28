@@ -1,0 +1,2 @@
+C cache, then setlocale de: cached under use locale=1 fresh under use locale=1.5
+de cache, then setlocale C: cached under use locale=1.5 cached outside=1.5 fresh under use locale=1

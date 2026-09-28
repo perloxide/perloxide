@@ -1,0 +1,3 @@
+IV path ($s + 0)         string=49   flags=inp  numeric read=3  (a fresh "49" reads 49)
+NV path (sprintf "%g")   string=49   flags=np   numeric read=49  (a fresh "49" reads 49)
+NV path (sqrt $s)        string=49   flags=np   numeric read=49  (a fresh "49" reads 49)

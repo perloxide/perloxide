@@ -1,0 +1,5 @@
+(a) span('a') first: 702; span(5): 0; span('a') again: 1
+(b) pass 1: literal flags before=p RO encode=["10"] flags after=ip RO
+(b) pass 2: literal flags before=ip RO encode=[10] flags after=ip RO
+(c) pass 1: copy encode=["20"]
+(c) pass 2: copy encode=["20"]

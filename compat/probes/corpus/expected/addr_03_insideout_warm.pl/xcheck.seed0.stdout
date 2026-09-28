@@ -1,0 +1,2 @@
+refaddr-keyed attribute on a fresh object after warm-up: 42
+Hash::Util::FieldHash attribute on a fresh object after warm-up: undef

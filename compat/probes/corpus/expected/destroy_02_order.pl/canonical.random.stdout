@@ -1,0 +1,6 @@
+block ending in 1;:            c b a
+block, last stmt is my $c=...: b a c
+hash destruction order:         d h b g a f e c
+if-block, last stmt my $c:     b a c
+keys order: a f e c d b g h
+sub with bare return:           c b a
