@@ -1,0 +1,3 @@
+clean: pre=["10"] post=[10] copy=[10]
+incr: az=["Ba"] one=["2"]
+range: alpha=["a","b","c","d","e"] num=[0,1,2,3]

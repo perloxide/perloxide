@@ -1,0 +1,6 @@
+helem: rebound=1 old_via_ref=1 new_val=9
+helem after: val=1 addr_restored=1
+absent: len_in=6 a5=50
+absent after: len=2 exists5=0
+grow after: len=8 exists5=0 b7=70
+clobber after: len=2 exists1=1 c1=2 old_ref_still=2

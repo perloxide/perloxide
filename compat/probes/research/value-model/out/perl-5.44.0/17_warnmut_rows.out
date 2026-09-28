@@ -1,0 +1,5 @@
+str+nv       99:99:99
+str+iv       99:12:12
+str5+iv      99.5:99.5:99.5
+num          :12:12
+segv_check:  SIG11

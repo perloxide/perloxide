@@ -1,0 +1,4 @@
+de_first: n1=1.5 c_reread=1.5 c_g=1.5
+c_first: m1=1 de_reread=1 warns=1
+copies: fresh_under_de=2,5 cache_under_c_then_read_de=3
+handler_switch: w1=4 reread=4 g=4

@@ -1,0 +1,24 @@
+## default env
+inside: $g=new  $$r=old  same cell=no
+after:  $g=via-ref  same cell as before=yes
+helem inside: $h{k}=new $$hr=old
+helem after: $h{k}=old same cell=yes
+aelem inside: $a[0]=new $$ar=old
+aelem after: $a[0]=old same cell=yes
+local on absent key restores absence: yes
+## PERL_HASH_SEED=0
+inside: $g=new  $$r=old  same cell=no
+after:  $g=via-ref  same cell as before=yes
+helem inside: $h{k}=new $$hr=old
+helem after: $h{k}=old same cell=yes
+aelem inside: $a[0]=new $$ar=old
+aelem after: $a[0]=old same cell=yes
+local on absent key restores absence: yes
+## PERL_HASH_SEED=12345678
+inside: $g=new  $$r=old  same cell=no
+after:  $g=via-ref  same cell as before=yes
+helem inside: $h{k}=new $$hr=old
+helem after: $h{k}=old same cell=yes
+aelem inside: $a[0]=new $$ar=old
+aelem after: $a[0]=old same cell=yes
+local on absent key restores absence: yes

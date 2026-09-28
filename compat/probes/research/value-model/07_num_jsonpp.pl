@@ -1,0 +1,15 @@
+use strict; use warnings; use JSON::PP;
+my $j = JSON::PP->new->canonical;
+my $s = "10";
+my $pre = $j->encode([$s]);
+my $n = $s + 0;
+my $post = $j->encode([$s]);
+my $c = $s;
+my $copy = $j->encode([$c]);
+print "clean: pre=$pre post=$post copy=$copy\n";
+my $az = "Az"; $az++;
+my $one = "1"; $one++;
+print "incr: az=", $j->encode([$az]), " one=", $j->encode([$one]), "\n";
+my @r = ("a" .. "e");
+my @r2 = ("0" .. "3");
+print "range: alpha=", $j->encode(\@r), " num=", $j->encode(\@r2), "\n";
