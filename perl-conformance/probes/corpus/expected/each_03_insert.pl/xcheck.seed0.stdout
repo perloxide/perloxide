@@ -1,0 +1,2 @@
+after one insert, remaining iterations=5
+insert-each-step: steps=13 distinct=9 dups=4 final_keys=18

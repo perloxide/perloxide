@@ -1,0 +1,9 @@
+D:b D:a D:c |block| D:temp1 |after temp statement| D:temp2 |after temp2 statement| D:in-f |after f| D:ret D:e2 D:e1 |after die: $@=x| D:arr2 D:arr1 D:arr0 |array| D:h3 D:h2 D:h1 |hash| D:p(peer-defined) D:q |weak cycle|
+D:file-lexical phase=RUN
+D:global1 phase=DESTRUCT
+D:global2 phase=DESTRUCT
+D:w
+END block
+after undef: weak defined=0
+len=3
+weak-in-DESTROY defined=1

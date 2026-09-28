@@ -1,0 +1,39 @@
+01 JSON::PP encode               "10"                               plain="10"                         marked=10
+01 JSON::PP encode               "18446744073709551615"             plain="18446744073709551615"       marked=18446744073709551615
+02 Data::Dumper (XS)             "10"                               plain='10'                         marked=10
+04 Data::Dumper (XS, Useqq)      "18446744073709551615"             plain="18446744073709551615"       marked='18446744073709551615'
+09 Scalar::Util::isdual          "10"                               plain=0                            marked=1
+09 Scalar::Util::isdual          "1.50"                             plain=0                            marked=1
+09 Scalar::Util::isdual          "-0"                               plain=0                            marked=1
+09 Scalar::Util::isdual          "Az"                               plain=0                            marked=1
+09 Scalar::Util::isdual          "a"                                plain=0                            marked=1
+09 Scalar::Util::isdual          "09"                               plain=0                            marked=1
+09 Scalar::Util::isdual          "18446744073709551615"             plain=0                            marked=1
+09 Scalar::Util::isdual          "123456789012345678901234567890"   plain=0                            marked=1
+13 sprintf "%g"                  "-0"                               plain=-0                           marked=0
+14 ~$s                           "10"                               plain=cecf                         marked=3138343436373434303733373039353531363035
+14 ~$s                           "1.50"                             plain=ced1cacf                     marked=3138343436373434303733373039353531363134
+14 ~$s                           "-0"                               plain=d2cf                         marked=3138343436373434303733373039353531363135
+14 ~$s                           "Az"                               plain=be85                         marked=3138343436373434303733373039353531363135
+14 ~$s                           "a"                                plain=9e                           marked=3138343436373434303733373039353531363135
+14 ~$s                           "09"                               plain=cfc6                         marked=3138343436373434303733373039353531363036
+14 ~$s                           "18446744073709551615"             plain=cec7cbcbc9c8cbcbcfc8ccc8cfc6cacacec9ceca marked=30
+14 ~$s                           "123456789012345678901234567890"   plain=cecdcccbcac9c8c7c6cfcecdcccbcac9c8c7c6cfcecdcccbcac9c8c7c6cf marked=30
+15 $s & "1"                      "10"                               plain=31                           marked=30
+15 $s & "1"                      "-0"                               plain=21                           marked=30
+15 $s & "1"                      "Az"                               plain=01                           marked=30
+15 $s & "1"                      "a"                                plain=21                           marked=30
+15 $s & "1"                      "09"                               plain=30                           marked=31
+18 $s++                          "Az"                               plain=Ba                           marked=1
+18 $s++                          "a"                                plain=b                            marked=1
+18 $s++                          "18446744073709551615"             plain=18446744073709551616         marked=1.84467440737096e+19
+18 $s++                          "123456789012345678901234567890"   plain=123456789012345678901234567891 marked=1.23456789012346e+29
+19 $s .. $zz (list)              "10"                               plain=90 elems                     marked=
+19 $s .. $zz (list)              "-0"                               plain=-0                           marked=0
+19 $s .. $zz (list)              "Az"                               plain=651 elems                    marked=0
+19 $s .. $zz (list)              "a"                                plain=702 elems                    marked=0
+19 $s .. $zz (list)              "09"                               plain=91 elems                     marked=
+19 $s .. $zz (list)              "18446744073709551615"             plain=                             marked=-1,0
+19 $s .. $zz (list)              "123456789012345678901234567890"   plain=                             marked=-1,0
+20 $s ~~ "10.0"                  "10"                               plain=0                            marked=1
+(rows omitted where plain and marked agree; ALL=1 shows everything)

@@ -1,0 +1,10 @@
+%t = (): CLEAR
+%t = (x=>1): CLEAR STORE(x,1)
+delete during each: FIRSTKEY NEXTKEY(a) DELETE(b) NEXTKEY(b) NEXTKEY(c)
+each (list ctx): NEXTKEY(a) FETCH(b)
+each (scalar ctx): FIRSTKEY
+each after list-assign: FIRSTKEY FETCH(x) NEXTKEY(x)
+if (%t): SCALAR
+keys (scalar): FIRSTKEY NEXTKEY(a) NEXTKEY(b) NEXTKEY(c)
+keys (void):
+scalar(%t): SCALAR
