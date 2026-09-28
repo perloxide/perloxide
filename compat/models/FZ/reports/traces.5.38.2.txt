@@ -1,0 +1,777 @@
+### assign.K
+m1
+Da:K[1]
+m2
+m-end
+END
+Da:K[1]
+DESTROY created new reference to dead object 'K' during global destruction.
+### assign.O
+m1
+Da:O[1]
+m2
+m-end
+END
+### assign.R
+m1
+Da:R[1]
+Da:P[1]
+m2
+m-end
+END
+### assign.W
+m1
+Da:W[1]
+m2
+m-end
+END
+### assign.X
+m1
+Da:X[1]
+W
+m2
+m-end
+END
+### callarg.K
+m-foo
+Da:K[]
+m1
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### callarg.O
+m-foo
+Da:O[]
+m1
+m-end
+END
+### callarg.R
+m-foo
+Da:R[]
+Da:P[]
+m1
+m-end
+END
+### callarg.W
+m-foo
+Da:W[]
+m1
+m-end
+END
+### callarg.X
+m-foo
+Da:X[]
+W
+m1
+m-end
+END
+### cat.K
+m1
+Da:K[1]
+m2
+m-end
+END
+Da:K[1]
+DESTROY created new reference to dead object 'K' during global destruction.
+### cat.O
+m1
+Da:O[1]
+m2
+m-end
+END
+### cat.R
+m1
+Da:R[1]
+Da:P[1]
+m2
+m-end
+END
+### cat.W
+m1
+Da:W[1]
+m2
+m-end
+END
+### cat.X
+m1
+Da:X[1]
+W
+m2
+m-end
+END
+### cfor.K
+m1
+Dc:O[]
+m2
+m-end
+END
+### cfor.O
+m1
+Dc:O[]
+m2
+m-end
+END
+### cfor.R
+m1
+Dc:O[]
+m2
+m-end
+END
+### cfor.W
+m1
+Dc:O[]
+m2
+m-end
+END
+### cfor.X
+m1
+Dc:O[]
+m2
+m-end
+END
+### cfor0.K
+Dc:O[]
+m1
+m2
+m-end
+END
+### cfor0.O
+Dc:O[]
+m1
+m2
+m-end
+END
+### cfor0.R
+Dc:O[]
+m1
+m2
+m-end
+END
+### cfor0.W
+Dc:O[]
+m1
+m2
+m-end
+END
+### cfor0.X
+Dc:O[]
+m1
+m2
+m-end
+END
+### cfor2.K
+m1
+m3
+Dc:O[]
+m2
+m-end
+END
+### cfor2.O
+m1
+m3
+Dc:O[]
+m2
+m-end
+END
+### cfor2.R
+m1
+m3
+Dc:O[]
+m2
+m-end
+END
+### cfor2.W
+m1
+m3
+Dc:O[]
+m2
+m-end
+END
+### cfor2.X
+m1
+m3
+Dc:O[]
+m2
+m-end
+END
+### clear.K
+m1
+Da:K[]
+m2
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### clear.O
+m1
+Da:O[]
+m2
+m-end
+END
+### clear.R
+m1
+Da:R[]
+Da:P[]
+m2
+m-end
+END
+### clear.W
+m1
+Da:W[]
+m2
+m-end
+END
+### clear.X
+m1
+Da:X[]
+W
+m2
+m-end
+END
+### delete.K
+m1
+Da:K[]
+m2
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### delete.O
+m1
+Da:O[]
+m2
+m-end
+END
+### delete.R
+m1
+Da:R[]
+Da:P[]
+m2
+m-end
+END
+### delete.W
+m1
+Da:W[]
+m2
+m-end
+END
+### delete.X
+m1
+Da:X[]
+W
+m2
+m-end
+END
+### dowhile.K
+m1
+m1
+Dc:O[]
+m2
+m-end
+END
+### dowhile.O
+m1
+m1
+Dc:O[]
+m2
+m-end
+END
+### dowhile.R
+m1
+m1
+Dc:O[]
+m2
+m-end
+END
+### dowhile.W
+m1
+m1
+Dc:O[]
+m2
+m-end
+END
+### dowhile.X
+m1
+m1
+Dc:O[]
+m2
+m-end
+END
+### eval.K
+Da:K[]
+E:boom
+m1
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### eval.O
+Da:O[]
+E:boom
+m1
+m-end
+END
+### eval.R
+Da:R[]
+Da:P[]
+E:boom
+m1
+m-end
+END
+### eval.W
+Da:W[]
+E:boom
+m1
+m-end
+END
+### eval.X
+Da:X[]
+W
+E:boom
+m1
+m-end
+END
+### evaltmp.K
+Da:K[]
+E:boom
+m1
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### evaltmp.O
+Da:O[]
+E:boom
+m1
+m-end
+END
+### evaltmp.R
+Da:R[]
+Da:P[]
+E:boom
+m1
+m-end
+END
+### evaltmp.W
+Da:W[]
+E:boom
+m1
+m-end
+END
+### evaltmp.X
+Da:X[]
+W
+E:boom
+m1
+m-end
+END
+### global.lex
+m1
+m-end
+Db:O[]
+Da:O[]
+END
+### global.weak
+m1
+m-end
+END
+Da:O[1]
+### grep.K
+Dg:K[]
+Dg:K[]
+Dg:K[]
+m1
+m-end
+END
+Dg:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### grep.O
+Dg:O[]
+Dg:O[]
+m1
+m-end
+END
+### grep.R
+Dg:R[]
+Dg:P[]
+Dg:R[]
+Dg:P[]
+m1
+m-end
+END
+### grep.W
+Dg:W[]
+Dg:W[]
+m1
+m-end
+END
+### grep.X
+Dg:X[]
+W
+Dg:X[]
+W
+m1
+m-end
+END
+### if1.K
+m1
+Da:K[]
+m2
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### if1.O
+m1
+Da:O[]
+m2
+m-end
+END
+### if1.R
+m1
+Da:R[]
+Da:P[]
+m2
+m-end
+END
+### if1.W
+m1
+Da:W[]
+m2
+m-end
+END
+### if1.X
+m1
+Da:X[]
+W
+m2
+m-end
+END
+### if2.K
+m1
+m2
+Da:K[]
+m3
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### if2.O
+m1
+m2
+Da:O[]
+m3
+m-end
+END
+### if2.R
+m1
+m2
+Da:R[]
+Da:P[]
+m3
+m-end
+END
+### if2.W
+m1
+m2
+Da:W[]
+m3
+m-end
+END
+### if2.X
+m1
+m2
+Da:X[]
+W
+m3
+m-end
+END
+### local.K
+Da:K[]
+Db:O[]
+m1
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### local.O
+Da:O[]
+Db:O[]
+m1
+m-end
+END
+### local.R
+Da:R[]
+Da:P[]
+Db:O[]
+m1
+m-end
+END
+### local.W
+Da:W[]
+Db:O[]
+m1
+m-end
+END
+### local.X
+Da:X[]
+W
+Db:O[]
+m1
+m-end
+END
+### plainstmt.K
+Da:K[]
+m1
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### plainstmt.O
+Da:O[]
+m1
+m-end
+END
+### plainstmt.R
+Da:R[]
+Da:P[]
+m1
+m-end
+END
+### plainstmt.W
+Da:W[]
+m1
+m-end
+END
+### plainstmt.X
+Da:X[]
+W
+m1
+m-end
+END
+### postwhile.K
+m1
+Dc:O[]
+m2
+m-end
+END
+### postwhile.O
+m1
+Dc:O[]
+m2
+m-end
+END
+### postwhile.R
+m1
+Dc:O[]
+m2
+m-end
+END
+### postwhile.W
+m1
+Dc:O[]
+m2
+m-end
+END
+### postwhile.X
+m1
+Dc:O[]
+m2
+m-end
+END
+### scope3.K
+Db:O[]
+Da:K[]
+Dc:O[]
+m1
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### scope3.O
+Db:O[]
+Da:O[]
+Dc:O[]
+m1
+m-end
+END
+### scope3.R
+Db:O[]
+Da:R[]
+Da:P[]
+Dc:O[]
+m1
+m-end
+END
+### scope3.W
+Db:O[]
+Da:W[]
+Dc:O[]
+m1
+m-end
+END
+### scope3.X
+Db:O[]
+Da:X[]
+W
+Dc:O[]
+m1
+m-end
+END
+### scope3one.K
+Dc:O[]
+Db:O[]
+Da:K[]
+m1
+m-end
+END
+Da:K[]
+DESTROY created new reference to dead object 'K' during global destruction.
+### scope3one.O
+Dc:O[]
+Db:O[]
+Da:O[]
+m1
+m-end
+END
+### scope3one.R
+Dc:O[]
+Db:O[]
+Da:R[]
+Da:P[]
+m1
+m-end
+END
+### scope3one.W
+Dc:O[]
+Db:O[]
+Da:W[]
+m1
+m-end
+END
+### scope3one.X
+Dc:O[]
+Db:O[]
+Da:X[]
+W
+m1
+m-end
+END
+### tiedweak.T
+Sta(def)
+Stb(def)
+m1
+Da:O[]
+Sta(undef)
+Stb(undef)
+E:
+m2
+m3
+m-end
+END
+### tiedweak.TX
+Sta(def)
+Stb(def)
+m1
+Da:O[]
+Sta(undef)
+E:sd
+m2
+m3
+m-end
+END
+### undef.K
+m1
+Da:K[1]
+m2
+m-end
+END
+Da:K[1]
+DESTROY created new reference to dead object 'K' during global destruction.
+### undef.O
+m1
+Da:O[1]
+m2
+m-end
+END
+### undef.R
+m1
+Da:R[1]
+Da:P[1]
+m2
+m-end
+END
+### undef.W
+m1
+Da:W[1]
+m2
+m-end
+END
+### undef.X
+m1
+Da:X[1]
+W
+m2
+m-end
+END
+### vh.list
+Dh:O[]
+Dq:O[]
+m1
+m-end
+END
+### vh.void
+Dh:O[]
+Dq:O[]
+m1
+m-end
+END
+### vq.list
+Dq:O[]
+m1
+m-end
+Dh:O[]
+END
+### vq.scalar
+Dq:O[]
+m1
+m-end
+Dh:O[]
+END
+### vq.void
+Dq:O[]
+Dh:O[]
+m1
+m-end
+END
+### while.K
+Dc:O[]
+m1
+m2
+m-end
+END
+### while.O
+Dc:O[]
+m1
+m2
+m-end
+END
+### while.R
+Dc:O[]
+m1
+m2
+m-end
+END
+### while.W
+Dc:O[]
+m1
+m2
+m-end
+END
+### while.X
+Dc:O[]
+m1
+m2
+m-end
+END
