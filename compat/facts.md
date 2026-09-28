@@ -1,0 +1,49 @@
+# Facts
+
+The prose index of the reference: every established fact about Perl's behavior, grouped by area, each entry naming the
+rule, the Perl function that fixes it, and the probe or model row that demonstrates it on the pinned Perl
+(`profile.md`).  A fact appears here only with that demonstration; a rule without one is not admitted.  Dense areas
+point at their model's section text instead of restating the transition function.
+
+Nothing here is about any implementation of Perl.  What an implementation does where Perl's behavior is undefined
+(`undefined.md`) is that implementation's own record.
+
+## Value flags
+
+The string and numeric forms of a scalar, the per-value flags recording which forms have been derived (public or
+private, `IsUV`, derived-from-integer, private-only, stringified), the copy-on-write state and buffer length that decide
+later transitions, and the `Dual` case.
+
+Section: `models/VF/section.md`.  Model: `models/VF/VF.pm`.  Verification: `models/VF/reports/coverage.txt`.  Probes:
+`probes/research/value-flags/`, `probes/research/value-model/` (01, 07-11, 15, 17, 18, 22, 23).  Suites:
+`suites/reentry-matrix`, `suites/reentry-matrix-864`, `suites/reentry-6840`, `suites/transitions`.
+
+Entries: to be filled from the section text.
+
+## `local` and the save stack
+
+Section: `models/SS/section.md`.  Model: `models/SS/SS.pm` (312 cells, both Perls).  Probes:
+`probes/research/value-model/` (01-03), `probes/corpus/local_*`, `probes/corpus/tie_*`.
+
+## Finalization and temporary lifetime
+
+Section: `models/FZ/section.md`.  Model: `models/FZ/FZ.pm` (114 scenarios, both Perls).  Probes:
+`probes/research/value-model/` (04-06, 16, 19, 21), `probes/corpus/destroy_*`, `probes/corpus/gd_*`.
+
+## The hash engine
+
+Section: `models/HV/section.md`.  Model: `models/HV/HV.pm` (bucket-level and program-level lanes, both Perls).  Probes:
+`probes/research/value-model/` (12, 13), `probes/corpus/each_*`, `probes/corpus/order_*`.
+
+## The UTF-8 flag and taint
+
+Section: `models/PV/section.md`.  Model: `models/PV/PV.pm` (in progress; `status.md`).
+
+## Element aliasing
+
+Suite: `suites/aliasing` (27 cases, 25 identical on both Perls, 2 undefined in Perl).
+
+## Address identity, literal cells, and global destruction
+
+Probes: `probes/corpus/addr_*`, `probes/corpus/consts_*`, `probes/corpus/gd_*`, `probes/research/value-model/` (14),
+each cited in `harness/sources.md`.
