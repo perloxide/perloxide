@@ -1,0 +1,2 @@
+use strict; use warnings; use Scalar::Util qw(refaddr weaken);
+my @a; for (1..3) { my $x = $_; push @a, refaddr(\$x) } print +(@a == grep { $_ == $a[0] } @a) ? "same" : "differ"; my (@k,@b); for (1..3) { my $x = $_; push @k, \$x; push @b, refaddr(\$x) } print " ", (3 == keys %{{map {$_=>1} @b}}) ? "distinct" : "repeat"; my @o; for my $i (1..3) { my $q=$i; my $r=\$q; push @o, refaddr($r); push @k, $r if $i==2 } print " ", join("", map { $o[$_]==$o[0] ? "A":"B" } 0..2), "\n";
