@@ -1,0 +1,182 @@
+396c396
+< B.feature.T.unpC0U	302c30	0	3	48,44,48	1
+---
+> B.feature.T.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	1
+453c453
+< B.feature.U.unpC0U	302c30	0	3	48,44,48	0
+---
+> B.feature.U.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	0
+510c510
+< B.locale.T.unpC0U	302c30	0	3	48,44,48	1
+---
+> B.locale.T.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	1
+567c567
+< B.locale.U.unpC0U	302c30	0	3	48,44,48	0
+---
+> B.locale.U.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	0
+624c624
+< B.none.T.unpC0U	302c30	0	3	48,44,48	1
+---
+> B.none.T.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	1
+681c681
+< B.none.U.unpC0U	302c30	0	3	48,44,48	0
+---
+> B.none.U.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	0
+1422c1422
+< L.feature.T.unpC0U	30	0	1	48	1
+---
+> L.feature.T.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+1479c1479
+< L.feature.U.unpC0U	30	0	1	48	0
+---
+> L.feature.U.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+1536c1536
+< L.locale.T.unpC0U	30	0	1	48	1
+---
+> L.locale.T.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+1593c1593
+< L.locale.U.unpC0U	30	0	1	48	0
+---
+> L.locale.U.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+1650c1650
+< L.none.T.unpC0U	30	0	1	48	1
+---
+> L.none.T.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+1707c1707
+< L.none.U.unpC0U	30	0	1	48	0
+---
+> L.none.U.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+1743c1743
+< M.feature.T.red	30	0	1	48	0
+---
+> M.feature.T.red	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1749,1750c1749,1750
+< M.feature.T.rev	c328	1	1	0	1
+< M.feature.T.rew	30	0	1	48	0
+---
+> M.feature.T.rev	28c3	1	1	40,0	1
+> M.feature.T.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1753c1753
+< M.feature.T.rewu	30	0	1	48	0
+---
+> M.feature.T.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1759,1760c1759,1760
+< M.feature.T.tr	c328	1	1	0	1
+< M.feature.T.trcnt	30	0	1	48	1
+---
+> M.feature.T.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+> M.feature.T.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1765c1765
+< M.feature.T.unpU	302c3430	0	4	48,44,52,48	1
+---
+> M.feature.T.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+1800c1800
+< M.feature.U.red	30	0	1	48	0
+---
+> M.feature.U.red	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1807c1807
+< M.feature.U.rew	30	0	1	48	0
+---
+> M.feature.U.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1810c1810
+< M.feature.U.rewu	30	0	1	48	0
+---
+> M.feature.U.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1816,1817c1816,1817
+< M.feature.U.tr	c328	1	1	0	0
+< M.feature.U.trcnt	30	0	1	48	0
+---
+> M.feature.U.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+> M.feature.U.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1822c1822
+< M.feature.U.unpU	302c3430	0	4	48,44,52,48	0
+---
+> M.feature.U.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+1863,1864c1863,1864
+< M.locale.T.rev	c328	1	1	0	1
+< M.locale.T.rew	30	0	1	48	0
+---
+> M.locale.T.rev	28c3	1	1	40,0	1
+> M.locale.T.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1866,1867c1866,1867
+< M.locale.T.rewl	30	0	1	48	0
+< M.locale.T.rewu	30	0	1	48	0
+---
+> M.locale.T.rewl	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+> M.locale.T.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1873,1874c1873,1874
+< M.locale.T.tr	c328	1	1	0	1
+< M.locale.T.trcnt	30	0	1	48	1
+---
+> M.locale.T.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+> M.locale.T.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1879c1879
+< M.locale.T.unpU	302c3430	0	4	48,44,52,48	1
+---
+> M.locale.T.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+1921c1921
+< M.locale.U.rew	30	0	1	48	0
+---
+> M.locale.U.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1923,1924c1923,1924
+< M.locale.U.rewl	30	0	1	48	0
+< M.locale.U.rewu	30	0	1	48	0
+---
+> M.locale.U.rewl	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+> M.locale.U.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1930,1931c1930,1931
+< M.locale.U.tr	c328	1	1	0	0
+< M.locale.U.trcnt	30	0	1	48	0
+---
+> M.locale.U.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+> M.locale.U.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1936c1936
+< M.locale.U.unpU	302c3430	0	4	48,44,52,48	0
+---
+> M.locale.U.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+1971c1971
+< M.none.T.red	30	0	1	48	0
+---
+> M.none.T.red	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1977,1978c1977,1978
+< M.none.T.rev	c328	1	1	0	1
+< M.none.T.rew	30	0	1	48	0
+---
+> M.none.T.rev	28c3	1	1	40,0	1
+> M.none.T.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1981c1981
+< M.none.T.rewu	30	0	1	48	0
+---
+> M.none.T.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1987,1988c1987,1988
+< M.none.T.tr	c328	1	1	0	1
+< M.none.T.trcnt	30	0	1	48	1
+---
+> M.none.T.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+> M.none.T.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+1993c1993
+< M.none.T.unpU	302c3430	0	4	48,44,52,48	1
+---
+> M.none.T.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+2028c2028
+< M.none.U.red	30	0	1	48	0
+---
+> M.none.U.red	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+2035c2035
+< M.none.U.rew	30	0	1	48	0
+---
+> M.none.U.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+2038c2038
+< M.none.U.rewu	30	0	1	48	0
+---
+> M.none.U.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+2044,2045c2044,2045
+< M.none.U.tr	c328	1	1	0	0
+< M.none.U.trcnt	30	0	1	48	0
+---
+> M.none.U.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+> M.none.U.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+2050c2050
+< M.none.U.unpU	302c3430	0	4	48,44,52,48	0
+---
+> M.none.U.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	0

@@ -1,0 +1,2052 @@
+A.feature.T.apb	616263b5	0	4	97,98,99,181	1
+A.feature.T.apl	616263c2b5	1	4	97,98,99,181	1
+A.feature.T.apu	616263c480	1	4	97,98,99,256	1
+A.feature.T.arith	33	0	1	51	1
+A.feature.T.cap	616263	0	3	97,98,99	0
+A.feature.T.catb	616263b5	0	4	97,98,99,181	1
+A.feature.T.catl	616263c2b5	1	4	97,98,99,181	1
+A.feature.T.catu	616263c480	1	4	97,98,99,256	1
+A.feature.T.chomp	616263	0	3	97,98,99	1
+A.feature.T.chop	6162	0	2	97,98	1
+A.feature.T.chr	61	0	1	97	0
+A.feature.T.cmpb	2d31	0	2	45,49	1
+A.feature.T.copy	616263	0	3	97,98,99	1
+A.feature.T.dec	616263	0	3	97,98,99	1
+A.feature.T.down	616263	0	3	97,98,99	1
+A.feature.T.downok	616263	0	3	97,98,99	1
+A.feature.T.enc	616263	0	3	97,98,99	1
+A.feature.T.eqb	30	0	1	48	0
+A.feature.T.eql	30	0	1	48	0
+A.feature.T.fc	616263	0	3	97,98,99	1
+A.feature.T.hkey	616263	0	3	97,98,99	0
+A.feature.T.hkey2	31	0	1	49	0
+A.feature.T.idx	2d31	0	2	45,49	1
+A.feature.T.joinb	6162632cb5	0	5	97,98,99,44,181	1
+A.feature.T.joinu	6162632cc480	1	5	97,98,99,44,256	1
+A.feature.T.lc	616263	0	3	97,98,99	1
+A.feature.T.lcf	616263	0	3	97,98,99	1
+A.feature.T.len	33	0	1	51	1
+A.feature.T.ord	3937	0	2	57,55	1
+A.feature.T.packA	616263	0	3	97,98,99	1
+A.feature.T.packU	61	1	1	97	1
+A.feature.T.packa	616263	0	3	97,98,99	1
+A.feature.T.red	30	0	1	48	0
+A.feature.T.rei	30	0	1	48	0
+A.feature.T.reia	30	0	1	48	0
+A.feature.T.reiu	30	0	1	48	0
+A.feature.T.rep	616263616263	0	6	97,98,99,97,98,99	1
+A.feature.T.res	30	0	1	48	0
+A.feature.T.rev	636261	0	3	99,98,97	1
+A.feature.T.rew	31	0	1	49	0
+A.feature.T.rewa	31	0	1	49	0
+A.feature.T.rewl	31	0	1	49	0
+A.feature.T.rewu	31	0	1	49	0
+A.feature.T.spc	61	0	1	97	1
+A.feature.T.spd	33	0	1	51	1
+A.feature.T.split	39377c39387c3939	0	8	57,55,124,57,56,124,57,57	1
+A.feature.T.sps	616263	0	3	97,98,99	1
+A.feature.T.sub1	61	0	1	97	1
+A.feature.T.tr	616263	0	3	97,98,99	1
+A.feature.T.trcnt	30	0	1	48	1
+A.feature.T.uc	414243	0	3	65,66,67	1
+A.feature.T.ucf	416263	0	3	65,98,99	1
+A.feature.T.unpC	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.feature.T.unpC0U	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.feature.T.unpU	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.feature.T.unpU0C	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.feature.T.up	616263	1	3	97,98,99	1
+A.feature.U.apb	616263b5	0	4	97,98,99,181	0
+A.feature.U.apl	616263c2b5	1	4	97,98,99,181	0
+A.feature.U.apu	616263c480	1	4	97,98,99,256	0
+A.feature.U.arith	33	0	1	51	0
+A.feature.U.cap	616263	0	3	97,98,99	0
+A.feature.U.catb	616263b5	0	4	97,98,99,181	0
+A.feature.U.catl	616263c2b5	1	4	97,98,99,181	0
+A.feature.U.catu	616263c480	1	4	97,98,99,256	0
+A.feature.U.chomp	616263	0	3	97,98,99	0
+A.feature.U.chop	6162	0	2	97,98	0
+A.feature.U.chr	61	0	1	97	0
+A.feature.U.cmpb	2d31	0	2	45,49	0
+A.feature.U.copy	616263	0	3	97,98,99	0
+A.feature.U.dec	616263	0	3	97,98,99	0
+A.feature.U.down	616263	0	3	97,98,99	0
+A.feature.U.downok	616263	0	3	97,98,99	0
+A.feature.U.enc	616263	0	3	97,98,99	0
+A.feature.U.eqb	30	0	1	48	0
+A.feature.U.eql	30	0	1	48	0
+A.feature.U.fc	616263	0	3	97,98,99	0
+A.feature.U.hkey	616263	0	3	97,98,99	0
+A.feature.U.hkey2	31	0	1	49	0
+A.feature.U.idx	2d31	0	2	45,49	0
+A.feature.U.joinb	6162632cb5	0	5	97,98,99,44,181	0
+A.feature.U.joinu	6162632cc480	1	5	97,98,99,44,256	0
+A.feature.U.lc	616263	0	3	97,98,99	0
+A.feature.U.lcf	616263	0	3	97,98,99	0
+A.feature.U.len	33	0	1	51	0
+A.feature.U.ord	3937	0	2	57,55	0
+A.feature.U.packA	616263	0	3	97,98,99	0
+A.feature.U.packU	61	1	1	97	0
+A.feature.U.packa	616263	0	3	97,98,99	0
+A.feature.U.red	30	0	1	48	0
+A.feature.U.rei	30	0	1	48	0
+A.feature.U.reia	30	0	1	48	0
+A.feature.U.reiu	30	0	1	48	0
+A.feature.U.rep	616263616263	0	6	97,98,99,97,98,99	0
+A.feature.U.res	30	0	1	48	0
+A.feature.U.rev	636261	0	3	99,98,97	0
+A.feature.U.rew	31	0	1	49	0
+A.feature.U.rewa	31	0	1	49	0
+A.feature.U.rewl	31	0	1	49	0
+A.feature.U.rewu	31	0	1	49	0
+A.feature.U.spc	61	0	1	97	0
+A.feature.U.spd	33	0	1	51	0
+A.feature.U.split	39377c39387c3939	0	8	57,55,124,57,56,124,57,57	0
+A.feature.U.sps	616263	0	3	97,98,99	0
+A.feature.U.sub1	61	0	1	97	0
+A.feature.U.tr	616263	0	3	97,98,99	0
+A.feature.U.trcnt	30	0	1	48	0
+A.feature.U.uc	414243	0	3	65,66,67	0
+A.feature.U.ucf	416263	0	3	65,98,99	0
+A.feature.U.unpC	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.feature.U.unpC0U	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.feature.U.unpU	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.feature.U.unpU0C	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.feature.U.up	616263	1	3	97,98,99	0
+A.locale.T.apb	616263b5	0	4	97,98,99,181	1
+A.locale.T.apl	616263c2b5	1	4	97,98,99,181	1
+A.locale.T.apu	616263c480	1	4	97,98,99,256	1
+A.locale.T.arith	33	0	1	51	1
+A.locale.T.cap	616263	0	3	97,98,99	0
+A.locale.T.catb	616263b5	0	4	97,98,99,181	1
+A.locale.T.catl	616263c2b5	1	4	97,98,99,181	1
+A.locale.T.catu	616263c480	1	4	97,98,99,256	1
+A.locale.T.chomp	616263	0	3	97,98,99	1
+A.locale.T.chop	6162	0	2	97,98	1
+A.locale.T.chr	61	0	1	97	0
+A.locale.T.cmpb	2d31	0	2	45,49	1
+A.locale.T.copy	616263	0	3	97,98,99	1
+A.locale.T.dec	616263	0	3	97,98,99	1
+A.locale.T.down	616263	0	3	97,98,99	1
+A.locale.T.downok	616263	0	3	97,98,99	1
+A.locale.T.enc	616263	0	3	97,98,99	1
+A.locale.T.eqb	30	0	1	48	0
+A.locale.T.eql	30	0	1	48	0
+A.locale.T.fc	616263	0	3	97,98,99	1
+A.locale.T.hkey	616263	0	3	97,98,99	0
+A.locale.T.hkey2	31	0	1	49	0
+A.locale.T.idx	2d31	0	2	45,49	1
+A.locale.T.joinb	6162632cb5	0	5	97,98,99,44,181	1
+A.locale.T.joinu	6162632cc480	1	5	97,98,99,44,256	1
+A.locale.T.lc	616263	0	3	97,98,99	1
+A.locale.T.lcf	616263	0	3	97,98,99	1
+A.locale.T.len	33	0	1	51	1
+A.locale.T.ord	3937	0	2	57,55	1
+A.locale.T.packA	616263	0	3	97,98,99	1
+A.locale.T.packU	61	1	1	97	1
+A.locale.T.packa	616263	0	3	97,98,99	1
+A.locale.T.red	30	0	1	48	0
+A.locale.T.rei	30	0	1	48	0
+A.locale.T.reia	30	0	1	48	0
+A.locale.T.reiu	30	0	1	48	0
+A.locale.T.rep	616263616263	0	6	97,98,99,97,98,99	1
+A.locale.T.res	30	0	1	48	0
+A.locale.T.rev	636261	0	3	99,98,97	1
+A.locale.T.rew	31	0	1	49	0
+A.locale.T.rewa	31	0	1	49	0
+A.locale.T.rewl	31	0	1	49	0
+A.locale.T.rewu	31	0	1	49	0
+A.locale.T.spc	61	0	1	97	1
+A.locale.T.spd	33	0	1	51	1
+A.locale.T.split	39377c39387c3939	0	8	57,55,124,57,56,124,57,57	1
+A.locale.T.sps	616263	0	3	97,98,99	1
+A.locale.T.sub1	61	0	1	97	1
+A.locale.T.tr	616263	0	3	97,98,99	1
+A.locale.T.trcnt	30	0	1	48	1
+A.locale.T.uc	414243	0	3	65,66,67	1
+A.locale.T.ucf	416263	0	3	65,98,99	1
+A.locale.T.unpC	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.locale.T.unpC0U	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.locale.T.unpU	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.locale.T.unpU0C	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.locale.T.up	616263	1	3	97,98,99	1
+A.locale.U.apb	616263b5	0	4	97,98,99,181	0
+A.locale.U.apl	616263c2b5	1	4	97,98,99,181	0
+A.locale.U.apu	616263c480	1	4	97,98,99,256	0
+A.locale.U.arith	33	0	1	51	0
+A.locale.U.cap	616263	0	3	97,98,99	0
+A.locale.U.catb	616263b5	0	4	97,98,99,181	0
+A.locale.U.catl	616263c2b5	1	4	97,98,99,181	0
+A.locale.U.catu	616263c480	1	4	97,98,99,256	0
+A.locale.U.chomp	616263	0	3	97,98,99	0
+A.locale.U.chop	6162	0	2	97,98	0
+A.locale.U.chr	61	0	1	97	0
+A.locale.U.cmpb	2d31	0	2	45,49	0
+A.locale.U.copy	616263	0	3	97,98,99	0
+A.locale.U.dec	616263	0	3	97,98,99	0
+A.locale.U.down	616263	0	3	97,98,99	0
+A.locale.U.downok	616263	0	3	97,98,99	0
+A.locale.U.enc	616263	0	3	97,98,99	0
+A.locale.U.eqb	30	0	1	48	0
+A.locale.U.eql	30	0	1	48	0
+A.locale.U.fc	616263	0	3	97,98,99	0
+A.locale.U.hkey	616263	0	3	97,98,99	0
+A.locale.U.hkey2	31	0	1	49	0
+A.locale.U.idx	2d31	0	2	45,49	0
+A.locale.U.joinb	6162632cb5	0	5	97,98,99,44,181	0
+A.locale.U.joinu	6162632cc480	1	5	97,98,99,44,256	0
+A.locale.U.lc	616263	0	3	97,98,99	0
+A.locale.U.lcf	616263	0	3	97,98,99	0
+A.locale.U.len	33	0	1	51	0
+A.locale.U.ord	3937	0	2	57,55	0
+A.locale.U.packA	616263	0	3	97,98,99	0
+A.locale.U.packU	61	1	1	97	0
+A.locale.U.packa	616263	0	3	97,98,99	0
+A.locale.U.red	30	0	1	48	0
+A.locale.U.rei	30	0	1	48	0
+A.locale.U.reia	30	0	1	48	0
+A.locale.U.reiu	30	0	1	48	0
+A.locale.U.rep	616263616263	0	6	97,98,99,97,98,99	0
+A.locale.U.res	30	0	1	48	0
+A.locale.U.rev	636261	0	3	99,98,97	0
+A.locale.U.rew	31	0	1	49	0
+A.locale.U.rewa	31	0	1	49	0
+A.locale.U.rewl	31	0	1	49	0
+A.locale.U.rewu	31	0	1	49	0
+A.locale.U.spc	61	0	1	97	0
+A.locale.U.spd	33	0	1	51	0
+A.locale.U.split	39377c39387c3939	0	8	57,55,124,57,56,124,57,57	0
+A.locale.U.sps	616263	0	3	97,98,99	0
+A.locale.U.sub1	61	0	1	97	0
+A.locale.U.tr	616263	0	3	97,98,99	0
+A.locale.U.trcnt	30	0	1	48	0
+A.locale.U.uc	414243	0	3	65,66,67	0
+A.locale.U.ucf	416263	0	3	65,98,99	0
+A.locale.U.unpC	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.locale.U.unpC0U	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.locale.U.unpU	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.locale.U.unpU0C	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.locale.U.up	616263	1	3	97,98,99	0
+A.none.T.apb	616263b5	0	4	97,98,99,181	1
+A.none.T.apl	616263c2b5	1	4	97,98,99,181	1
+A.none.T.apu	616263c480	1	4	97,98,99,256	1
+A.none.T.arith	33	0	1	51	1
+A.none.T.cap	616263	0	3	97,98,99	0
+A.none.T.catb	616263b5	0	4	97,98,99,181	1
+A.none.T.catl	616263c2b5	1	4	97,98,99,181	1
+A.none.T.catu	616263c480	1	4	97,98,99,256	1
+A.none.T.chomp	616263	0	3	97,98,99	1
+A.none.T.chop	6162	0	2	97,98	1
+A.none.T.chr	61	0	1	97	0
+A.none.T.cmpb	2d31	0	2	45,49	1
+A.none.T.copy	616263	0	3	97,98,99	1
+A.none.T.dec	616263	0	3	97,98,99	1
+A.none.T.down	616263	0	3	97,98,99	1
+A.none.T.downok	616263	0	3	97,98,99	1
+A.none.T.enc	616263	0	3	97,98,99	1
+A.none.T.eqb	30	0	1	48	0
+A.none.T.eql	30	0	1	48	0
+A.none.T.fc	616263	0	3	97,98,99	1
+A.none.T.hkey	616263	0	3	97,98,99	0
+A.none.T.hkey2	31	0	1	49	0
+A.none.T.idx	2d31	0	2	45,49	1
+A.none.T.joinb	6162632cb5	0	5	97,98,99,44,181	1
+A.none.T.joinu	6162632cc480	1	5	97,98,99,44,256	1
+A.none.T.lc	616263	0	3	97,98,99	1
+A.none.T.lcf	616263	0	3	97,98,99	1
+A.none.T.len	33	0	1	51	1
+A.none.T.ord	3937	0	2	57,55	1
+A.none.T.packA	616263	0	3	97,98,99	1
+A.none.T.packU	61	1	1	97	1
+A.none.T.packa	616263	0	3	97,98,99	1
+A.none.T.red	30	0	1	48	0
+A.none.T.rei	30	0	1	48	0
+A.none.T.reia	30	0	1	48	0
+A.none.T.reiu	30	0	1	48	0
+A.none.T.rep	616263616263	0	6	97,98,99,97,98,99	1
+A.none.T.res	30	0	1	48	0
+A.none.T.rev	636261	0	3	99,98,97	1
+A.none.T.rew	31	0	1	49	0
+A.none.T.rewa	31	0	1	49	0
+A.none.T.rewl	31	0	1	49	0
+A.none.T.rewu	31	0	1	49	0
+A.none.T.spc	61	0	1	97	1
+A.none.T.spd	33	0	1	51	1
+A.none.T.split	39377c39387c3939	0	8	57,55,124,57,56,124,57,57	1
+A.none.T.sps	616263	0	3	97,98,99	1
+A.none.T.sub1	61	0	1	97	1
+A.none.T.tr	616263	0	3	97,98,99	1
+A.none.T.trcnt	30	0	1	48	1
+A.none.T.uc	414243	0	3	65,66,67	1
+A.none.T.ucf	416263	0	3	65,98,99	1
+A.none.T.unpC	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.none.T.unpC0U	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.none.T.unpU	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.none.T.unpU0C	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	1
+A.none.T.up	616263	1	3	97,98,99	1
+A.none.U.apb	616263b5	0	4	97,98,99,181	0
+A.none.U.apl	616263c2b5	1	4	97,98,99,181	0
+A.none.U.apu	616263c480	1	4	97,98,99,256	0
+A.none.U.arith	33	0	1	51	0
+A.none.U.cap	616263	0	3	97,98,99	0
+A.none.U.catb	616263b5	0	4	97,98,99,181	0
+A.none.U.catl	616263c2b5	1	4	97,98,99,181	0
+A.none.U.catu	616263c480	1	4	97,98,99,256	0
+A.none.U.chomp	616263	0	3	97,98,99	0
+A.none.U.chop	6162	0	2	97,98	0
+A.none.U.chr	61	0	1	97	0
+A.none.U.cmpb	2d31	0	2	45,49	0
+A.none.U.copy	616263	0	3	97,98,99	0
+A.none.U.dec	616263	0	3	97,98,99	0
+A.none.U.down	616263	0	3	97,98,99	0
+A.none.U.downok	616263	0	3	97,98,99	0
+A.none.U.enc	616263	0	3	97,98,99	0
+A.none.U.eqb	30	0	1	48	0
+A.none.U.eql	30	0	1	48	0
+A.none.U.fc	616263	0	3	97,98,99	0
+A.none.U.hkey	616263	0	3	97,98,99	0
+A.none.U.hkey2	31	0	1	49	0
+A.none.U.idx	2d31	0	2	45,49	0
+A.none.U.joinb	6162632cb5	0	5	97,98,99,44,181	0
+A.none.U.joinu	6162632cc480	1	5	97,98,99,44,256	0
+A.none.U.lc	616263	0	3	97,98,99	0
+A.none.U.lcf	616263	0	3	97,98,99	0
+A.none.U.len	33	0	1	51	0
+A.none.U.ord	3937	0	2	57,55	0
+A.none.U.packA	616263	0	3	97,98,99	0
+A.none.U.packU	61	1	1	97	0
+A.none.U.packa	616263	0	3	97,98,99	0
+A.none.U.red	30	0	1	48	0
+A.none.U.rei	30	0	1	48	0
+A.none.U.reia	30	0	1	48	0
+A.none.U.reiu	30	0	1	48	0
+A.none.U.rep	616263616263	0	6	97,98,99,97,98,99	0
+A.none.U.res	30	0	1	48	0
+A.none.U.rev	636261	0	3	99,98,97	0
+A.none.U.rew	31	0	1	49	0
+A.none.U.rewa	31	0	1	49	0
+A.none.U.rewl	31	0	1	49	0
+A.none.U.rewu	31	0	1	49	0
+A.none.U.spc	61	0	1	97	0
+A.none.U.spd	33	0	1	51	0
+A.none.U.split	39377c39387c3939	0	8	57,55,124,57,56,124,57,57	0
+A.none.U.sps	616263	0	3	97,98,99	0
+A.none.U.sub1	61	0	1	97	0
+A.none.U.tr	616263	0	3	97,98,99	0
+A.none.U.trcnt	30	0	1	48	0
+A.none.U.uc	414243	0	3	65,66,67	0
+A.none.U.ucf	416263	0	3	65,98,99	0
+A.none.U.unpC	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.none.U.unpC0U	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.none.U.unpU	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.none.U.unpU0C	39372c39382c3939	0	8	57,55,44,57,56,44,57,57	0
+A.none.U.up	616263	1	3	97,98,99	0
+B.feature.T.apb	b5e9b5	0	3	181,233,181	1
+B.feature.T.apl	c2b5c3a9c2b5	1	3	181,233,181	1
+B.feature.T.apu	c2b5c3a9c480	1	3	181,233,256	1
+B.feature.T.arith	32	0	1	50	1
+B.feature.T.cap	b5e9	0	2	181,233	0
+B.feature.T.catb	b5e9b5	0	3	181,233,181	1
+B.feature.T.catl	c2b5c3a9c2b5	1	3	181,233,181	1
+B.feature.T.catu	c2b5c3a9c480	1	3	181,233,256	1
+B.feature.T.chomp	b5e9	0	2	181,233	1
+B.feature.T.chop	b5	0	1	181	1
+B.feature.T.chr	b5	0	1	181	0
+B.feature.T.cmpb	30	0	1	48	1
+B.feature.T.copy	b5e9	0	2	181,233	1
+B.feature.T.dec	b5e9	0	2	181,233	1
+B.feature.T.down	b5e9	0	2	181,233	1
+B.feature.T.downok	b5e9	0	2	181,233	1
+B.feature.T.enc	c2b5c3a9	0	4	194,181,195,169	1
+B.feature.T.eqb	31	0	1	49	0
+B.feature.T.eql	31	0	1	49	0
+B.feature.T.fc	cebcc3a9	1	2	956,233	1
+B.feature.T.hkey	b5e9	0	2	181,233	0
+B.feature.T.hkey2	31	0	1	49	0
+B.feature.T.idx	30	0	1	48	1
+B.feature.T.joinb	b5e92cb5	0	4	181,233,44,181	1
+B.feature.T.joinu	c2b5c3a92cc480	1	4	181,233,44,256	1
+B.feature.T.lc	b5e9	0	2	181,233	1
+B.feature.T.lcf	b5e9	0	2	181,233	1
+B.feature.T.len	32	0	1	50	1
+B.feature.T.ord	313831	0	3	49,56,49	1
+B.feature.T.packA	b5e9	0	2	181,233	1
+B.feature.T.packU	c2b5	1	1	181	1
+B.feature.T.packa	b5e9	0	2	181,233	1
+B.feature.T.red	30	0	1	48	0
+B.feature.T.rei	31	0	1	49	0
+B.feature.T.reia	31	0	1	49	0
+B.feature.T.reiu	31	0	1	49	0
+B.feature.T.rep	b5e9b5e9	0	4	181,233,181,233	1
+B.feature.T.res	30	0	1	48	0
+B.feature.T.rev	e9b5	0	2	233,181	1
+B.feature.T.rew	31	0	1	49	0
+B.feature.T.rewa	30	0	1	48	0
+B.feature.T.rewl	30	0	1	48	0
+B.feature.T.rewu	31	0	1	49	0
+B.feature.T.spc	b5	0	1	181	1
+B.feature.T.spd	32	0	1	50	1
+B.feature.T.split	3138317c323333	0	7	49,56,49,124,50,51,51	1
+B.feature.T.sps	b5e9	0	2	181,233	1
+B.feature.T.sub1	b5	0	1	181	1
+B.feature.T.tr	58e9	0	2	88,233	1
+B.feature.T.trcnt	31	0	1	49	1
+B.feature.T.uc	ce9cc389	1	2	924,201	1
+B.feature.T.ucf	ce9cc3a9	1	2	924,233	1
+B.feature.T.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	1
+B.feature.T.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	1
+B.feature.T.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	1
+B.feature.T.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	1
+B.feature.T.up	c2b5c3a9	1	2	181,233	1
+B.feature.U.apb	b5e9b5	0	3	181,233,181	0
+B.feature.U.apl	c2b5c3a9c2b5	1	3	181,233,181	0
+B.feature.U.apu	c2b5c3a9c480	1	3	181,233,256	0
+B.feature.U.arith	32	0	1	50	0
+B.feature.U.cap	b5e9	0	2	181,233	0
+B.feature.U.catb	b5e9b5	0	3	181,233,181	0
+B.feature.U.catl	c2b5c3a9c2b5	1	3	181,233,181	0
+B.feature.U.catu	c2b5c3a9c480	1	3	181,233,256	0
+B.feature.U.chomp	b5e9	0	2	181,233	0
+B.feature.U.chop	b5	0	1	181	0
+B.feature.U.chr	b5	0	1	181	0
+B.feature.U.cmpb	30	0	1	48	0
+B.feature.U.copy	b5e9	0	2	181,233	0
+B.feature.U.dec	b5e9	0	2	181,233	0
+B.feature.U.down	b5e9	0	2	181,233	0
+B.feature.U.downok	b5e9	0	2	181,233	0
+B.feature.U.enc	c2b5c3a9	0	4	194,181,195,169	0
+B.feature.U.eqb	31	0	1	49	0
+B.feature.U.eql	31	0	1	49	0
+B.feature.U.fc	cebcc3a9	1	2	956,233	0
+B.feature.U.hkey	b5e9	0	2	181,233	0
+B.feature.U.hkey2	31	0	1	49	0
+B.feature.U.idx	30	0	1	48	0
+B.feature.U.joinb	b5e92cb5	0	4	181,233,44,181	0
+B.feature.U.joinu	c2b5c3a92cc480	1	4	181,233,44,256	0
+B.feature.U.lc	b5e9	0	2	181,233	0
+B.feature.U.lcf	b5e9	0	2	181,233	0
+B.feature.U.len	32	0	1	50	0
+B.feature.U.ord	313831	0	3	49,56,49	0
+B.feature.U.packA	b5e9	0	2	181,233	0
+B.feature.U.packU	c2b5	1	1	181	0
+B.feature.U.packa	b5e9	0	2	181,233	0
+B.feature.U.red	30	0	1	48	0
+B.feature.U.rei	31	0	1	49	0
+B.feature.U.reia	31	0	1	49	0
+B.feature.U.reiu	31	0	1	49	0
+B.feature.U.rep	b5e9b5e9	0	4	181,233,181,233	0
+B.feature.U.res	30	0	1	48	0
+B.feature.U.rev	e9b5	0	2	233,181	0
+B.feature.U.rew	31	0	1	49	0
+B.feature.U.rewa	30	0	1	48	0
+B.feature.U.rewl	30	0	1	48	0
+B.feature.U.rewu	31	0	1	49	0
+B.feature.U.spc	b5	0	1	181	0
+B.feature.U.spd	32	0	1	50	0
+B.feature.U.split	3138317c323333	0	7	49,56,49,124,50,51,51	0
+B.feature.U.sps	b5e9	0	2	181,233	0
+B.feature.U.sub1	b5	0	1	181	0
+B.feature.U.tr	58e9	0	2	88,233	0
+B.feature.U.trcnt	31	0	1	49	0
+B.feature.U.uc	ce9cc389	1	2	924,201	0
+B.feature.U.ucf	ce9cc3a9	1	2	924,233	0
+B.feature.U.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	0
+B.feature.U.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	0
+B.feature.U.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	0
+B.feature.U.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	0
+B.feature.U.up	c2b5c3a9	1	2	181,233	0
+B.locale.T.apb	b5e9b5	0	3	181,233,181	1
+B.locale.T.apl	c2b5c3a9c2b5	1	3	181,233,181	1
+B.locale.T.apu	c2b5c3a9c480	1	3	181,233,256	1
+B.locale.T.arith	32	0	1	50	1
+B.locale.T.cap	b5e9	0	2	181,233	0
+B.locale.T.catb	b5e9b5	0	3	181,233,181	1
+B.locale.T.catl	c2b5c3a9c2b5	1	3	181,233,181	1
+B.locale.T.catu	c2b5c3a9c480	1	3	181,233,256	1
+B.locale.T.chomp	b5e9	0	2	181,233	1
+B.locale.T.chop	b5	0	1	181	1
+B.locale.T.chr	b5	0	1	181	0
+B.locale.T.cmpb	30	0	1	48	1
+B.locale.T.copy	b5e9	0	2	181,233	1
+B.locale.T.dec	b5e9	0	2	181,233	1
+B.locale.T.down	b5e9	0	2	181,233	1
+B.locale.T.downok	b5e9	0	2	181,233	1
+B.locale.T.enc	c2b5c3a9	0	4	194,181,195,169	1
+B.locale.T.eqb	31	0	1	49	0
+B.locale.T.eql	31	0	1	49	0
+B.locale.T.fc	cebcc3a9	1	2	956,233	1
+B.locale.T.hkey	b5e9	0	2	181,233	0
+B.locale.T.hkey2	31	0	1	49	0
+B.locale.T.idx	30	0	1	48	1
+B.locale.T.joinb	b5e92cb5	0	4	181,233,44,181	1
+B.locale.T.joinu	c2b5c3a92cc480	1	4	181,233,44,256	1
+B.locale.T.lc	b5e9	0	2	181,233	1
+B.locale.T.lcf	b5e9	0	2	181,233	1
+B.locale.T.len	32	0	1	50	1
+B.locale.T.ord	313831	0	3	49,56,49	1
+B.locale.T.packA	b5e9	0	2	181,233	1
+B.locale.T.packU	c2b5	1	1	181	1
+B.locale.T.packa	b5e9	0	2	181,233	1
+B.locale.T.red	30	0	1	48	0
+B.locale.T.rei	31	0	1	49	0
+B.locale.T.reia	31	0	1	49	0
+B.locale.T.reiu	31	0	1	49	0
+B.locale.T.rep	b5e9b5e9	0	4	181,233,181,233	1
+B.locale.T.res	30	0	1	48	0
+B.locale.T.rev	e9b5	0	2	233,181	1
+B.locale.T.rew	31	0	1	49	0
+B.locale.T.rewa	30	0	1	48	0
+B.locale.T.rewl	31	0	1	49	0
+B.locale.T.rewu	31	0	1	49	0
+B.locale.T.spc	b5	0	1	181	1
+B.locale.T.spd	32	0	1	50	1
+B.locale.T.split	3138317c323333	0	7	49,56,49,124,50,51,51	1
+B.locale.T.sps	b5e9	0	2	181,233	1
+B.locale.T.sub1	b5	0	1	181	1
+B.locale.T.tr	58e9	0	2	88,233	1
+B.locale.T.trcnt	31	0	1	49	1
+B.locale.T.uc	ce9cc389	1	2	924,201	1
+B.locale.T.ucf	ce9cc3a9	1	2	924,233	1
+B.locale.T.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	1
+B.locale.T.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	1
+B.locale.T.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	1
+B.locale.T.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	1
+B.locale.T.up	c2b5c3a9	1	2	181,233	1
+B.locale.U.apb	b5e9b5	0	3	181,233,181	0
+B.locale.U.apl	c2b5c3a9c2b5	1	3	181,233,181	0
+B.locale.U.apu	c2b5c3a9c480	1	3	181,233,256	0
+B.locale.U.arith	32	0	1	50	0
+B.locale.U.cap	b5e9	0	2	181,233	0
+B.locale.U.catb	b5e9b5	0	3	181,233,181	0
+B.locale.U.catl	c2b5c3a9c2b5	1	3	181,233,181	0
+B.locale.U.catu	c2b5c3a9c480	1	3	181,233,256	0
+B.locale.U.chomp	b5e9	0	2	181,233	0
+B.locale.U.chop	b5	0	1	181	0
+B.locale.U.chr	b5	0	1	181	0
+B.locale.U.cmpb	30	0	1	48	0
+B.locale.U.copy	b5e9	0	2	181,233	0
+B.locale.U.dec	b5e9	0	2	181,233	0
+B.locale.U.down	b5e9	0	2	181,233	0
+B.locale.U.downok	b5e9	0	2	181,233	0
+B.locale.U.enc	c2b5c3a9	0	4	194,181,195,169	0
+B.locale.U.eqb	31	0	1	49	0
+B.locale.U.eql	31	0	1	49	0
+B.locale.U.fc	cebcc3a9	1	2	956,233	0
+B.locale.U.hkey	b5e9	0	2	181,233	0
+B.locale.U.hkey2	31	0	1	49	0
+B.locale.U.idx	30	0	1	48	0
+B.locale.U.joinb	b5e92cb5	0	4	181,233,44,181	0
+B.locale.U.joinu	c2b5c3a92cc480	1	4	181,233,44,256	0
+B.locale.U.lc	b5e9	0	2	181,233	0
+B.locale.U.lcf	b5e9	0	2	181,233	0
+B.locale.U.len	32	0	1	50	0
+B.locale.U.ord	313831	0	3	49,56,49	0
+B.locale.U.packA	b5e9	0	2	181,233	0
+B.locale.U.packU	c2b5	1	1	181	0
+B.locale.U.packa	b5e9	0	2	181,233	0
+B.locale.U.red	30	0	1	48	0
+B.locale.U.rei	31	0	1	49	0
+B.locale.U.reia	31	0	1	49	0
+B.locale.U.reiu	31	0	1	49	0
+B.locale.U.rep	b5e9b5e9	0	4	181,233,181,233	0
+B.locale.U.res	30	0	1	48	0
+B.locale.U.rev	e9b5	0	2	233,181	0
+B.locale.U.rew	31	0	1	49	0
+B.locale.U.rewa	30	0	1	48	0
+B.locale.U.rewl	31	0	1	49	0
+B.locale.U.rewu	31	0	1	49	0
+B.locale.U.spc	b5	0	1	181	0
+B.locale.U.spd	32	0	1	50	0
+B.locale.U.split	3138317c323333	0	7	49,56,49,124,50,51,51	0
+B.locale.U.sps	b5e9	0	2	181,233	0
+B.locale.U.sub1	b5	0	1	181	0
+B.locale.U.tr	58e9	0	2	88,233	0
+B.locale.U.trcnt	31	0	1	49	0
+B.locale.U.uc	ce9cc389	1	2	924,201	0
+B.locale.U.ucf	ce9cc3a9	1	2	924,233	0
+B.locale.U.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	0
+B.locale.U.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	0
+B.locale.U.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	0
+B.locale.U.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	0
+B.locale.U.up	c2b5c3a9	1	2	181,233	0
+B.none.T.apb	b5e9b5	0	3	181,233,181	1
+B.none.T.apl	c2b5c3a9c2b5	1	3	181,233,181	1
+B.none.T.apu	c2b5c3a9c480	1	3	181,233,256	1
+B.none.T.arith	32	0	1	50	1
+B.none.T.cap	b5e9	0	2	181,233	0
+B.none.T.catb	b5e9b5	0	3	181,233,181	1
+B.none.T.catl	c2b5c3a9c2b5	1	3	181,233,181	1
+B.none.T.catu	c2b5c3a9c480	1	3	181,233,256	1
+B.none.T.chomp	b5e9	0	2	181,233	1
+B.none.T.chop	b5	0	1	181	1
+B.none.T.chr	b5	0	1	181	0
+B.none.T.cmpb	30	0	1	48	1
+B.none.T.copy	b5e9	0	2	181,233	1
+B.none.T.dec	b5e9	0	2	181,233	1
+B.none.T.down	b5e9	0	2	181,233	1
+B.none.T.downok	b5e9	0	2	181,233	1
+B.none.T.enc	c2b5c3a9	0	4	194,181,195,169	1
+B.none.T.eqb	31	0	1	49	0
+B.none.T.eql	31	0	1	49	0
+B.none.T.fc	b5e9	0	2	181,233	1
+B.none.T.hkey	b5e9	0	2	181,233	0
+B.none.T.hkey2	31	0	1	49	0
+B.none.T.idx	30	0	1	48	1
+B.none.T.joinb	b5e92cb5	0	4	181,233,44,181	1
+B.none.T.joinu	c2b5c3a92cc480	1	4	181,233,44,256	1
+B.none.T.lc	b5e9	0	2	181,233	1
+B.none.T.lcf	b5e9	0	2	181,233	1
+B.none.T.len	32	0	1	50	1
+B.none.T.ord	313831	0	3	49,56,49	1
+B.none.T.packA	b5e9	0	2	181,233	1
+B.none.T.packU	c2b5	1	1	181	1
+B.none.T.packa	b5e9	0	2	181,233	1
+B.none.T.red	30	0	1	48	0
+B.none.T.rei	31	0	1	49	0
+B.none.T.reia	31	0	1	49	0
+B.none.T.reiu	31	0	1	49	0
+B.none.T.rep	b5e9b5e9	0	4	181,233,181,233	1
+B.none.T.res	30	0	1	48	0
+B.none.T.rev	e9b5	0	2	233,181	1
+B.none.T.rew	30	0	1	48	0
+B.none.T.rewa	30	0	1	48	0
+B.none.T.rewl	30	0	1	48	0
+B.none.T.rewu	31	0	1	49	0
+B.none.T.spc	b5	0	1	181	1
+B.none.T.spd	32	0	1	50	1
+B.none.T.split	3138317c323333	0	7	49,56,49,124,50,51,51	1
+B.none.T.sps	b5e9	0	2	181,233	1
+B.none.T.sub1	b5	0	1	181	1
+B.none.T.tr	58e9	0	2	88,233	1
+B.none.T.trcnt	31	0	1	49	1
+B.none.T.uc	b5e9	0	2	181,233	1
+B.none.T.ucf	b5e9	0	2	181,233	1
+B.none.T.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	1
+B.none.T.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	1
+B.none.T.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	1
+B.none.T.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	1
+B.none.T.up	c2b5c3a9	1	2	181,233	1
+B.none.U.apb	b5e9b5	0	3	181,233,181	0
+B.none.U.apl	c2b5c3a9c2b5	1	3	181,233,181	0
+B.none.U.apu	c2b5c3a9c480	1	3	181,233,256	0
+B.none.U.arith	32	0	1	50	0
+B.none.U.cap	b5e9	0	2	181,233	0
+B.none.U.catb	b5e9b5	0	3	181,233,181	0
+B.none.U.catl	c2b5c3a9c2b5	1	3	181,233,181	0
+B.none.U.catu	c2b5c3a9c480	1	3	181,233,256	0
+B.none.U.chomp	b5e9	0	2	181,233	0
+B.none.U.chop	b5	0	1	181	0
+B.none.U.chr	b5	0	1	181	0
+B.none.U.cmpb	30	0	1	48	0
+B.none.U.copy	b5e9	0	2	181,233	0
+B.none.U.dec	b5e9	0	2	181,233	0
+B.none.U.down	b5e9	0	2	181,233	0
+B.none.U.downok	b5e9	0	2	181,233	0
+B.none.U.enc	c2b5c3a9	0	4	194,181,195,169	0
+B.none.U.eqb	31	0	1	49	0
+B.none.U.eql	31	0	1	49	0
+B.none.U.fc	b5e9	0	2	181,233	0
+B.none.U.hkey	b5e9	0	2	181,233	0
+B.none.U.hkey2	31	0	1	49	0
+B.none.U.idx	30	0	1	48	0
+B.none.U.joinb	b5e92cb5	0	4	181,233,44,181	0
+B.none.U.joinu	c2b5c3a92cc480	1	4	181,233,44,256	0
+B.none.U.lc	b5e9	0	2	181,233	0
+B.none.U.lcf	b5e9	0	2	181,233	0
+B.none.U.len	32	0	1	50	0
+B.none.U.ord	313831	0	3	49,56,49	0
+B.none.U.packA	b5e9	0	2	181,233	0
+B.none.U.packU	c2b5	1	1	181	0
+B.none.U.packa	b5e9	0	2	181,233	0
+B.none.U.red	30	0	1	48	0
+B.none.U.rei	31	0	1	49	0
+B.none.U.reia	31	0	1	49	0
+B.none.U.reiu	31	0	1	49	0
+B.none.U.rep	b5e9b5e9	0	4	181,233,181,233	0
+B.none.U.res	30	0	1	48	0
+B.none.U.rev	e9b5	0	2	233,181	0
+B.none.U.rew	30	0	1	48	0
+B.none.U.rewa	30	0	1	48	0
+B.none.U.rewl	30	0	1	48	0
+B.none.U.rewu	31	0	1	49	0
+B.none.U.spc	b5	0	1	181	0
+B.none.U.spd	32	0	1	50	0
+B.none.U.split	3138317c323333	0	7	49,56,49,124,50,51,51	0
+B.none.U.sps	b5e9	0	2	181,233	0
+B.none.U.sub1	b5	0	1	181	0
+B.none.U.tr	58e9	0	2	88,233	0
+B.none.U.trcnt	31	0	1	49	0
+B.none.U.uc	b5e9	0	2	181,233	0
+B.none.U.ucf	b5e9	0	2	181,233	0
+B.none.U.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	0
+B.none.U.unpC0U	36353533332c3635353333	0	11	54,53,53,51,51,44,54,53,53,51,51	0
+B.none.U.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	0
+B.none.U.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	0
+B.none.U.up	c2b5c3a9	1	2	181,233	0
+E.feature.T.apb	b5	0	1	181	1
+E.feature.T.apl	c2b5	1	1	181	1
+E.feature.T.apu	c480	1	1	256	1
+E.feature.T.arith	30	0	1	48	1
+E.feature.T.cap		0	0		0
+E.feature.T.catb	b5	0	1	181	1
+E.feature.T.catl	c2b5	1	1	181	1
+E.feature.T.catu	c480	1	1	256	1
+E.feature.T.chomp		0	0		1
+E.feature.T.chop		0	0		1
+E.feature.T.chr	00	0	1	0	0
+E.feature.T.cmpb	2d31	0	2	45,49	1
+E.feature.T.copy		0	0		1
+E.feature.T.dec		0	0		1
+E.feature.T.down		0	0		1
+E.feature.T.downok		0	0		1
+E.feature.T.enc		0	0		1
+E.feature.T.eqb	30	0	1	48	0
+E.feature.T.eql	30	0	1	48	0
+E.feature.T.fc		0	0		1
+E.feature.T.hkey		0	0		0
+E.feature.T.hkey2	31	0	1	49	0
+E.feature.T.idx	2d31	0	2	45,49	1
+E.feature.T.joinb	2cb5	0	2	44,181	1
+E.feature.T.joinu	2cc480	1	2	44,256	1
+E.feature.T.lc		0	0		1
+E.feature.T.lcf		0	0		1
+E.feature.T.len	30	0	1	48	1
+E.feature.T.ord	30	0	1	48	1
+E.feature.T.packA		0	0		1
+E.feature.T.packU	00	1	1	0	1
+E.feature.T.packa		0	0		1
+E.feature.T.red	30	0	1	48	0
+E.feature.T.rei	30	0	1	48	0
+E.feature.T.reia	30	0	1	48	0
+E.feature.T.reiu	30	0	1	48	0
+E.feature.T.rep		0	0		1
+E.feature.T.res	30	0	1	48	0
+E.feature.T.rev		0	0		1
+E.feature.T.rew	30	0	1	48	0
+E.feature.T.rewa	30	0	1	48	0
+E.feature.T.rewl	30	0	1	48	0
+E.feature.T.rewu	30	0	1	48	0
+E.feature.T.spc	00	0	1	0	1
+E.feature.T.spd	30	0	1	48	1
+E.feature.T.split		0	0		0
+E.feature.T.sps		0	0		1
+E.feature.T.sub1		0	0		1
+E.feature.T.tr		0	0		1
+E.feature.T.trcnt	30	0	1	48	1
+E.feature.T.uc		0	0		1
+E.feature.T.ucf		0	0		1
+E.feature.T.unpC		0	0		1
+E.feature.T.unpC0U		0	0		1
+E.feature.T.unpU		0	0		1
+E.feature.T.unpU0C		0	0		1
+E.feature.T.up		1	0		1
+E.feature.U.apb	b5	0	1	181	0
+E.feature.U.apl	c2b5	1	1	181	0
+E.feature.U.apu	c480	1	1	256	0
+E.feature.U.arith	30	0	1	48	0
+E.feature.U.cap		0	0		0
+E.feature.U.catb	b5	0	1	181	0
+E.feature.U.catl	c2b5	1	1	181	0
+E.feature.U.catu	c480	1	1	256	0
+E.feature.U.chomp		0	0		0
+E.feature.U.chop		0	0		0
+E.feature.U.chr	00	0	1	0	0
+E.feature.U.cmpb	2d31	0	2	45,49	0
+E.feature.U.copy		0	0		0
+E.feature.U.dec		0	0		0
+E.feature.U.down		0	0		0
+E.feature.U.downok		0	0		0
+E.feature.U.enc		0	0		0
+E.feature.U.eqb	30	0	1	48	0
+E.feature.U.eql	30	0	1	48	0
+E.feature.U.fc		0	0		0
+E.feature.U.hkey		0	0		0
+E.feature.U.hkey2	31	0	1	49	0
+E.feature.U.idx	2d31	0	2	45,49	0
+E.feature.U.joinb	2cb5	0	2	44,181	0
+E.feature.U.joinu	2cc480	1	2	44,256	0
+E.feature.U.lc		0	0		0
+E.feature.U.lcf		0	0		0
+E.feature.U.len	30	0	1	48	0
+E.feature.U.ord	30	0	1	48	0
+E.feature.U.packA		0	0		0
+E.feature.U.packU	00	1	1	0	0
+E.feature.U.packa		0	0		0
+E.feature.U.red	30	0	1	48	0
+E.feature.U.rei	30	0	1	48	0
+E.feature.U.reia	30	0	1	48	0
+E.feature.U.reiu	30	0	1	48	0
+E.feature.U.rep		0	0		0
+E.feature.U.res	30	0	1	48	0
+E.feature.U.rev		0	0		0
+E.feature.U.rew	30	0	1	48	0
+E.feature.U.rewa	30	0	1	48	0
+E.feature.U.rewl	30	0	1	48	0
+E.feature.U.rewu	30	0	1	48	0
+E.feature.U.spc	00	0	1	0	0
+E.feature.U.spd	30	0	1	48	0
+E.feature.U.split		0	0		0
+E.feature.U.sps		0	0		0
+E.feature.U.sub1		0	0		0
+E.feature.U.tr		0	0		0
+E.feature.U.trcnt	30	0	1	48	0
+E.feature.U.uc		0	0		0
+E.feature.U.ucf		0	0		0
+E.feature.U.unpC		0	0		0
+E.feature.U.unpC0U		0	0		0
+E.feature.U.unpU		0	0		0
+E.feature.U.unpU0C		0	0		0
+E.feature.U.up		1	0		0
+E.locale.T.apb	b5	0	1	181	1
+E.locale.T.apl	c2b5	1	1	181	1
+E.locale.T.apu	c480	1	1	256	1
+E.locale.T.arith	30	0	1	48	1
+E.locale.T.cap		0	0		0
+E.locale.T.catb	b5	0	1	181	1
+E.locale.T.catl	c2b5	1	1	181	1
+E.locale.T.catu	c480	1	1	256	1
+E.locale.T.chomp		0	0		1
+E.locale.T.chop		0	0		1
+E.locale.T.chr	00	0	1	0	0
+E.locale.T.cmpb	2d31	0	2	45,49	1
+E.locale.T.copy		0	0		1
+E.locale.T.dec		0	0		1
+E.locale.T.down		0	0		1
+E.locale.T.downok		0	0		1
+E.locale.T.enc		0	0		1
+E.locale.T.eqb	30	0	1	48	0
+E.locale.T.eql	30	0	1	48	0
+E.locale.T.fc		0	0		1
+E.locale.T.hkey		0	0		0
+E.locale.T.hkey2	31	0	1	49	0
+E.locale.T.idx	2d31	0	2	45,49	1
+E.locale.T.joinb	2cb5	0	2	44,181	1
+E.locale.T.joinu	2cc480	1	2	44,256	1
+E.locale.T.lc		0	0		1
+E.locale.T.lcf		0	0		1
+E.locale.T.len	30	0	1	48	1
+E.locale.T.ord	30	0	1	48	1
+E.locale.T.packA		0	0		1
+E.locale.T.packU	00	1	1	0	1
+E.locale.T.packa		0	0		1
+E.locale.T.red	30	0	1	48	0
+E.locale.T.rei	30	0	1	48	0
+E.locale.T.reia	30	0	1	48	0
+E.locale.T.reiu	30	0	1	48	0
+E.locale.T.rep		0	0		1
+E.locale.T.res	30	0	1	48	0
+E.locale.T.rev		0	0		1
+E.locale.T.rew	30	0	1	48	0
+E.locale.T.rewa	30	0	1	48	0
+E.locale.T.rewl	30	0	1	48	0
+E.locale.T.rewu	30	0	1	48	0
+E.locale.T.spc	00	0	1	0	1
+E.locale.T.spd	30	0	1	48	1
+E.locale.T.split		0	0		0
+E.locale.T.sps		0	0		1
+E.locale.T.sub1		0	0		1
+E.locale.T.tr		0	0		1
+E.locale.T.trcnt	30	0	1	48	1
+E.locale.T.uc		0	0		1
+E.locale.T.ucf		0	0		1
+E.locale.T.unpC		0	0		1
+E.locale.T.unpC0U		0	0		1
+E.locale.T.unpU		0	0		1
+E.locale.T.unpU0C		0	0		1
+E.locale.T.up		1	0		1
+E.locale.U.apb	b5	0	1	181	0
+E.locale.U.apl	c2b5	1	1	181	0
+E.locale.U.apu	c480	1	1	256	0
+E.locale.U.arith	30	0	1	48	0
+E.locale.U.cap		0	0		0
+E.locale.U.catb	b5	0	1	181	0
+E.locale.U.catl	c2b5	1	1	181	0
+E.locale.U.catu	c480	1	1	256	0
+E.locale.U.chomp		0	0		0
+E.locale.U.chop		0	0		0
+E.locale.U.chr	00	0	1	0	0
+E.locale.U.cmpb	2d31	0	2	45,49	0
+E.locale.U.copy		0	0		0
+E.locale.U.dec		0	0		0
+E.locale.U.down		0	0		0
+E.locale.U.downok		0	0		0
+E.locale.U.enc		0	0		0
+E.locale.U.eqb	30	0	1	48	0
+E.locale.U.eql	30	0	1	48	0
+E.locale.U.fc		0	0		0
+E.locale.U.hkey		0	0		0
+E.locale.U.hkey2	31	0	1	49	0
+E.locale.U.idx	2d31	0	2	45,49	0
+E.locale.U.joinb	2cb5	0	2	44,181	0
+E.locale.U.joinu	2cc480	1	2	44,256	0
+E.locale.U.lc		0	0		0
+E.locale.U.lcf		0	0		0
+E.locale.U.len	30	0	1	48	0
+E.locale.U.ord	30	0	1	48	0
+E.locale.U.packA		0	0		0
+E.locale.U.packU	00	1	1	0	0
+E.locale.U.packa		0	0		0
+E.locale.U.red	30	0	1	48	0
+E.locale.U.rei	30	0	1	48	0
+E.locale.U.reia	30	0	1	48	0
+E.locale.U.reiu	30	0	1	48	0
+E.locale.U.rep		0	0		0
+E.locale.U.res	30	0	1	48	0
+E.locale.U.rev		0	0		0
+E.locale.U.rew	30	0	1	48	0
+E.locale.U.rewa	30	0	1	48	0
+E.locale.U.rewl	30	0	1	48	0
+E.locale.U.rewu	30	0	1	48	0
+E.locale.U.spc	00	0	1	0	0
+E.locale.U.spd	30	0	1	48	0
+E.locale.U.split		0	0		0
+E.locale.U.sps		0	0		0
+E.locale.U.sub1		0	0		0
+E.locale.U.tr		0	0		0
+E.locale.U.trcnt	30	0	1	48	0
+E.locale.U.uc		0	0		0
+E.locale.U.ucf		0	0		0
+E.locale.U.unpC		0	0		0
+E.locale.U.unpC0U		0	0		0
+E.locale.U.unpU		0	0		0
+E.locale.U.unpU0C		0	0		0
+E.locale.U.up		1	0		0
+E.none.T.apb	b5	0	1	181	1
+E.none.T.apl	c2b5	1	1	181	1
+E.none.T.apu	c480	1	1	256	1
+E.none.T.arith	30	0	1	48	1
+E.none.T.cap		0	0		0
+E.none.T.catb	b5	0	1	181	1
+E.none.T.catl	c2b5	1	1	181	1
+E.none.T.catu	c480	1	1	256	1
+E.none.T.chomp		0	0		1
+E.none.T.chop		0	0		1
+E.none.T.chr	00	0	1	0	0
+E.none.T.cmpb	2d31	0	2	45,49	1
+E.none.T.copy		0	0		1
+E.none.T.dec		0	0		1
+E.none.T.down		0	0		1
+E.none.T.downok		0	0		1
+E.none.T.enc		0	0		1
+E.none.T.eqb	30	0	1	48	0
+E.none.T.eql	30	0	1	48	0
+E.none.T.fc		0	0		1
+E.none.T.hkey		0	0		0
+E.none.T.hkey2	31	0	1	49	0
+E.none.T.idx	2d31	0	2	45,49	1
+E.none.T.joinb	2cb5	0	2	44,181	1
+E.none.T.joinu	2cc480	1	2	44,256	1
+E.none.T.lc		0	0		1
+E.none.T.lcf		0	0		1
+E.none.T.len	30	0	1	48	1
+E.none.T.ord	30	0	1	48	1
+E.none.T.packA		0	0		1
+E.none.T.packU	00	1	1	0	1
+E.none.T.packa		0	0		1
+E.none.T.red	30	0	1	48	0
+E.none.T.rei	30	0	1	48	0
+E.none.T.reia	30	0	1	48	0
+E.none.T.reiu	30	0	1	48	0
+E.none.T.rep		0	0		1
+E.none.T.res	30	0	1	48	0
+E.none.T.rev		0	0		1
+E.none.T.rew	30	0	1	48	0
+E.none.T.rewa	30	0	1	48	0
+E.none.T.rewl	30	0	1	48	0
+E.none.T.rewu	30	0	1	48	0
+E.none.T.spc	00	0	1	0	1
+E.none.T.spd	30	0	1	48	1
+E.none.T.split		0	0		0
+E.none.T.sps		0	0		1
+E.none.T.sub1		0	0		1
+E.none.T.tr		0	0		1
+E.none.T.trcnt	30	0	1	48	1
+E.none.T.uc		0	0		1
+E.none.T.ucf		0	0		1
+E.none.T.unpC		0	0		1
+E.none.T.unpC0U		0	0		1
+E.none.T.unpU		0	0		1
+E.none.T.unpU0C		0	0		1
+E.none.T.up		1	0		1
+E.none.U.apb	b5	0	1	181	0
+E.none.U.apl	c2b5	1	1	181	0
+E.none.U.apu	c480	1	1	256	0
+E.none.U.arith	30	0	1	48	0
+E.none.U.cap		0	0		0
+E.none.U.catb	b5	0	1	181	0
+E.none.U.catl	c2b5	1	1	181	0
+E.none.U.catu	c480	1	1	256	0
+E.none.U.chomp		0	0		0
+E.none.U.chop		0	0		0
+E.none.U.chr	00	0	1	0	0
+E.none.U.cmpb	2d31	0	2	45,49	0
+E.none.U.copy		0	0		0
+E.none.U.dec		0	0		0
+E.none.U.down		0	0		0
+E.none.U.downok		0	0		0
+E.none.U.enc		0	0		0
+E.none.U.eqb	30	0	1	48	0
+E.none.U.eql	30	0	1	48	0
+E.none.U.fc		0	0		0
+E.none.U.hkey		0	0		0
+E.none.U.hkey2	31	0	1	49	0
+E.none.U.idx	2d31	0	2	45,49	0
+E.none.U.joinb	2cb5	0	2	44,181	0
+E.none.U.joinu	2cc480	1	2	44,256	0
+E.none.U.lc		0	0		0
+E.none.U.lcf		0	0		0
+E.none.U.len	30	0	1	48	0
+E.none.U.ord	30	0	1	48	0
+E.none.U.packA		0	0		0
+E.none.U.packU	00	1	1	0	0
+E.none.U.packa		0	0		0
+E.none.U.red	30	0	1	48	0
+E.none.U.rei	30	0	1	48	0
+E.none.U.reia	30	0	1	48	0
+E.none.U.reiu	30	0	1	48	0
+E.none.U.rep		0	0		0
+E.none.U.res	30	0	1	48	0
+E.none.U.rev		0	0		0
+E.none.U.rew	30	0	1	48	0
+E.none.U.rewa	30	0	1	48	0
+E.none.U.rewl	30	0	1	48	0
+E.none.U.rewu	30	0	1	48	0
+E.none.U.spc	00	0	1	0	0
+E.none.U.spd	30	0	1	48	0
+E.none.U.split		0	0		0
+E.none.U.sps		0	0		0
+E.none.U.sub1		0	0		0
+E.none.U.tr		0	0		0
+E.none.U.trcnt	30	0	1	48	0
+E.none.U.uc		0	0		0
+E.none.U.ucf		0	0		0
+E.none.U.unpC		0	0		0
+E.none.U.unpC0U		0	0		0
+E.none.U.unpU		0	0		0
+E.none.U.unpU0C		0	0		0
+E.none.U.up		1	0		0
+H.feature.T.apb	61c480c2b5	1	3	97,256,181	1
+H.feature.T.apl	61c480c2b5	1	3	97,256,181	1
+H.feature.T.apu	61c480c480	1	3	97,256,256	1
+H.feature.T.arith	32	0	1	50	1
+H.feature.T.cap	61c480	1	2	97,256	0
+H.feature.T.catb	61c480c2b5	1	3	97,256,181	1
+H.feature.T.catl	61c480c2b5	1	3	97,256,181	1
+H.feature.T.catu	61c480c480	1	3	97,256,256	1
+H.feature.T.chomp	61c480	1	2	97,256	1
+H.feature.T.chop	61	1	1	97	1
+H.feature.T.chr	61	0	1	97	0
+H.feature.T.cmpb	2d31	0	2	45,49	1
+H.feature.T.copy	61c480	1	2	97,256	1
+H.feature.T.dec	61c480	1	2	97,256	1
+H.feature.T.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+H.feature.T.downok	61c480	1	2	97,256	1
+H.feature.T.enc	61c480	0	3	97,196,128	1
+H.feature.T.eqb	30	0	1	48	0
+H.feature.T.eql	30	0	1	48	0
+H.feature.T.fc	61c481	1	2	97,257	1
+H.feature.T.hkey	61c480	1	2	97,256	0
+H.feature.T.hkey2	32	0	1	50	0
+H.feature.T.idx	2d31	0	2	45,49	1
+H.feature.T.joinb	61c4802cc2b5	1	4	97,256,44,181	1
+H.feature.T.joinu	61c4802cc480	1	4	97,256,44,256	1
+H.feature.T.lc	61c481	1	2	97,257	1
+H.feature.T.lcf	61c480	1	2	97,256	1
+H.feature.T.len	32	0	1	50	1
+H.feature.T.ord	3937	0	2	57,55	1
+H.feature.T.packA	61c480	1	2	97,256	1
+H.feature.T.packU	61	1	1	97	1
+H.feature.T.packa	61c480	1	2	97,256	1
+H.feature.T.red	30	0	1	48	0
+H.feature.T.rei	30	0	1	48	0
+H.feature.T.reia	30	0	1	48	0
+H.feature.T.reiu	30	0	1	48	0
+H.feature.T.rep	61c48061c480	1	4	97,256,97,256	1
+H.feature.T.res	30	0	1	48	0
+H.feature.T.rev	c48061	1	2	256,97	1
+H.feature.T.rew	31	0	1	49	0
+H.feature.T.rewa	31	0	1	49	0
+H.feature.T.rewl	31	0	1	49	0
+H.feature.T.rewu	31	0	1	49	0
+H.feature.T.spc	61	0	1	97	1
+H.feature.T.spd	32	0	1	50	1
+H.feature.T.split	39377c323536	0	6	57,55,124,50,53,54	1
+H.feature.T.sps	61c480	1	2	97,256	1
+H.feature.T.sub1	61	1	1	97	1
+H.feature.T.tr	61c480	1	2	97,256	1
+H.feature.T.trcnt	30	0	1	48	1
+H.feature.T.uc	41c480	1	2	65,256	1
+H.feature.T.ucf	41c480	1	2	65,256	1
+H.feature.T.unpC	39372c323536	0	6	57,55,44,50,53,54	1
+H.feature.T.unpC0U	39372c30	0	4	57,55,44,48	1
+H.feature.T.unpU	39372c323536	0	6	57,55,44,50,53,54	1
+H.feature.T.unpU0C	39372c3139362c313238	0	10	57,55,44,49,57,54,44,49,50,56	1
+H.feature.T.up	61c480	1	2	97,256	1
+H.feature.U.apb	61c480c2b5	1	3	97,256,181	0
+H.feature.U.apl	61c480c2b5	1	3	97,256,181	0
+H.feature.U.apu	61c480c480	1	3	97,256,256	0
+H.feature.U.arith	32	0	1	50	0
+H.feature.U.cap	61c480	1	2	97,256	0
+H.feature.U.catb	61c480c2b5	1	3	97,256,181	0
+H.feature.U.catl	61c480c2b5	1	3	97,256,181	0
+H.feature.U.catu	61c480c480	1	3	97,256,256	0
+H.feature.U.chomp	61c480	1	2	97,256	0
+H.feature.U.chop	61	1	1	97	0
+H.feature.U.chr	61	0	1	97	0
+H.feature.U.cmpb	2d31	0	2	45,49	0
+H.feature.U.copy	61c480	1	2	97,256	0
+H.feature.U.dec	61c480	1	2	97,256	0
+H.feature.U.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+H.feature.U.downok	61c480	1	2	97,256	0
+H.feature.U.enc	61c480	0	3	97,196,128	0
+H.feature.U.eqb	30	0	1	48	0
+H.feature.U.eql	30	0	1	48	0
+H.feature.U.fc	61c481	1	2	97,257	0
+H.feature.U.hkey	61c480	1	2	97,256	0
+H.feature.U.hkey2	32	0	1	50	0
+H.feature.U.idx	2d31	0	2	45,49	0
+H.feature.U.joinb	61c4802cc2b5	1	4	97,256,44,181	0
+H.feature.U.joinu	61c4802cc480	1	4	97,256,44,256	0
+H.feature.U.lc	61c481	1	2	97,257	0
+H.feature.U.lcf	61c480	1	2	97,256	0
+H.feature.U.len	32	0	1	50	0
+H.feature.U.ord	3937	0	2	57,55	0
+H.feature.U.packA	61c480	1	2	97,256	0
+H.feature.U.packU	61	1	1	97	0
+H.feature.U.packa	61c480	1	2	97,256	0
+H.feature.U.red	30	0	1	48	0
+H.feature.U.rei	30	0	1	48	0
+H.feature.U.reia	30	0	1	48	0
+H.feature.U.reiu	30	0	1	48	0
+H.feature.U.rep	61c48061c480	1	4	97,256,97,256	0
+H.feature.U.res	30	0	1	48	0
+H.feature.U.rev	c48061	1	2	256,97	0
+H.feature.U.rew	31	0	1	49	0
+H.feature.U.rewa	31	0	1	49	0
+H.feature.U.rewl	31	0	1	49	0
+H.feature.U.rewu	31	0	1	49	0
+H.feature.U.spc	61	0	1	97	0
+H.feature.U.spd	32	0	1	50	0
+H.feature.U.split	39377c323536	0	6	57,55,124,50,53,54	0
+H.feature.U.sps	61c480	1	2	97,256	0
+H.feature.U.sub1	61	1	1	97	0
+H.feature.U.tr	61c480	1	2	97,256	0
+H.feature.U.trcnt	30	0	1	48	0
+H.feature.U.uc	41c480	1	2	65,256	0
+H.feature.U.ucf	41c480	1	2	65,256	0
+H.feature.U.unpC	39372c323536	0	6	57,55,44,50,53,54	0
+H.feature.U.unpC0U	39372c30	0	4	57,55,44,48	0
+H.feature.U.unpU	39372c323536	0	6	57,55,44,50,53,54	0
+H.feature.U.unpU0C	39372c3139362c313238	0	10	57,55,44,49,57,54,44,49,50,56	0
+H.feature.U.up	61c480	1	2	97,256	0
+H.locale.T.apb	61c480c2b5	1	3	97,256,181	1
+H.locale.T.apl	61c480c2b5	1	3	97,256,181	1
+H.locale.T.apu	61c480c480	1	3	97,256,256	1
+H.locale.T.arith	32	0	1	50	1
+H.locale.T.cap	61c480	1	2	97,256	0
+H.locale.T.catb	61c480c2b5	1	3	97,256,181	1
+H.locale.T.catl	61c480c2b5	1	3	97,256,181	1
+H.locale.T.catu	61c480c480	1	3	97,256,256	1
+H.locale.T.chomp	61c480	1	2	97,256	1
+H.locale.T.chop	61	1	1	97	1
+H.locale.T.chr	61	0	1	97	0
+H.locale.T.cmpb	2d31	0	2	45,49	1
+H.locale.T.copy	61c480	1	2	97,256	1
+H.locale.T.dec	61c480	1	2	97,256	1
+H.locale.T.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+H.locale.T.downok	61c480	1	2	97,256	1
+H.locale.T.enc	61c480	0	3	97,196,128	1
+H.locale.T.eqb	30	0	1	48	0
+H.locale.T.eql	30	0	1	48	0
+H.locale.T.fc	61c481	1	2	97,257	1
+H.locale.T.hkey	61c480	1	2	97,256	0
+H.locale.T.hkey2	32	0	1	50	0
+H.locale.T.idx	2d31	0	2	45,49	1
+H.locale.T.joinb	61c4802cc2b5	1	4	97,256,44,181	1
+H.locale.T.joinu	61c4802cc480	1	4	97,256,44,256	1
+H.locale.T.lc	61c481	1	2	97,257	1
+H.locale.T.lcf	61c480	1	2	97,256	1
+H.locale.T.len	32	0	1	50	1
+H.locale.T.ord	3937	0	2	57,55	1
+H.locale.T.packA	61c480	1	2	97,256	1
+H.locale.T.packU	61	1	1	97	1
+H.locale.T.packa	61c480	1	2	97,256	1
+H.locale.T.red	30	0	1	48	0
+H.locale.T.rei	30	0	1	48	0
+H.locale.T.reia	30	0	1	48	0
+H.locale.T.reiu	30	0	1	48	0
+H.locale.T.rep	61c48061c480	1	4	97,256,97,256	1
+H.locale.T.res	30	0	1	48	0
+H.locale.T.rev	c48061	1	2	256,97	1
+H.locale.T.rew	31	0	1	49	0
+H.locale.T.rewa	31	0	1	49	0
+H.locale.T.rewl	31	0	1	49	0
+H.locale.T.rewu	31	0	1	49	0
+H.locale.T.spc	61	0	1	97	1
+H.locale.T.spd	32	0	1	50	1
+H.locale.T.split	39377c323536	0	6	57,55,124,50,53,54	1
+H.locale.T.sps	61c480	1	2	97,256	1
+H.locale.T.sub1	61	1	1	97	1
+H.locale.T.tr	61c480	1	2	97,256	1
+H.locale.T.trcnt	30	0	1	48	1
+H.locale.T.uc	41c480	1	2	65,256	1
+H.locale.T.ucf	41c480	1	2	65,256	1
+H.locale.T.unpC	39372c323536	0	6	57,55,44,50,53,54	1
+H.locale.T.unpC0U	39372c30	0	4	57,55,44,48	1
+H.locale.T.unpU	39372c323536	0	6	57,55,44,50,53,54	1
+H.locale.T.unpU0C	39372c3139362c313238	0	10	57,55,44,49,57,54,44,49,50,56	1
+H.locale.T.up	61c480	1	2	97,256	1
+H.locale.U.apb	61c480c2b5	1	3	97,256,181	0
+H.locale.U.apl	61c480c2b5	1	3	97,256,181	0
+H.locale.U.apu	61c480c480	1	3	97,256,256	0
+H.locale.U.arith	32	0	1	50	0
+H.locale.U.cap	61c480	1	2	97,256	0
+H.locale.U.catb	61c480c2b5	1	3	97,256,181	0
+H.locale.U.catl	61c480c2b5	1	3	97,256,181	0
+H.locale.U.catu	61c480c480	1	3	97,256,256	0
+H.locale.U.chomp	61c480	1	2	97,256	0
+H.locale.U.chop	61	1	1	97	0
+H.locale.U.chr	61	0	1	97	0
+H.locale.U.cmpb	2d31	0	2	45,49	0
+H.locale.U.copy	61c480	1	2	97,256	0
+H.locale.U.dec	61c480	1	2	97,256	0
+H.locale.U.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+H.locale.U.downok	61c480	1	2	97,256	0
+H.locale.U.enc	61c480	0	3	97,196,128	0
+H.locale.U.eqb	30	0	1	48	0
+H.locale.U.eql	30	0	1	48	0
+H.locale.U.fc	61c481	1	2	97,257	0
+H.locale.U.hkey	61c480	1	2	97,256	0
+H.locale.U.hkey2	32	0	1	50	0
+H.locale.U.idx	2d31	0	2	45,49	0
+H.locale.U.joinb	61c4802cc2b5	1	4	97,256,44,181	0
+H.locale.U.joinu	61c4802cc480	1	4	97,256,44,256	0
+H.locale.U.lc	61c481	1	2	97,257	0
+H.locale.U.lcf	61c480	1	2	97,256	0
+H.locale.U.len	32	0	1	50	0
+H.locale.U.ord	3937	0	2	57,55	0
+H.locale.U.packA	61c480	1	2	97,256	0
+H.locale.U.packU	61	1	1	97	0
+H.locale.U.packa	61c480	1	2	97,256	0
+H.locale.U.red	30	0	1	48	0
+H.locale.U.rei	30	0	1	48	0
+H.locale.U.reia	30	0	1	48	0
+H.locale.U.reiu	30	0	1	48	0
+H.locale.U.rep	61c48061c480	1	4	97,256,97,256	0
+H.locale.U.res	30	0	1	48	0
+H.locale.U.rev	c48061	1	2	256,97	0
+H.locale.U.rew	31	0	1	49	0
+H.locale.U.rewa	31	0	1	49	0
+H.locale.U.rewl	31	0	1	49	0
+H.locale.U.rewu	31	0	1	49	0
+H.locale.U.spc	61	0	1	97	0
+H.locale.U.spd	32	0	1	50	0
+H.locale.U.split	39377c323536	0	6	57,55,124,50,53,54	0
+H.locale.U.sps	61c480	1	2	97,256	0
+H.locale.U.sub1	61	1	1	97	0
+H.locale.U.tr	61c480	1	2	97,256	0
+H.locale.U.trcnt	30	0	1	48	0
+H.locale.U.uc	41c480	1	2	65,256	0
+H.locale.U.ucf	41c480	1	2	65,256	0
+H.locale.U.unpC	39372c323536	0	6	57,55,44,50,53,54	0
+H.locale.U.unpC0U	39372c30	0	4	57,55,44,48	0
+H.locale.U.unpU	39372c323536	0	6	57,55,44,50,53,54	0
+H.locale.U.unpU0C	39372c3139362c313238	0	10	57,55,44,49,57,54,44,49,50,56	0
+H.locale.U.up	61c480	1	2	97,256	0
+H.none.T.apb	61c480c2b5	1	3	97,256,181	1
+H.none.T.apl	61c480c2b5	1	3	97,256,181	1
+H.none.T.apu	61c480c480	1	3	97,256,256	1
+H.none.T.arith	32	0	1	50	1
+H.none.T.cap	61c480	1	2	97,256	0
+H.none.T.catb	61c480c2b5	1	3	97,256,181	1
+H.none.T.catl	61c480c2b5	1	3	97,256,181	1
+H.none.T.catu	61c480c480	1	3	97,256,256	1
+H.none.T.chomp	61c480	1	2	97,256	1
+H.none.T.chop	61	1	1	97	1
+H.none.T.chr	61	0	1	97	0
+H.none.T.cmpb	2d31	0	2	45,49	1
+H.none.T.copy	61c480	1	2	97,256	1
+H.none.T.dec	61c480	1	2	97,256	1
+H.none.T.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+H.none.T.downok	61c480	1	2	97,256	1
+H.none.T.enc	61c480	0	3	97,196,128	1
+H.none.T.eqb	30	0	1	48	0
+H.none.T.eql	30	0	1	48	0
+H.none.T.fc	61c481	1	2	97,257	1
+H.none.T.hkey	61c480	1	2	97,256	0
+H.none.T.hkey2	32	0	1	50	0
+H.none.T.idx	2d31	0	2	45,49	1
+H.none.T.joinb	61c4802cc2b5	1	4	97,256,44,181	1
+H.none.T.joinu	61c4802cc480	1	4	97,256,44,256	1
+H.none.T.lc	61c481	1	2	97,257	1
+H.none.T.lcf	61c480	1	2	97,256	1
+H.none.T.len	32	0	1	50	1
+H.none.T.ord	3937	0	2	57,55	1
+H.none.T.packA	61c480	1	2	97,256	1
+H.none.T.packU	61	1	1	97	1
+H.none.T.packa	61c480	1	2	97,256	1
+H.none.T.red	30	0	1	48	0
+H.none.T.rei	30	0	1	48	0
+H.none.T.reia	30	0	1	48	0
+H.none.T.reiu	30	0	1	48	0
+H.none.T.rep	61c48061c480	1	4	97,256,97,256	1
+H.none.T.res	30	0	1	48	0
+H.none.T.rev	c48061	1	2	256,97	1
+H.none.T.rew	31	0	1	49	0
+H.none.T.rewa	31	0	1	49	0
+H.none.T.rewl	31	0	1	49	0
+H.none.T.rewu	31	0	1	49	0
+H.none.T.spc	61	0	1	97	1
+H.none.T.spd	32	0	1	50	1
+H.none.T.split	39377c323536	0	6	57,55,124,50,53,54	1
+H.none.T.sps	61c480	1	2	97,256	1
+H.none.T.sub1	61	1	1	97	1
+H.none.T.tr	61c480	1	2	97,256	1
+H.none.T.trcnt	30	0	1	48	1
+H.none.T.uc	41c480	1	2	65,256	1
+H.none.T.ucf	41c480	1	2	65,256	1
+H.none.T.unpC	39372c323536	0	6	57,55,44,50,53,54	1
+H.none.T.unpC0U	39372c30	0	4	57,55,44,48	1
+H.none.T.unpU	39372c323536	0	6	57,55,44,50,53,54	1
+H.none.T.unpU0C	39372c3139362c313238	0	10	57,55,44,49,57,54,44,49,50,56	1
+H.none.T.up	61c480	1	2	97,256	1
+H.none.U.apb	61c480c2b5	1	3	97,256,181	0
+H.none.U.apl	61c480c2b5	1	3	97,256,181	0
+H.none.U.apu	61c480c480	1	3	97,256,256	0
+H.none.U.arith	32	0	1	50	0
+H.none.U.cap	61c480	1	2	97,256	0
+H.none.U.catb	61c480c2b5	1	3	97,256,181	0
+H.none.U.catl	61c480c2b5	1	3	97,256,181	0
+H.none.U.catu	61c480c480	1	3	97,256,256	0
+H.none.U.chomp	61c480	1	2	97,256	0
+H.none.U.chop	61	1	1	97	0
+H.none.U.chr	61	0	1	97	0
+H.none.U.cmpb	2d31	0	2	45,49	0
+H.none.U.copy	61c480	1	2	97,256	0
+H.none.U.dec	61c480	1	2	97,256	0
+H.none.U.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+H.none.U.downok	61c480	1	2	97,256	0
+H.none.U.enc	61c480	0	3	97,196,128	0
+H.none.U.eqb	30	0	1	48	0
+H.none.U.eql	30	0	1	48	0
+H.none.U.fc	61c481	1	2	97,257	0
+H.none.U.hkey	61c480	1	2	97,256	0
+H.none.U.hkey2	32	0	1	50	0
+H.none.U.idx	2d31	0	2	45,49	0
+H.none.U.joinb	61c4802cc2b5	1	4	97,256,44,181	0
+H.none.U.joinu	61c4802cc480	1	4	97,256,44,256	0
+H.none.U.lc	61c481	1	2	97,257	0
+H.none.U.lcf	61c480	1	2	97,256	0
+H.none.U.len	32	0	1	50	0
+H.none.U.ord	3937	0	2	57,55	0
+H.none.U.packA	61c480	1	2	97,256	0
+H.none.U.packU	61	1	1	97	0
+H.none.U.packa	61c480	1	2	97,256	0
+H.none.U.red	30	0	1	48	0
+H.none.U.rei	30	0	1	48	0
+H.none.U.reia	30	0	1	48	0
+H.none.U.reiu	30	0	1	48	0
+H.none.U.rep	61c48061c480	1	4	97,256,97,256	0
+H.none.U.res	30	0	1	48	0
+H.none.U.rev	c48061	1	2	256,97	0
+H.none.U.rew	31	0	1	49	0
+H.none.U.rewa	31	0	1	49	0
+H.none.U.rewl	31	0	1	49	0
+H.none.U.rewu	31	0	1	49	0
+H.none.U.spc	61	0	1	97	0
+H.none.U.spd	32	0	1	50	0
+H.none.U.split	39377c323536	0	6	57,55,124,50,53,54	0
+H.none.U.sps	61c480	1	2	97,256	0
+H.none.U.sub1	61	1	1	97	0
+H.none.U.tr	61c480	1	2	97,256	0
+H.none.U.trcnt	30	0	1	48	0
+H.none.U.uc	41c480	1	2	65,256	0
+H.none.U.ucf	41c480	1	2	65,256	0
+H.none.U.unpC	39372c323536	0	6	57,55,44,50,53,54	0
+H.none.U.unpC0U	39372c30	0	4	57,55,44,48	0
+H.none.U.unpU	39372c323536	0	6	57,55,44,50,53,54	0
+H.none.U.unpU0C	39372c3139362c313238	0	10	57,55,44,49,57,54,44,49,50,56	0
+H.none.U.up	61c480	1	2	97,256	0
+L.feature.T.apb	c2b5c3a9c2b5	1	3	181,233,181	1
+L.feature.T.apl	c2b5c3a9c2b5	1	3	181,233,181	1
+L.feature.T.apu	c2b5c3a9c480	1	3	181,233,256	1
+L.feature.T.arith	32	0	1	50	1
+L.feature.T.cap	c2b5c3a9	1	2	181,233	0
+L.feature.T.catb	c2b5c3a9c2b5	1	3	181,233,181	1
+L.feature.T.catl	c2b5c3a9c2b5	1	3	181,233,181	1
+L.feature.T.catu	c2b5c3a9c480	1	3	181,233,256	1
+L.feature.T.chomp	c2b5c3a9	1	2	181,233	1
+L.feature.T.chop	c2b5	1	1	181	1
+L.feature.T.chr	b5	0	1	181	0
+L.feature.T.cmpb	30	0	1	48	1
+L.feature.T.copy	c2b5c3a9	1	2	181,233	1
+L.feature.T.dec	b5e9	0	2	181,233	1
+L.feature.T.down	b5e9	0	2	181,233	1
+L.feature.T.downok	b5e9	0	2	181,233	1
+L.feature.T.enc	c2b5c3a9	0	4	194,181,195,169	1
+L.feature.T.eqb	31	0	1	49	0
+L.feature.T.eql	31	0	1	49	0
+L.feature.T.fc	cebcc3a9	1	2	956,233	1
+L.feature.T.hkey	c2b5c3a9	1	2	181,233	0
+L.feature.T.hkey2	32	0	1	50	0
+L.feature.T.idx	30	0	1	48	1
+L.feature.T.joinb	c2b5c3a92cc2b5	1	4	181,233,44,181	1
+L.feature.T.joinu	c2b5c3a92cc480	1	4	181,233,44,256	1
+L.feature.T.lc	c2b5c3a9	1	2	181,233	1
+L.feature.T.lcf	c2b5c3a9	1	2	181,233	1
+L.feature.T.len	32	0	1	50	1
+L.feature.T.ord	313831	0	3	49,56,49	1
+L.feature.T.packA	c2b5c3a9	1	2	181,233	1
+L.feature.T.packU	c2b5	1	1	181	1
+L.feature.T.packa	c2b5c3a9	1	2	181,233	1
+L.feature.T.red	30	0	1	48	0
+L.feature.T.rei	31	0	1	49	0
+L.feature.T.reia	31	0	1	49	0
+L.feature.T.reiu	31	0	1	49	0
+L.feature.T.rep	c2b5c3a9c2b5c3a9	1	4	181,233,181,233	1
+L.feature.T.res	30	0	1	48	0
+L.feature.T.rev	c3a9c2b5	1	2	233,181	1
+L.feature.T.rew	31	0	1	49	0
+L.feature.T.rewa	30	0	1	48	0
+L.feature.T.rewl	30	0	1	48	0
+L.feature.T.rewu	31	0	1	49	0
+L.feature.T.spc	b5	0	1	181	1
+L.feature.T.spd	32	0	1	50	1
+L.feature.T.split	3138317c323333	0	7	49,56,49,124,50,51,51	1
+L.feature.T.sps	c2b5c3a9	1	2	181,233	1
+L.feature.T.sub1	c2b5	1	1	181	1
+L.feature.T.tr	58c3a9	1	2	88,233	1
+L.feature.T.trcnt	31	0	1	49	1
+L.feature.T.uc	ce9cc389	1	2	924,201	1
+L.feature.T.ucf	ce9cc3a9	1	2	924,233	1
+L.feature.T.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	1
+L.feature.T.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+L.feature.T.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	1
+L.feature.T.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	1
+L.feature.T.up	c2b5c3a9	1	2	181,233	1
+L.feature.U.apb	c2b5c3a9c2b5	1	3	181,233,181	0
+L.feature.U.apl	c2b5c3a9c2b5	1	3	181,233,181	0
+L.feature.U.apu	c2b5c3a9c480	1	3	181,233,256	0
+L.feature.U.arith	32	0	1	50	0
+L.feature.U.cap	c2b5c3a9	1	2	181,233	0
+L.feature.U.catb	c2b5c3a9c2b5	1	3	181,233,181	0
+L.feature.U.catl	c2b5c3a9c2b5	1	3	181,233,181	0
+L.feature.U.catu	c2b5c3a9c480	1	3	181,233,256	0
+L.feature.U.chomp	c2b5c3a9	1	2	181,233	0
+L.feature.U.chop	c2b5	1	1	181	0
+L.feature.U.chr	b5	0	1	181	0
+L.feature.U.cmpb	30	0	1	48	0
+L.feature.U.copy	c2b5c3a9	1	2	181,233	0
+L.feature.U.dec	b5e9	0	2	181,233	0
+L.feature.U.down	b5e9	0	2	181,233	0
+L.feature.U.downok	b5e9	0	2	181,233	0
+L.feature.U.enc	c2b5c3a9	0	4	194,181,195,169	0
+L.feature.U.eqb	31	0	1	49	0
+L.feature.U.eql	31	0	1	49	0
+L.feature.U.fc	cebcc3a9	1	2	956,233	0
+L.feature.U.hkey	c2b5c3a9	1	2	181,233	0
+L.feature.U.hkey2	32	0	1	50	0
+L.feature.U.idx	30	0	1	48	0
+L.feature.U.joinb	c2b5c3a92cc2b5	1	4	181,233,44,181	0
+L.feature.U.joinu	c2b5c3a92cc480	1	4	181,233,44,256	0
+L.feature.U.lc	c2b5c3a9	1	2	181,233	0
+L.feature.U.lcf	c2b5c3a9	1	2	181,233	0
+L.feature.U.len	32	0	1	50	0
+L.feature.U.ord	313831	0	3	49,56,49	0
+L.feature.U.packA	c2b5c3a9	1	2	181,233	0
+L.feature.U.packU	c2b5	1	1	181	0
+L.feature.U.packa	c2b5c3a9	1	2	181,233	0
+L.feature.U.red	30	0	1	48	0
+L.feature.U.rei	31	0	1	49	0
+L.feature.U.reia	31	0	1	49	0
+L.feature.U.reiu	31	0	1	49	0
+L.feature.U.rep	c2b5c3a9c2b5c3a9	1	4	181,233,181,233	0
+L.feature.U.res	30	0	1	48	0
+L.feature.U.rev	c3a9c2b5	1	2	233,181	0
+L.feature.U.rew	31	0	1	49	0
+L.feature.U.rewa	30	0	1	48	0
+L.feature.U.rewl	30	0	1	48	0
+L.feature.U.rewu	31	0	1	49	0
+L.feature.U.spc	b5	0	1	181	0
+L.feature.U.spd	32	0	1	50	0
+L.feature.U.split	3138317c323333	0	7	49,56,49,124,50,51,51	0
+L.feature.U.sps	c2b5c3a9	1	2	181,233	0
+L.feature.U.sub1	c2b5	1	1	181	0
+L.feature.U.tr	58c3a9	1	2	88,233	0
+L.feature.U.trcnt	31	0	1	49	0
+L.feature.U.uc	ce9cc389	1	2	924,201	0
+L.feature.U.ucf	ce9cc3a9	1	2	924,233	0
+L.feature.U.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	0
+L.feature.U.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+L.feature.U.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	0
+L.feature.U.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	0
+L.feature.U.up	c2b5c3a9	1	2	181,233	0
+L.locale.T.apb	c2b5c3a9c2b5	1	3	181,233,181	1
+L.locale.T.apl	c2b5c3a9c2b5	1	3	181,233,181	1
+L.locale.T.apu	c2b5c3a9c480	1	3	181,233,256	1
+L.locale.T.arith	32	0	1	50	1
+L.locale.T.cap	c2b5c3a9	1	2	181,233	0
+L.locale.T.catb	c2b5c3a9c2b5	1	3	181,233,181	1
+L.locale.T.catl	c2b5c3a9c2b5	1	3	181,233,181	1
+L.locale.T.catu	c2b5c3a9c480	1	3	181,233,256	1
+L.locale.T.chomp	c2b5c3a9	1	2	181,233	1
+L.locale.T.chop	c2b5	1	1	181	1
+L.locale.T.chr	b5	0	1	181	0
+L.locale.T.cmpb	30	0	1	48	1
+L.locale.T.copy	c2b5c3a9	1	2	181,233	1
+L.locale.T.dec	b5e9	0	2	181,233	1
+L.locale.T.down	b5e9	0	2	181,233	1
+L.locale.T.downok	b5e9	0	2	181,233	1
+L.locale.T.enc	c2b5c3a9	0	4	194,181,195,169	1
+L.locale.T.eqb	31	0	1	49	0
+L.locale.T.eql	31	0	1	49	0
+L.locale.T.fc	cebcc3a9	1	2	956,233	1
+L.locale.T.hkey	c2b5c3a9	1	2	181,233	0
+L.locale.T.hkey2	32	0	1	50	0
+L.locale.T.idx	30	0	1	48	1
+L.locale.T.joinb	c2b5c3a92cc2b5	1	4	181,233,44,181	1
+L.locale.T.joinu	c2b5c3a92cc480	1	4	181,233,44,256	1
+L.locale.T.lc	c2b5c3a9	1	2	181,233	1
+L.locale.T.lcf	c2b5c3a9	1	2	181,233	1
+L.locale.T.len	32	0	1	50	1
+L.locale.T.ord	313831	0	3	49,56,49	1
+L.locale.T.packA	c2b5c3a9	1	2	181,233	1
+L.locale.T.packU	c2b5	1	1	181	1
+L.locale.T.packa	c2b5c3a9	1	2	181,233	1
+L.locale.T.red	30	0	1	48	0
+L.locale.T.rei	31	0	1	49	0
+L.locale.T.reia	31	0	1	49	0
+L.locale.T.reiu	31	0	1	49	0
+L.locale.T.rep	c2b5c3a9c2b5c3a9	1	4	181,233,181,233	1
+L.locale.T.res	30	0	1	48	0
+L.locale.T.rev	c3a9c2b5	1	2	233,181	1
+L.locale.T.rew	31	0	1	49	0
+L.locale.T.rewa	30	0	1	48	0
+L.locale.T.rewl	31	0	1	49	0
+L.locale.T.rewu	31	0	1	49	0
+L.locale.T.spc	b5	0	1	181	1
+L.locale.T.spd	32	0	1	50	1
+L.locale.T.split	3138317c323333	0	7	49,56,49,124,50,51,51	1
+L.locale.T.sps	c2b5c3a9	1	2	181,233	1
+L.locale.T.sub1	c2b5	1	1	181	1
+L.locale.T.tr	58c3a9	1	2	88,233	1
+L.locale.T.trcnt	31	0	1	49	1
+L.locale.T.uc	ce9cc389	1	2	924,201	1
+L.locale.T.ucf	ce9cc3a9	1	2	924,233	1
+L.locale.T.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	1
+L.locale.T.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+L.locale.T.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	1
+L.locale.T.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	1
+L.locale.T.up	c2b5c3a9	1	2	181,233	1
+L.locale.U.apb	c2b5c3a9c2b5	1	3	181,233,181	0
+L.locale.U.apl	c2b5c3a9c2b5	1	3	181,233,181	0
+L.locale.U.apu	c2b5c3a9c480	1	3	181,233,256	0
+L.locale.U.arith	32	0	1	50	0
+L.locale.U.cap	c2b5c3a9	1	2	181,233	0
+L.locale.U.catb	c2b5c3a9c2b5	1	3	181,233,181	0
+L.locale.U.catl	c2b5c3a9c2b5	1	3	181,233,181	0
+L.locale.U.catu	c2b5c3a9c480	1	3	181,233,256	0
+L.locale.U.chomp	c2b5c3a9	1	2	181,233	0
+L.locale.U.chop	c2b5	1	1	181	0
+L.locale.U.chr	b5	0	1	181	0
+L.locale.U.cmpb	30	0	1	48	0
+L.locale.U.copy	c2b5c3a9	1	2	181,233	0
+L.locale.U.dec	b5e9	0	2	181,233	0
+L.locale.U.down	b5e9	0	2	181,233	0
+L.locale.U.downok	b5e9	0	2	181,233	0
+L.locale.U.enc	c2b5c3a9	0	4	194,181,195,169	0
+L.locale.U.eqb	31	0	1	49	0
+L.locale.U.eql	31	0	1	49	0
+L.locale.U.fc	cebcc3a9	1	2	956,233	0
+L.locale.U.hkey	c2b5c3a9	1	2	181,233	0
+L.locale.U.hkey2	32	0	1	50	0
+L.locale.U.idx	30	0	1	48	0
+L.locale.U.joinb	c2b5c3a92cc2b5	1	4	181,233,44,181	0
+L.locale.U.joinu	c2b5c3a92cc480	1	4	181,233,44,256	0
+L.locale.U.lc	c2b5c3a9	1	2	181,233	0
+L.locale.U.lcf	c2b5c3a9	1	2	181,233	0
+L.locale.U.len	32	0	1	50	0
+L.locale.U.ord	313831	0	3	49,56,49	0
+L.locale.U.packA	c2b5c3a9	1	2	181,233	0
+L.locale.U.packU	c2b5	1	1	181	0
+L.locale.U.packa	c2b5c3a9	1	2	181,233	0
+L.locale.U.red	30	0	1	48	0
+L.locale.U.rei	31	0	1	49	0
+L.locale.U.reia	31	0	1	49	0
+L.locale.U.reiu	31	0	1	49	0
+L.locale.U.rep	c2b5c3a9c2b5c3a9	1	4	181,233,181,233	0
+L.locale.U.res	30	0	1	48	0
+L.locale.U.rev	c3a9c2b5	1	2	233,181	0
+L.locale.U.rew	31	0	1	49	0
+L.locale.U.rewa	30	0	1	48	0
+L.locale.U.rewl	31	0	1	49	0
+L.locale.U.rewu	31	0	1	49	0
+L.locale.U.spc	b5	0	1	181	0
+L.locale.U.spd	32	0	1	50	0
+L.locale.U.split	3138317c323333	0	7	49,56,49,124,50,51,51	0
+L.locale.U.sps	c2b5c3a9	1	2	181,233	0
+L.locale.U.sub1	c2b5	1	1	181	0
+L.locale.U.tr	58c3a9	1	2	88,233	0
+L.locale.U.trcnt	31	0	1	49	0
+L.locale.U.uc	ce9cc389	1	2	924,201	0
+L.locale.U.ucf	ce9cc3a9	1	2	924,233	0
+L.locale.U.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	0
+L.locale.U.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+L.locale.U.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	0
+L.locale.U.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	0
+L.locale.U.up	c2b5c3a9	1	2	181,233	0
+L.none.T.apb	c2b5c3a9c2b5	1	3	181,233,181	1
+L.none.T.apl	c2b5c3a9c2b5	1	3	181,233,181	1
+L.none.T.apu	c2b5c3a9c480	1	3	181,233,256	1
+L.none.T.arith	32	0	1	50	1
+L.none.T.cap	c2b5c3a9	1	2	181,233	0
+L.none.T.catb	c2b5c3a9c2b5	1	3	181,233,181	1
+L.none.T.catl	c2b5c3a9c2b5	1	3	181,233,181	1
+L.none.T.catu	c2b5c3a9c480	1	3	181,233,256	1
+L.none.T.chomp	c2b5c3a9	1	2	181,233	1
+L.none.T.chop	c2b5	1	1	181	1
+L.none.T.chr	b5	0	1	181	0
+L.none.T.cmpb	30	0	1	48	1
+L.none.T.copy	c2b5c3a9	1	2	181,233	1
+L.none.T.dec	b5e9	0	2	181,233	1
+L.none.T.down	b5e9	0	2	181,233	1
+L.none.T.downok	b5e9	0	2	181,233	1
+L.none.T.enc	c2b5c3a9	0	4	194,181,195,169	1
+L.none.T.eqb	31	0	1	49	0
+L.none.T.eql	31	0	1	49	0
+L.none.T.fc	cebcc3a9	1	2	956,233	1
+L.none.T.hkey	c2b5c3a9	1	2	181,233	0
+L.none.T.hkey2	32	0	1	50	0
+L.none.T.idx	30	0	1	48	1
+L.none.T.joinb	c2b5c3a92cc2b5	1	4	181,233,44,181	1
+L.none.T.joinu	c2b5c3a92cc480	1	4	181,233,44,256	1
+L.none.T.lc	c2b5c3a9	1	2	181,233	1
+L.none.T.lcf	c2b5c3a9	1	2	181,233	1
+L.none.T.len	32	0	1	50	1
+L.none.T.ord	313831	0	3	49,56,49	1
+L.none.T.packA	c2b5c3a9	1	2	181,233	1
+L.none.T.packU	c2b5	1	1	181	1
+L.none.T.packa	c2b5c3a9	1	2	181,233	1
+L.none.T.red	30	0	1	48	0
+L.none.T.rei	31	0	1	49	0
+L.none.T.reia	31	0	1	49	0
+L.none.T.reiu	31	0	1	49	0
+L.none.T.rep	c2b5c3a9c2b5c3a9	1	4	181,233,181,233	1
+L.none.T.res	30	0	1	48	0
+L.none.T.rev	c3a9c2b5	1	2	233,181	1
+L.none.T.rew	31	0	1	49	0
+L.none.T.rewa	30	0	1	48	0
+L.none.T.rewl	30	0	1	48	0
+L.none.T.rewu	31	0	1	49	0
+L.none.T.spc	b5	0	1	181	1
+L.none.T.spd	32	0	1	50	1
+L.none.T.split	3138317c323333	0	7	49,56,49,124,50,51,51	1
+L.none.T.sps	c2b5c3a9	1	2	181,233	1
+L.none.T.sub1	c2b5	1	1	181	1
+L.none.T.tr	58c3a9	1	2	88,233	1
+L.none.T.trcnt	31	0	1	49	1
+L.none.T.uc	ce9cc389	1	2	924,201	1
+L.none.T.ucf	ce9cc3a9	1	2	924,233	1
+L.none.T.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	1
+L.none.T.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+L.none.T.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	1
+L.none.T.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	1
+L.none.T.up	c2b5c3a9	1	2	181,233	1
+L.none.U.apb	c2b5c3a9c2b5	1	3	181,233,181	0
+L.none.U.apl	c2b5c3a9c2b5	1	3	181,233,181	0
+L.none.U.apu	c2b5c3a9c480	1	3	181,233,256	0
+L.none.U.arith	32	0	1	50	0
+L.none.U.cap	c2b5c3a9	1	2	181,233	0
+L.none.U.catb	c2b5c3a9c2b5	1	3	181,233,181	0
+L.none.U.catl	c2b5c3a9c2b5	1	3	181,233,181	0
+L.none.U.catu	c2b5c3a9c480	1	3	181,233,256	0
+L.none.U.chomp	c2b5c3a9	1	2	181,233	0
+L.none.U.chop	c2b5	1	1	181	0
+L.none.U.chr	b5	0	1	181	0
+L.none.U.cmpb	30	0	1	48	0
+L.none.U.copy	c2b5c3a9	1	2	181,233	0
+L.none.U.dec	b5e9	0	2	181,233	0
+L.none.U.down	b5e9	0	2	181,233	0
+L.none.U.downok	b5e9	0	2	181,233	0
+L.none.U.enc	c2b5c3a9	0	4	194,181,195,169	0
+L.none.U.eqb	31	0	1	49	0
+L.none.U.eql	31	0	1	49	0
+L.none.U.fc	cebcc3a9	1	2	956,233	0
+L.none.U.hkey	c2b5c3a9	1	2	181,233	0
+L.none.U.hkey2	32	0	1	50	0
+L.none.U.idx	30	0	1	48	0
+L.none.U.joinb	c2b5c3a92cc2b5	1	4	181,233,44,181	0
+L.none.U.joinu	c2b5c3a92cc480	1	4	181,233,44,256	0
+L.none.U.lc	c2b5c3a9	1	2	181,233	0
+L.none.U.lcf	c2b5c3a9	1	2	181,233	0
+L.none.U.len	32	0	1	50	0
+L.none.U.ord	313831	0	3	49,56,49	0
+L.none.U.packA	c2b5c3a9	1	2	181,233	0
+L.none.U.packU	c2b5	1	1	181	0
+L.none.U.packa	c2b5c3a9	1	2	181,233	0
+L.none.U.red	30	0	1	48	0
+L.none.U.rei	31	0	1	49	0
+L.none.U.reia	31	0	1	49	0
+L.none.U.reiu	31	0	1	49	0
+L.none.U.rep	c2b5c3a9c2b5c3a9	1	4	181,233,181,233	0
+L.none.U.res	30	0	1	48	0
+L.none.U.rev	c3a9c2b5	1	2	233,181	0
+L.none.U.rew	31	0	1	49	0
+L.none.U.rewa	30	0	1	48	0
+L.none.U.rewl	30	0	1	48	0
+L.none.U.rewu	31	0	1	49	0
+L.none.U.spc	b5	0	1	181	0
+L.none.U.spd	32	0	1	50	0
+L.none.U.split	3138317c323333	0	7	49,56,49,124,50,51,51	0
+L.none.U.sps	c2b5c3a9	1	2	181,233	0
+L.none.U.sub1	c2b5	1	1	181	0
+L.none.U.tr	58c3a9	1	2	88,233	0
+L.none.U.trcnt	31	0	1	49	0
+L.none.U.uc	ce9cc389	1	2	924,201	0
+L.none.U.ucf	ce9cc3a9	1	2	924,233	0
+L.none.U.unpC	3138312c323333	0	7	49,56,49,44,50,51,51	0
+L.none.U.unpC0U	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+L.none.U.unpU	3138312c323333	0	7	49,56,49,44,50,51,51	0
+L.none.U.unpU0C	3139342c3138312c3139352c313639	0	15	49,57,52,44,49,56,49,44,49,57,53,44,49,54,57	0
+L.none.U.up	c2b5c3a9	1	2	181,233	0
+M.feature.T.apb	c328c2b5	1	2	0,181	1
+M.feature.T.apl	c328c2b5	1	2	0,181	1
+M.feature.T.apu	c328c480	1	2	0,256	1
+M.feature.T.arith	31	0	1	49	1
+M.feature.T.cap	c328	1	1	0	0
+M.feature.T.catb	c328c2b5	1	2	0,181	1
+M.feature.T.catl	c328c2b5	1	2	0,181	1
+M.feature.T.catu	c328c480	1	2	0,256	1
+M.feature.T.chomp	c328	1	1	0	1
+M.feature.T.chop	c3	1	0	0	1
+M.feature.T.chr	00	0	1	0	0
+M.feature.T.cmpb	31	0	1	49	1
+M.feature.T.copy	c328	1	1	0	1
+M.feature.T.dec	c328	1	1	0	1
+M.feature.T.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+M.feature.T.downok	c328	1	1	0	1
+M.feature.T.enc	c328	0	2	195,40	1
+M.feature.T.eqb	30	0	1	48	0
+M.feature.T.eql	30	0	1	48	0
+M.feature.T.fc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.hkey	c328	1	1	0	0
+M.feature.T.hkey2	32	0	1	50	0
+M.feature.T.idx	2d31	0	2	45,49	1
+M.feature.T.joinb	c3282cc2b5	1	3	0,44,181	1
+M.feature.T.joinu	c3282cc480	1	3	0,44,256	1
+M.feature.T.lc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.lcf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.len	31	0	1	49	1
+M.feature.T.ord	30	0	1	48	1
+M.feature.T.packA	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.packU	00	1	1	0	1
+M.feature.T.packa	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.red	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.rei	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.reia	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.reiu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.rep	c328c328	1	2	0,0	1
+M.feature.T.res	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.rev	28c3	1	1	40,0	1
+M.feature.T.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.rewa	30	0	1	48	0
+M.feature.T.rewl	30	0	1	48	0
+M.feature.T.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.spc	00	0	1	0	1
+M.feature.T.spd	31	0	1	49	1
+M.feature.T.split	30	0	1	48	1
+M.feature.T.sps	c328	1	1	0	1
+M.feature.T.sub1	c328	1	1	0	1
+M.feature.T.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.uc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.ucf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.T.unpC	36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+M.feature.T.unpC0U		0	0		1
+M.feature.T.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+M.feature.T.unpU0C	3139352c3430	0	6	49,57,53,44,52,48	1
+M.feature.T.up	c328	1	1	0	1
+M.feature.U.apb	c328c2b5	1	2	0,181	0
+M.feature.U.apl	c328c2b5	1	2	0,181	0
+M.feature.U.apu	c328c480	1	2	0,256	0
+M.feature.U.arith	31	0	1	49	0
+M.feature.U.cap	c328	1	1	0	0
+M.feature.U.catb	c328c2b5	1	2	0,181	0
+M.feature.U.catl	c328c2b5	1	2	0,181	0
+M.feature.U.catu	c328c480	1	2	0,256	0
+M.feature.U.chomp	c328	1	1	0	0
+M.feature.U.chop	c3	1	0	0	0
+M.feature.U.chr	00	0	1	0	0
+M.feature.U.cmpb	31	0	1	49	0
+M.feature.U.copy	c328	1	1	0	0
+M.feature.U.dec	c328	1	1	0	0
+M.feature.U.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+M.feature.U.downok	c328	1	1	0	0
+M.feature.U.enc	c328	0	2	195,40	0
+M.feature.U.eqb	30	0	1	48	0
+M.feature.U.eql	30	0	1	48	0
+M.feature.U.fc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.hkey	c328	1	1	0	0
+M.feature.U.hkey2	32	0	1	50	0
+M.feature.U.idx	2d31	0	2	45,49	0
+M.feature.U.joinb	c3282cc2b5	1	3	0,44,181	0
+M.feature.U.joinu	c3282cc480	1	3	0,44,256	0
+M.feature.U.lc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.lcf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.len	31	0	1	49	0
+M.feature.U.ord	30	0	1	48	0
+M.feature.U.packA	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.packU	00	1	1	0	0
+M.feature.U.packa	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.red	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.rei	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.reia	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.reiu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.rep	c328c328	1	2	0,0	0
+M.feature.U.res	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.rev	c328	1	1	0	0
+M.feature.U.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.rewa	30	0	1	48	0
+M.feature.U.rewl	30	0	1	48	0
+M.feature.U.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.spc	00	0	1	0	0
+M.feature.U.spd	31	0	1	49	0
+M.feature.U.split	30	0	1	48	0
+M.feature.U.sps	c328	1	1	0	0
+M.feature.U.sub1	c328	1	1	0	0
+M.feature.U.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.uc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.ucf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.feature.U.unpC	36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+M.feature.U.unpC0U		0	0		0
+M.feature.U.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+M.feature.U.unpU0C	3139352c3430	0	6	49,57,53,44,52,48	0
+M.feature.U.up	c328	1	1	0	0
+M.locale.T.apb	c328c2b5	1	2	0,181	1
+M.locale.T.apl	c328c2b5	1	2	0,181	1
+M.locale.T.apu	c328c480	1	2	0,256	1
+M.locale.T.arith	31	0	1	49	1
+M.locale.T.cap	c328	1	1	0	0
+M.locale.T.catb	c328c2b5	1	2	0,181	1
+M.locale.T.catl	c328c2b5	1	2	0,181	1
+M.locale.T.catu	c328c480	1	2	0,256	1
+M.locale.T.chomp	c328	1	1	0	1
+M.locale.T.chop	c3	1	0	0	1
+M.locale.T.chr	00	0	1	0	0
+M.locale.T.cmpb	2d31	0	2	45,49	1
+M.locale.T.copy	c328	1	1	0	1
+M.locale.T.dec	c328	1	1	0	1
+M.locale.T.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+M.locale.T.downok	c328	1	1	0	1
+M.locale.T.enc	c328	0	2	195,40	1
+M.locale.T.eqb	30	0	1	48	0
+M.locale.T.eql	30	0	1	48	0
+M.locale.T.fc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.hkey	c328	1	1	0	0
+M.locale.T.hkey2	32	0	1	50	0
+M.locale.T.idx	2d31	0	2	45,49	1
+M.locale.T.joinb	c3282cc2b5	1	3	0,44,181	1
+M.locale.T.joinu	c3282cc480	1	3	0,44,256	1
+M.locale.T.lc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.lcf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.len	31	0	1	49	1
+M.locale.T.ord	30	0	1	48	1
+M.locale.T.packA	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.packU	00	1	1	0	1
+M.locale.T.packa	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.red	30	0	1	48	0
+M.locale.T.rei	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.reia	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.reiu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.rep	c328c328	1	2	0,0	1
+M.locale.T.res	30	0	1	48	0
+M.locale.T.rev	28c3	1	1	40,0	1
+M.locale.T.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.rewa	30	0	1	48	0
+M.locale.T.rewl	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.spc	00	0	1	0	1
+M.locale.T.spd	31	0	1	49	1
+M.locale.T.split	30	0	1	48	1
+M.locale.T.sps	c328	1	1	0	1
+M.locale.T.sub1	c328	1	1	0	1
+M.locale.T.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.uc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.ucf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.T.unpC	36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+M.locale.T.unpC0U		0	0		1
+M.locale.T.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+M.locale.T.unpU0C	3139352c3430	0	6	49,57,53,44,52,48	1
+M.locale.T.up	c328	1	1	0	1
+M.locale.U.apb	c328c2b5	1	2	0,181	0
+M.locale.U.apl	c328c2b5	1	2	0,181	0
+M.locale.U.apu	c328c480	1	2	0,256	0
+M.locale.U.arith	31	0	1	49	0
+M.locale.U.cap	c328	1	1	0	0
+M.locale.U.catb	c328c2b5	1	2	0,181	0
+M.locale.U.catl	c328c2b5	1	2	0,181	0
+M.locale.U.catu	c328c480	1	2	0,256	0
+M.locale.U.chomp	c328	1	1	0	0
+M.locale.U.chop	c3	1	0	0	0
+M.locale.U.chr	00	0	1	0	0
+M.locale.U.cmpb	2d31	0	2	45,49	0
+M.locale.U.copy	c328	1	1	0	0
+M.locale.U.dec	c328	1	1	0	0
+M.locale.U.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+M.locale.U.downok	c328	1	1	0	0
+M.locale.U.enc	c328	0	2	195,40	0
+M.locale.U.eqb	30	0	1	48	0
+M.locale.U.eql	30	0	1	48	0
+M.locale.U.fc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.hkey	c328	1	1	0	0
+M.locale.U.hkey2	32	0	1	50	0
+M.locale.U.idx	2d31	0	2	45,49	0
+M.locale.U.joinb	c3282cc2b5	1	3	0,44,181	0
+M.locale.U.joinu	c3282cc480	1	3	0,44,256	0
+M.locale.U.lc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.lcf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.len	31	0	1	49	0
+M.locale.U.ord	30	0	1	48	0
+M.locale.U.packA	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.packU	00	1	1	0	0
+M.locale.U.packa	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.red	30	0	1	48	0
+M.locale.U.rei	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.reia	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.reiu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.rep	c328c328	1	2	0,0	0
+M.locale.U.res	30	0	1	48	0
+M.locale.U.rev	c328	1	1	0	0
+M.locale.U.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.rewa	30	0	1	48	0
+M.locale.U.rewl	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.spc	00	0	1	0	0
+M.locale.U.spd	31	0	1	49	0
+M.locale.U.split	30	0	1	48	0
+M.locale.U.sps	c328	1	1	0	0
+M.locale.U.sub1	c328	1	1	0	0
+M.locale.U.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.uc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.ucf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.locale.U.unpC	36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+M.locale.U.unpC0U		0	0		0
+M.locale.U.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+M.locale.U.unpU0C	3139352c3430	0	6	49,57,53,44,52,48	0
+M.locale.U.up	c328	1	1	0	0
+M.none.T.apb	c328c2b5	1	2	0,181	1
+M.none.T.apl	c328c2b5	1	2	0,181	1
+M.none.T.apu	c328c480	1	2	0,256	1
+M.none.T.arith	31	0	1	49	1
+M.none.T.cap	c328	1	1	0	0
+M.none.T.catb	c328c2b5	1	2	0,181	1
+M.none.T.catl	c328c2b5	1	2	0,181	1
+M.none.T.catu	c328c480	1	2	0,256	1
+M.none.T.chomp	c328	1	1	0	1
+M.none.T.chop	c3	1	0	0	1
+M.none.T.chr	00	0	1	0	0
+M.none.T.cmpb	31	0	1	49	1
+M.none.T.copy	c328	1	1	0	1
+M.none.T.dec	c328	1	1	0	1
+M.none.T.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+M.none.T.downok	c328	1	1	0	1
+M.none.T.enc	c328	0	2	195,40	1
+M.none.T.eqb	30	0	1	48	0
+M.none.T.eql	30	0	1	48	0
+M.none.T.fc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.hkey	c328	1	1	0	0
+M.none.T.hkey2	32	0	1	50	0
+M.none.T.idx	2d31	0	2	45,49	1
+M.none.T.joinb	c3282cc2b5	1	3	0,44,181	1
+M.none.T.joinu	c3282cc480	1	3	0,44,256	1
+M.none.T.lc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.lcf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.len	31	0	1	49	1
+M.none.T.ord	30	0	1	48	1
+M.none.T.packA	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.packU	00	1	1	0	1
+M.none.T.packa	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.red	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.rei	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.reia	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.reiu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.rep	c328c328	1	2	0,0	1
+M.none.T.res	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.rev	28c3	1	1	40,0	1
+M.none.T.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.rewa	30	0	1	48	0
+M.none.T.rewl	30	0	1	48	0
+M.none.T.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.spc	00	0	1	0	1
+M.none.T.spd	31	0	1	49	1
+M.none.T.split	30	0	1	48	1
+M.none.T.sps	c328	1	1	0	1
+M.none.T.sub1	c328	1	1	0	1
+M.none.T.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.uc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.ucf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.T.unpC	36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+M.none.T.unpC0U		0	0		1
+M.none.T.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+M.none.T.unpU0C	3139352c3430	0	6	49,57,53,44,52,48	1
+M.none.T.up	c328	1	1	0	1
+M.none.U.apb	c328c2b5	1	2	0,181	0
+M.none.U.apl	c328c2b5	1	2	0,181	0
+M.none.U.apu	c328c480	1	2	0,256	0
+M.none.U.arith	31	0	1	49	0
+M.none.U.cap	c328	1	1	0	0
+M.none.U.catb	c328c2b5	1	2	0,181	0
+M.none.U.catl	c328c2b5	1	2	0,181	0
+M.none.U.catu	c328c480	1	2	0,256	0
+M.none.U.chomp	c328	1	1	0	0
+M.none.U.chop	c3	1	0	0	0
+M.none.U.chr	00	0	1	0	0
+M.none.U.cmpb	31	0	1	49	0
+M.none.U.copy	c328	1	1	0	0
+M.none.U.dec	c328	1	1	0	0
+M.none.U.down	756e646566	0	5	117,110,100,101,102	0		Wide character in subroutine entry
+M.none.U.downok	c328	1	1	0	0
+M.none.U.enc	c328	0	2	195,40	0
+M.none.U.eqb	30	0	1	48	0
+M.none.U.eql	30	0	1	48	0
+M.none.U.fc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.hkey	c328	1	1	0	0
+M.none.U.hkey2	32	0	1	50	0
+M.none.U.idx	2d31	0	2	45,49	0
+M.none.U.joinb	c3282cc2b5	1	3	0,44,181	0
+M.none.U.joinu	c3282cc480	1	3	0,44,256	0
+M.none.U.lc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.lcf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.len	31	0	1	49	0
+M.none.U.ord	30	0	1	48	0
+M.none.U.packA	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.packU	00	1	1	0	0
+M.none.U.packa	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.red	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.rei	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.reia	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.reiu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.rep	c328c328	1	2	0,0	0
+M.none.U.res	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.rev	c328	1	1	0	0
+M.none.U.rew	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.rewa	30	0	1	48	0
+M.none.U.rewl	30	0	1	48	0
+M.none.U.rewu	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.spc	00	0	1	0	0
+M.none.U.spd	31	0	1	49	0
+M.none.U.split	30	0	1	48	0
+M.none.U.sps	c328	1	1	0	0
+M.none.U.sub1	c328	1	1	0	0
+M.none.U.tr	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.trcnt	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.uc	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.ucf	756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+M.none.U.unpC	36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+M.none.U.unpC0U		0	0		0
+M.none.U.unpU	36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+M.none.U.unpU0C	3139352c3430	0	6	49,57,53,44,52,48	0
+M.none.U.up	c328	1	1	0	0

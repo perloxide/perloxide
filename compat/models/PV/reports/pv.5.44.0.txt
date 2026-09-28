@@ -1,0 +1,643 @@
+oracle=/usr/local/bin/perl rows=2052 ok=1838 bad=214
+MISMATCH A.none.T.ord
+  perl:  3937	0	2	57,55	1
+  model: 3937	0	2	57,55	0
+MISMATCH A.none.T.spc
+  perl:  61	0	1	97	1
+  model: 61	0	1	97	0
+MISMATCH A.none.T.spd
+  perl:  33	0	1	51	1
+  model: 33	0	1	51	0
+MISMATCH A.feature.T.ord
+  perl:  3937	0	2	57,55	1
+  model: 3937	0	2	57,55	0
+MISMATCH A.feature.T.spc
+  perl:  61	0	1	97	1
+  model: 61	0	1	97	0
+MISMATCH A.feature.T.spd
+  perl:  33	0	1	51	1
+  model: 33	0	1	51	0
+MISMATCH A.locale.T.ord
+  perl:  3937	0	2	57,55	1
+  model: 3937	0	2	57,55	0
+MISMATCH A.locale.T.spc
+  perl:  61	0	1	97	1
+  model: 61	0	1	97	0
+MISMATCH A.locale.T.spd
+  perl:  33	0	1	51	1
+  model: 33	0	1	51	0
+MISMATCH B.none.U.rewl
+  perl:  30	0	1	48	0
+  model: 31	0	1	49	0
+MISMATCH B.none.T.ord
+  perl:  313831	0	3	49,56,49	1
+  model: 313831	0	3	49,56,49	0
+MISMATCH B.none.T.rewl
+  perl:  30	0	1	48	0
+  model: 31	0	1	49	0
+MISMATCH B.none.T.spc
+  perl:  b5	0	1	181	1
+  model: b5	0	1	181	0
+MISMATCH B.none.T.spd
+  perl:  32	0	1	50	1
+  model: 32	0	1	50	0
+MISMATCH B.feature.U.rewl
+  perl:  30	0	1	48	0
+  model: 31	0	1	49	0
+MISMATCH B.feature.T.ord
+  perl:  313831	0	3	49,56,49	1
+  model: 313831	0	3	49,56,49	0
+MISMATCH B.feature.T.rewl
+  perl:  30	0	1	48	0
+  model: 31	0	1	49	0
+MISMATCH B.feature.T.spc
+  perl:  b5	0	1	181	1
+  model: b5	0	1	181	0
+MISMATCH B.feature.T.spd
+  perl:  32	0	1	50	1
+  model: 32	0	1	50	0
+MISMATCH B.locale.T.ord
+  perl:  313831	0	3	49,56,49	1
+  model: 313831	0	3	49,56,49	0
+MISMATCH B.locale.T.spc
+  perl:  b5	0	1	181	1
+  model: b5	0	1	181	0
+MISMATCH B.locale.T.spd
+  perl:  32	0	1	50	1
+  model: 32	0	1	50	0
+MISMATCH E.none.T.ord
+  perl:  30	0	1	48	1
+  model: 30	0	1	48	0
+MISMATCH E.none.T.spc
+  perl:  00	0	1	0	1
+  model: 00	0	1	0	0
+MISMATCH E.none.T.spd
+  perl:  30	0	1	48	1
+  model: 30	0	1	48	0
+MISMATCH E.none.T.split
+  perl:  	0	0		0
+  model: 	0	0		1
+MISMATCH E.feature.T.ord
+  perl:  30	0	1	48	1
+  model: 30	0	1	48	0
+MISMATCH E.feature.T.spc
+  perl:  00	0	1	0	1
+  model: 00	0	1	0	0
+MISMATCH E.feature.T.spd
+  perl:  30	0	1	48	1
+  model: 30	0	1	48	0
+MISMATCH E.feature.T.split
+  perl:  	0	0		0
+  model: 	0	0		1
+MISMATCH E.locale.T.ord
+  perl:  30	0	1	48	1
+  model: 30	0	1	48	0
+MISMATCH E.locale.T.spc
+  perl:  00	0	1	0	1
+  model: 00	0	1	0	0
+MISMATCH E.locale.T.spd
+  perl:  30	0	1	48	1
+  model: 30	0	1	48	0
+MISMATCH E.locale.T.split
+  perl:  	0	0		0
+  model: 	0	0		1
+MISMATCH H.none.U.unpC
+  perl:  39372c323536	0	6	57,55,44,50,53,54	0
+  model: 39372c30	0	4	57,55,44,48	0
+MISMATCH H.none.U.unpC0U
+  perl:  39372c30	0	4	57,55,44,48	0
+  model: 39372c323536	0	6	57,55,44,50,53,54	0
+MISMATCH H.none.T.ord
+  perl:  3937	0	2	57,55	1
+  model: 3937	0	2	57,55	0
+MISMATCH H.none.T.spc
+  perl:  61	0	1	97	1
+  model: 61	0	1	97	0
+MISMATCH H.none.T.spd
+  perl:  32	0	1	50	1
+  model: 32	0	1	50	0
+MISMATCH H.none.T.unpC
+  perl:  39372c323536	0	6	57,55,44,50,53,54	1
+  model: 39372c30	0	4	57,55,44,48	1
+MISMATCH H.none.T.unpC0U
+  perl:  39372c30	0	4	57,55,44,48	1
+  model: 39372c323536	0	6	57,55,44,50,53,54	1
+MISMATCH H.feature.U.unpC
+  perl:  39372c323536	0	6	57,55,44,50,53,54	0
+  model: 39372c30	0	4	57,55,44,48	0
+MISMATCH H.feature.U.unpC0U
+  perl:  39372c30	0	4	57,55,44,48	0
+  model: 39372c323536	0	6	57,55,44,50,53,54	0
+MISMATCH H.feature.T.ord
+  perl:  3937	0	2	57,55	1
+  model: 3937	0	2	57,55	0
+MISMATCH H.feature.T.spc
+  perl:  61	0	1	97	1
+  model: 61	0	1	97	0
+MISMATCH H.feature.T.spd
+  perl:  32	0	1	50	1
+  model: 32	0	1	50	0
+MISMATCH H.feature.T.unpC
+  perl:  39372c323536	0	6	57,55,44,50,53,54	1
+  model: 39372c30	0	4	57,55,44,48	1
+MISMATCH H.feature.T.unpC0U
+  perl:  39372c30	0	4	57,55,44,48	1
+  model: 39372c323536	0	6	57,55,44,50,53,54	1
+MISMATCH H.locale.U.unpC
+  perl:  39372c323536	0	6	57,55,44,50,53,54	0
+  model: 39372c30	0	4	57,55,44,48	0
+MISMATCH H.locale.U.unpC0U
+  perl:  39372c30	0	4	57,55,44,48	0
+  model: 39372c323536	0	6	57,55,44,50,53,54	0
+MISMATCH H.locale.T.ord
+  perl:  3937	0	2	57,55	1
+  model: 3937	0	2	57,55	0
+MISMATCH H.locale.T.spc
+  perl:  61	0	1	97	1
+  model: 61	0	1	97	0
+MISMATCH H.locale.T.spd
+  perl:  32	0	1	50	1
+  model: 32	0	1	50	0
+MISMATCH H.locale.T.unpC
+  perl:  39372c323536	0	6	57,55,44,50,53,54	1
+  model: 39372c30	0	4	57,55,44,48	1
+MISMATCH H.locale.T.unpC0U
+  perl:  39372c30	0	4	57,55,44,48	1
+  model: 39372c323536	0	6	57,55,44,50,53,54	1
+MISMATCH L.none.U.rewl
+  perl:  30	0	1	48	0
+  model: 31	0	1	49	0
+MISMATCH L.none.U.unpC0U
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+  model: 3138312c323333	0	7	49,56,49,44,50,51,51	0
+MISMATCH L.none.T.ord
+  perl:  313831	0	3	49,56,49	1
+  model: 313831	0	3	49,56,49	0
+MISMATCH L.none.T.rewl
+  perl:  30	0	1	48	0
+  model: 31	0	1	49	0
+MISMATCH L.none.T.spc
+  perl:  b5	0	1	181	1
+  model: b5	0	1	181	0
+MISMATCH L.none.T.spd
+  perl:  32	0	1	50	1
+  model: 32	0	1	50	0
+MISMATCH L.none.T.unpC0U
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+  model: 3138312c323333	0	7	49,56,49,44,50,51,51	1
+MISMATCH L.feature.U.rewl
+  perl:  30	0	1	48	0
+  model: 31	0	1	49	0
+MISMATCH L.feature.U.unpC0U
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+  model: 3138312c323333	0	7	49,56,49,44,50,51,51	0
+MISMATCH L.feature.T.ord
+  perl:  313831	0	3	49,56,49	1
+  model: 313831	0	3	49,56,49	0
+MISMATCH L.feature.T.rewl
+  perl:  30	0	1	48	0
+  model: 31	0	1	49	0
+MISMATCH L.feature.T.spc
+  perl:  b5	0	1	181	1
+  model: b5	0	1	181	0
+MISMATCH L.feature.T.spd
+  perl:  32	0	1	50	1
+  model: 32	0	1	50	0
+MISMATCH L.feature.T.unpC0U
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+  model: 3138312c323333	0	7	49,56,49,44,50,51,51	1
+MISMATCH L.locale.U.unpC0U
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+  model: 3138312c323333	0	7	49,56,49,44,50,51,51	0
+MISMATCH L.locale.T.ord
+  perl:  313831	0	3	49,56,49	1
+  model: 313831	0	3	49,56,49	0
+MISMATCH L.locale.T.spc
+  perl:  b5	0	1	181	1
+  model: b5	0	1	181	0
+MISMATCH L.locale.T.spd
+  perl:  32	0	1	50	1
+  model: 32	0	1	50	0
+MISMATCH L.locale.T.unpC0U
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xb5	Malformed UTF-8 character (fatal)
+  model: 3138312c323333	0	7	49,56,49,44,50,51,51	1
+MISMATCH M.none.U.chop
+  perl:  c3	1	0	0	0
+  model: 	1	0		0
+MISMATCH M.none.U.cmpb
+  perl:  31	0	1	49	0
+  model: 2d31	0	2	45,49	0
+MISMATCH M.none.U.fc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.none.U.lc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.none.U.lcf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.none.U.packA
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.none.U.packU
+  perl:  00	1	1	0	0
+  model: c328	1	1	0	0
+MISMATCH M.none.U.packa
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.none.U.red
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.U.rei
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.U.reia
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.U.reiu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.U.res
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.U.rew
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.U.rewu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.U.tr
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.none.U.trcnt
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.U.uc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.none.U.ucf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.none.U.unpC
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+  model: 30	0	1	48	0
+MISMATCH M.none.U.unpC0U
+  perl:  	0	0		0
+  model: 3635353333	0	5	54,53,53,51,51	0
+MISMATCH M.none.U.unpU
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+  model: 30	0	1	48	0
+MISMATCH M.none.T.chop
+  perl:  c3	1	0	0	1
+  model: 	1	0		1
+MISMATCH M.none.T.cmpb
+  perl:  31	0	1	49	1
+  model: 2d31	0	2	45,49	1
+MISMATCH M.none.T.fc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.none.T.lc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.none.T.lcf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.none.T.ord
+  perl:  30	0	1	48	1
+  model: 30	0	1	48	0
+MISMATCH M.none.T.packA
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.none.T.packU
+  perl:  00	1	1	0	1
+  model: c328	1	1	0	1
+MISMATCH M.none.T.packa
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.none.T.red
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.T.rei
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.T.reia
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.T.reiu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.T.res
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.T.rev
+  perl:  28c3	1	1	40,0	1
+  model: c328	1	1	0	1
+MISMATCH M.none.T.rew
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.T.rewu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.none.T.spc
+  perl:  00	0	1	0	1
+  model: 00	0	1	0	0
+MISMATCH M.none.T.spd
+  perl:  31	0	1	49	1
+  model: 31	0	1	49	0
+MISMATCH M.none.T.tr
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.none.T.trcnt
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	1
+MISMATCH M.none.T.uc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.none.T.ucf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.none.T.unpC
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+  model: 30	0	1	48	1
+MISMATCH M.none.T.unpC0U
+  perl:  	0	0		1
+  model: 3635353333	0	5	54,53,53,51,51	1
+MISMATCH M.none.T.unpU
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+  model: 30	0	1	48	1
+MISMATCH M.feature.U.chop
+  perl:  c3	1	0	0	0
+  model: 	1	0		0
+MISMATCH M.feature.U.cmpb
+  perl:  31	0	1	49	0
+  model: 2d31	0	2	45,49	0
+MISMATCH M.feature.U.fc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.feature.U.lc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.feature.U.lcf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.feature.U.packA
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.feature.U.packU
+  perl:  00	1	1	0	0
+  model: c328	1	1	0	0
+MISMATCH M.feature.U.packa
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.feature.U.red
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.U.rei
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.U.reia
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.U.reiu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.U.res
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.U.rew
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.U.rewu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.U.tr
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.feature.U.trcnt
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.U.uc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.feature.U.ucf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.feature.U.unpC
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+  model: 30	0	1	48	0
+MISMATCH M.feature.U.unpC0U
+  perl:  	0	0		0
+  model: 3635353333	0	5	54,53,53,51,51	0
+MISMATCH M.feature.U.unpU
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+  model: 30	0	1	48	0
+MISMATCH M.feature.T.chop
+  perl:  c3	1	0	0	1
+  model: 	1	0		1
+MISMATCH M.feature.T.cmpb
+  perl:  31	0	1	49	1
+  model: 2d31	0	2	45,49	1
+MISMATCH M.feature.T.fc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.feature.T.lc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.feature.T.lcf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.feature.T.ord
+  perl:  30	0	1	48	1
+  model: 30	0	1	48	0
+MISMATCH M.feature.T.packA
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.feature.T.packU
+  perl:  00	1	1	0	1
+  model: c328	1	1	0	1
+MISMATCH M.feature.T.packa
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.feature.T.red
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.T.rei
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.T.reia
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.T.reiu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.T.res
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.T.rev
+  perl:  28c3	1	1	40,0	1
+  model: c328	1	1	0	1
+MISMATCH M.feature.T.rew
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.T.rewu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.feature.T.spc
+  perl:  00	0	1	0	1
+  model: 00	0	1	0	0
+MISMATCH M.feature.T.spd
+  perl:  31	0	1	49	1
+  model: 31	0	1	49	0
+MISMATCH M.feature.T.tr
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.feature.T.trcnt
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	1
+MISMATCH M.feature.T.uc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.feature.T.ucf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.feature.T.unpC
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+  model: 30	0	1	48	1
+MISMATCH M.feature.T.unpC0U
+  perl:  	0	0		1
+  model: 3635353333	0	5	54,53,53,51,51	1
+MISMATCH M.feature.T.unpU
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+  model: 30	0	1	48	1
+MISMATCH M.locale.U.chop
+  perl:  c3	1	0	0	0
+  model: 	1	0		0
+MISMATCH M.locale.U.fc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.locale.U.lc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.locale.U.lcf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.locale.U.packA
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.locale.U.packU
+  perl:  00	1	1	0	0
+  model: c328	1	1	0	0
+MISMATCH M.locale.U.packa
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.locale.U.rei
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.U.reia
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.U.reiu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.U.rew
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.U.rewl
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.U.rewu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.U.tr
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.locale.U.trcnt
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.U.uc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.locale.U.ucf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	0
+MISMATCH M.locale.U.unpC
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+  model: 30	0	1	48	0
+MISMATCH M.locale.U.unpC0U
+  perl:  	0	0		0
+  model: 3635353333	0	5	54,53,53,51,51	0
+MISMATCH M.locale.U.unpU
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	0
+  model: 30	0	1	48	0
+MISMATCH M.locale.T.chop
+  perl:  c3	1	0	0	1
+  model: 	1	0		1
+MISMATCH M.locale.T.fc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.locale.T.lc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.locale.T.lcf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.locale.T.ord
+  perl:  30	0	1	48	1
+  model: 30	0	1	48	0
+MISMATCH M.locale.T.packA
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.locale.T.packU
+  perl:  00	1	1	0	1
+  model: c328	1	1	0	1
+MISMATCH M.locale.T.packa
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.locale.T.rei
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.T.reia
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.T.reiu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.T.rev
+  perl:  28c3	1	1	40,0	1
+  model: c328	1	1	0	1
+MISMATCH M.locale.T.rew
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.T.rewl
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.T.rewu
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	0
+MISMATCH M.locale.T.spc
+  perl:  00	0	1	0	1
+  model: 00	0	1	0	0
+MISMATCH M.locale.T.spd
+  perl:  31	0	1	49	1
+  model: 31	0	1	49	0
+MISMATCH M.locale.T.tr
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.locale.T.trcnt
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: 30	0	1	48	1
+MISMATCH M.locale.T.uc
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.locale.T.ucf
+  perl:  756e646566	0	5	117,110,100,101,102	0	Malformed UTF-8 character: \xc3\x28	Malformed UTF-8 character (fatal)
+  model: c328	1	1	0	1
+MISMATCH M.locale.T.unpC
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+  model: 30	0	1	48	1
+MISMATCH M.locale.T.unpC0U
+  perl:  	0	0		1
+  model: 3635353333	0	5	54,53,53,51,51	1
+MISMATCH M.locale.T.unpU
+  perl:  36353533332c3430	0	8	54,53,53,51,51,44,52,48	1
+  model: 30	0	1	48	1
