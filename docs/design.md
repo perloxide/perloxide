@@ -73,6 +73,56 @@ directions, and an embedded interpreter — which has no meaningful
 Each deliberate divergence is recorded where it is designed, so the set
 is enumerable when the default is settled.
 
+#### 1.1.1 The Compatibility Reference
+
+What `perl` does is recorded, rather than remembered, in `compat/`: a
+Perl-only reference whose ground truth is perl itself — probes with
+blessed outputs, executable transcriptions of areas of the C validated
+by replaying perl's observed behavior through them, and a differential
+harness.  Its rules are `compat/README.md`; the build and environment
+every fact is relative to, `compat/profile.md`; the index of facts by
+area, `compat/facts.md`; what is verified and what is open,
+`compat/status.md`; and the windows where perl has no defined behavior,
+`compat/undefined.md`.  This document cites `compat/facts.md` entries
+rather than restating facts, and nothing under `compat/` names or
+depends on PerlOxide, so the reference stands on its own for any
+reimplementation.
+
+PerlOxide's side of that relationship is three things.  The harness's
+`check` subcommand runs PerlOxide against the blessed outputs lane by
+lane; the adapter that satisfies the harness's interface (accepting
+`-I`/`-M` and writing the flag projection on fd 3) lives with
+PerlOxide.  Each model's generators are acceptance tests for the
+corresponding subsystem — the value-flags lanes for the value layer,
+the save-stack cells for `local`, the finalization scenarios for
+destruction and temporaries, the hash lanes for the compat hash engine.
+And the verdict vocabulary fixes what is reproduced: rows recorded
+`version-divergent` are followed at 5.44.0; `body-only` fields (body
+type, stale buffer `CUR`/`LEN`, `COW_REFCNT`) are not reproduced,
+only the transitions they decide; `allocator-sensitive` and
+`perl-nondeterministic` programs, address reuse, within-pass
+global-destruction order, and 32-bit `IV` builds are outside the
+comparison.
+
+Where `compat/undefined.md` records that perl crashes, reads freed
+memory, or has no defined behavior, PerlOxide's behavior is a decision,
+recorded here with its kind (fix, extension, or accepted difference) and
+its reason.  The harness rows marked `DIVERGES-defined` are the
+acceptance tests for these entries.
+
+| Window (`compat/undefined.md`) | PerlOxide behavior | Kind | Reason |
+|---|---|---|---|
+| W1: numeric replacement under an NV-converting outer op | redispatch the interrupted conversion on the current holder kind; no additional warning | fix | perl segfaults |
+| W2: reference replacement under the same | redispatch to reference numification; no flags cached | fix | perl reads the RV through the union |
+| W3: reference holder with an infinite NV in the IV window | the fill proceeds as slot arithmetic independent of holder kind | fix | perl crashes on one referent shape |
+| `undef` replacement under `sprintf "%g"` | terminate after the second warning | fix | perl loops or crashes |
+| `shift @_` under held aliases | `@_` storage is refcounted; the aliases stay valid | fix | perl reads freed memory |
+| `local` on a shared scalar across tasks | binding-`local` is task-local; element `local` on a shared container is a cross-task mutation | extension | perl's `threads::shared` semantics are not a target |
+
+This table is the enumeration §1.1 promises, for the windows found so
+far; deliberate divergences outside those windows (NFC normalization,
+§5.8.2) stay recorded where they are designed.
+
 ### 1.2 Design the Hard Parts First
 
 A language implementation lives or dies by its answers to a handful of
