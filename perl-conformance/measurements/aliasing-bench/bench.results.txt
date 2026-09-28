@@ -1,0 +1,5 @@
+iters: loop=10000000 op=100000000
+tmps heap-temp:   baseline=12.01 ns/iter  floored=12.42 ns/iter  delta=0.41
+tmps inline-temp: baseline=0.34 ns/iter  floored=2.73 ns/iter  delta=2.39
+rc pair:          plain=1.52 ns  atomic=14.62 ns  ratio=9.6x
+ptr store:        plain=0.69 ns  shared-checked=1.07 ns  delta=0.38

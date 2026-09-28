@@ -1,0 +1,6 @@
+## default env
+m h i g a o n l j p e d b f k c
+## PERL_HASH_SEED=0
+k e i b d a h l c f o j n g m p
+## PERL_HASH_SEED=12345678
+d b a k e i n m g p h c f l j o

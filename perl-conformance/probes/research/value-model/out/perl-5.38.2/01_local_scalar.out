@@ -1,0 +1,4 @@
+inside: fresh_addr=1 old_via_ref=old new_val=new
+after: val=old addr_restored=1
+bare: fresh_addr=1 newval=undef
+bare after: val=orig addr_restored=1

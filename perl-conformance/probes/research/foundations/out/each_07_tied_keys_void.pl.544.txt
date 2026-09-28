@@ -1,0 +1,6 @@
+## default env
+each,each,keys(void),each: FIRSTKEY NEXTKEY(a) FIRSTKEY  -> k3=a
+## PERL_HASH_SEED=0
+each,each,keys(void),each: FIRSTKEY NEXTKEY(a) FIRSTKEY  -> k3=a
+## PERL_HASH_SEED=12345678
+each,each,keys(void),each: FIRSTKEY NEXTKEY(a) FIRSTKEY  -> k3=a

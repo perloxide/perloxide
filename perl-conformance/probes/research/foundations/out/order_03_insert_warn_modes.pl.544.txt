@@ -1,0 +1,8 @@
+## default env
+WARN
+done
+## PERL_HASH_SEED=0
+done
+## PERL_HASH_SEED=12345678
+WARN
+done

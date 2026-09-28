@@ -1,0 +1,60 @@
+## default env
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+after one insert, remaining iterations=7
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+## PERL_HASH_SEED=0
+after one insert, remaining iterations=5
+insert-each-step: steps=13 distinct=9 dups=4 final_keys=18
+## PERL_HASH_SEED=12345678
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+after one insert, remaining iterations=6
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+WARN: Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+insert-each-step: steps=12 distinct=8 dups=4 final_keys=17

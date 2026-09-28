@@ -1,0 +1,12 @@
+## default env
+n=5    buckets=8     mask=0xb4455a94 model==keys: yes
+n=40   buckets=64    mask=0x20654083 model==keys: yes
+n=700  buckets=2048  mask=0x44269eb4 model==keys: yes
+## PERL_HASH_SEED=0
+n=5    buckets=8     mask=0xbe49d17f model==keys: yes
+n=40   buckets=64    mask=0xbe49d17f model==keys: yes
+n=700  buckets=2048  mask=0xbe49d17f model==keys: yes
+## PERL_HASH_SEED=12345678
+n=5    buckets=8     mask=0x12ceb6f5 model==keys: yes
+n=40   buckets=64    mask=0xbad18c53 model==keys: yes
+n=700  buckets=2048  mask=0x5edcbff3 model==keys: yes

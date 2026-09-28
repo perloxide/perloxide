@@ -1,0 +1,8 @@
+plus10:    (IOK,POK,IsCOW,pIOK,pPOK) IV=10 NV=-
+one_inc:   (POK,pPOK) IV=- NV=- val=2
+nine_inc:  (POK,pPOK) IV=- NV=- val=10
+az_inc:    (POK,pPOK) IV=- NV=- val=Ba
+dirty:     (POK,IsCOW,pIOK,pNOK,pPOK) IV=10 NV=10
+pad:       (IOK,POK,IsCOW,pIOK,pPOK) IV=10 NV=-
+gfirst:    (IOK,NOK,POK,IsCOW,pIOK,pNOK,pPOK) IV=0 NV=-0 g_again=-0 plus=0
+intfirst:  (IOK,POK,IsCOW,pIOK,pPOK) IV=0 NV=- g=0

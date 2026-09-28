@@ -1,0 +1,18 @@
+## default env
+before numify: ["10"]
+after numify:  [10]
+int stringified: [10]
+created_as_number($s)=0 created_as_string($i)=0
+Data::Dumper-ish of 1e21: 1e+21  of 0.1+0.2: 0.3
+## PERL_HASH_SEED=0
+before numify: ["10"]
+after numify:  [10]
+int stringified: [10]
+created_as_number($s)=0 created_as_string($i)=0
+Data::Dumper-ish of 1e21: 1e+21  of 0.1+0.2: 0.3
+## PERL_HASH_SEED=12345678
+before numify: ["10"]
+after numify:  [10]
+int stringified: [10]
+created_as_number($s)=0 created_as_string($i)=0
+Data::Dumper-ish of 1e21: 1e+21  of 0.1+0.2: 0.3
