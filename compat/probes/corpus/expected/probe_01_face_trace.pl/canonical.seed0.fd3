@@ -1,0 +1,6 @@
+PROBE line=10 label=after $s .= "" flags=P created_as=s
+PROBE line=13 label=integer after "$i" flags=Ip created_as=n
+PROBE line=15 label=integer after utf8::upgrade flags=P8 created_as=s
+PROBE line=4 label=plain string flags=P created_as=s
+PROBE line=6 label=after $s + 0 flags=IP created_as=s
+PROBE line=8 label=copy flags=IP created_as=s

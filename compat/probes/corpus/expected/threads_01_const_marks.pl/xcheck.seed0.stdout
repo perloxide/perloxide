@@ -1,0 +1,10 @@
+(1) marker: span1('a') after marking = 1
+(1) reader: span1('a') while marker is alive = 702
+(1) parent: span1('a') = 702
+(2) child created after parent marked: span2('a') = 1
+(2) parent: span2('a') = 1
+(3) child marked: span3('a') in child = 1
+(3) parent after join: span3('a') = 702
+(4) child: ["10"] [10]
+(4) parent after child: ["10"] [10]
+(4) child created after parent marked: [10] [10]

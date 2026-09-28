@@ -1,0 +1,6 @@
+  in handler: flags=--P-
+(a) result=3 after: flags=--Pi
+(b) result=3  $x=7xyz  flags=--Pi
+(c) eval=undef $@=boom
+    flags=--P-
+(d) warnings seen=2

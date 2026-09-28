@@ -1,0 +1,4 @@
+callee copies then numifies under use locale: callee=1.5 caller's scalar reads=1
+callee with use locale numifies caller's scalar: callee=1.5 caller reads=1.5
+callee without use locale numifies first: callee=1 caller under use locale reads=1
+caller under use locale calls a plain callee: callee=1

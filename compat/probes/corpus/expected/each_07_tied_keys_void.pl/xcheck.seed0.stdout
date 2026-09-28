@@ -1,0 +1,1 @@
+each,each,keys(void),each: FIRSTKEY NEXTKEY(a) FIRSTKEY  -> k3=a

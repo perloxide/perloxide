@@ -1,0 +1,3 @@
+copy of a C-cached scalar, read under de use locale: 1
+copy of a de-cached scalar, read under C use locale: 1.5
+uncached copy made under de, first numified under C use locale: 1

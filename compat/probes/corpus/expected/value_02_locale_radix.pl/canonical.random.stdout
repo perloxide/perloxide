@@ -1,0 +1,4 @@
+copy of the scalar, read outside: 1.5
+outside first: 1; then under use locale, same scalar: 1; under use locale, fresh copy: 1.5
+setlocale: de_DE.UTF-8
+under use locale: 1.5; outside, same scalar: 1.5; outside, fresh copy: 1

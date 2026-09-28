@@ -1,0 +1,12 @@
+after exhaustion, next each returns a key again: yes
+delete (other key)           no reset
+each in list ctx copy        RESETS
+exists                       no reset
+fetch $h{a}                  no reset
+if (%h)                      no reset
+keys (list)                  RESETS
+keys (scalar)                RESETS
+keys (void)                  RESETS
+scalar(%h)                   no reset
+store existing key           no reset
+values (scalar)              RESETS

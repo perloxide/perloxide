@@ -1,0 +1,339 @@
+#!/usr/bin/env perl
+
+# oracle: differential oracle harness for Perl.
+#
+#   oracle list     CORPUS                    list test ids (file.pl or file.pl@variant)
+#   oracle run      CORPUS [--only RE]        run every test on the configured perl builds
+#   oracle verdict  CORPUS [--only RE]        classify recorded runs; writes RESULTS/verdicts.tsv
+#   oracle bless    CORPUS [--only RE]        store verdicts and normalized outputs as CORPUS/expected
+#   oracle selftest CORPUS [--only RE]        run + verdict, then compare against CORPUS/expected
+#   oracle check    CORPUS --impl PATH        run an implementation and compare per lane
+#
+# Common options: --results DIR (default ./results), --config FILE (default oracle.conf next to bin/).
+#
+# Corpus directives, as comment lines anywhere in a test file:
+#   # oracle-requires: threads | locale NAME     skip the test on builds that lack the capability
+#   # oracle-variant: NAME VAR=VALUE ...         run the file once per variant with extra environment;
+#                                             a file with variants has no implicit default run
+#   # oracle-timeout: SECONDS
+
+use strict;
+use warnings;
+use FindBin qw($Bin);
+use lib "$Bin/../lib";
+use File::Basename qw(basename);
+use File::Path qw(make_path remove_tree);
+use File::Spec;
+use Getopt::Long qw(GetOptionsFromArray);
+use Oracle::Run;
+use Oracle::Normalize;
+use Oracle::Verdict;
+
+my @RUN_PLAN = (
+    [ 'stock',      'seed0',         2 ],
+    [ 'stock',      'random',        2 ],
+    [ 'stock',      'deterministic', 1 ],
+    [ 'noreuse',    'seed0',         1 ],
+    [ 'noreuse',    'random',        1 ],
+    [ 'descending', 'seed0',         1 ],
+    [ 'descending', 'random',        1 ],
+    [ 'xcheck',     'seed0',         1 ],
+);
+
+sub usage { die "usage: oracle list|run|verdict|bless|selftest|check CORPUS [options]\n" }
+
+sub slurp {
+    my ($path) = @_;
+    return '' unless -e $path;
+    open my $fh, '<', $path or die "cannot read $path: $!\n";
+    local $/;
+    my $text = <$fh>;
+    return defined $text ? $text : '';
+}
+
+sub spew {
+    my ($path, $text) = @_;
+    open my $fh, '>', $path or die "cannot write $path: $!\n";
+    print {$fh} $text;
+    close $fh or die "cannot close $path: $!\n";
+}
+
+sub load_config {
+    my ($path) = @_;
+    my %conf = (timeout => 60);
+    for my $line (split /\n/, slurp($path)) {
+        next if $line =~ /^\s*(#|$)/;
+        my ($k, $v) = $line =~ /^\s*(\w+)\s*=\s*(.*?)\s*$/ or die "bad config line in $path: $line\n";
+        $conf{$k} = $v;
+    }
+    for my $k (qw(stock noreuse descending xcheck impl timeout)) {
+        $conf{$k} = $ENV{"ORACLE_" . uc $k} if defined $ENV{"ORACLE_" . uc $k};
+    }
+    return \%conf;
+}
+
+# Returns a list of tests: { id, file, env, requires => [...], timeout, probe }.
+sub discover {
+    my ($corpus, $only) = @_;
+    opendir my $dh, $corpus or die "cannot open corpus $corpus: $!\n";
+    my @files = sort grep { /\.pl\z/ && -f "$corpus/$_" } readdir $dh;
+    my @tests;
+    for my $name (@files) {
+        my $path = File::Spec->rel2abs("$corpus/$name");
+        my $text = slurp($path);
+        my @requires = map { [ split ' ', $_ ] } $text =~ /^#\s*oracle-requires:\s*(.+?)\s*$/mg;
+        my ($timeout) = $text =~ /^#\s*oracle-timeout:\s*(\d+)/m;
+        my $probe = $text =~ /__PROBE__/ ? 1 : 0;
+        my @variants = $text =~ /^#\s*oracle-variant:\s*(.+?)\s*$/mg;
+        my @specs = @variants ? map { my ($v, @kv) = split ' ', $_; [ "$name\@$v", { map { split /=/, $_, 2 } @kv } ] } @variants
+                              : ([ $name, {} ]);
+        for my $spec (@specs) {
+            next if defined $only && $spec->[0] !~ $only;
+            push @tests, { id => $spec->[0], file => $path, env => $spec->[1], requires => \@requires, timeout => $timeout, probe => $probe };
+        }
+    }
+    return @tests;
+}
+
+my %capability_cache;
+sub has_capability {
+    my ($perl, $req) = @_;
+    my ($kind, @args) = @$req;
+    my $key = join "\0", $perl, $kind, @args;
+    return $capability_cache{$key} if exists $capability_cache{$key};
+    my $ok = 0;
+    if ($kind eq 'threads') {
+        my $out = `$perl -MConfig -e 'print \$Config{useithreads} ? 1 : 0' 2>/dev/null`;
+        $ok = ($out // '') eq '1' ? 1 : 0;
+    }
+    elsif ($kind eq 'locale') {
+        (my $want = lc($args[0] // '')) =~ s/[-_.]//g;
+        $ok = grep { (my $l = lc $_) =~ s/[-_.]//g; $l eq $want } split /\n/, `locale -a 2>/dev/null`;
+        $ok = $ok ? 1 : 0;
+    }
+    else {
+        die "unknown requirement '$kind'\n";
+    }
+    return $capability_cache{$key} = $ok;
+}
+
+sub test_dir {
+    my ($results, $id) = @_;
+    (my $safe = $id) =~ s/\@/__/g;
+    return "$results/$safe";
+}
+
+sub read_record {
+    my ($prefix) = @_;
+    return undef unless -e "$prefix.exit";
+    my %r = map { $_ => slurp("$prefix.$_") } qw(stdout stderr fd3 exit);
+    return \%r;
+}
+
+sub cmd_run {
+    my ($conf, $results, @tests) = @_;
+    for my $t (@tests) {
+        my $dir = test_dir($results, $t->{id});
+        remove_tree($dir);
+        make_path($dir);
+        my @skipped;
+        for my $step (@RUN_PLAN) {
+            my ($build, $mode, $count) = @$step;
+            my $perl = $conf->{$build};
+            next unless defined $perl && length $perl && -x $perl;
+            if (grep { !has_capability($perl, $_) } @{ $t->{requires} }) {
+                push @skipped, $build;
+                next;
+            }
+            for my $n (1 .. $count) {
+                Oracle::Run::run(
+                    perl => $perl, file => $t->{file}, prefix => "$dir/$build.$mode.$n", mode => $mode,
+                    extra_env => $t->{env}, probe_lib => ($t->{probe} ? "$Bin/../probe-lib" : undef),
+                    timeout => $t->{timeout} // $conf->{timeout},
+                );
+            }
+        }
+        my %seen; @skipped = grep { !$seen{$_}++ } @skipped;
+        spew("$dir/skipped", join("\n", @skipped) . (@skipped ? "\n" : ''));
+        printf "ran %-44s%s\n", $t->{id}, (@skipped ? "  (requirements unmet on: @skipped)" : '');
+    }
+}
+
+sub classify_test {
+    my ($results, $t) = @_;
+    my $dir = test_dir($results, $t->{id});
+    my %runs;
+    for my $name (qw(stock.seed0.1 stock.seed0.2 noreuse.seed0.1 descending.seed0.1 stock.random.1 stock.random.2 noreuse.random.1 descending.random.1)) {
+        my $r = read_record("$dir/$name");
+        return ('skipped', { reason => "missing run $name" }, undef) unless $r;
+        $runs{$name} = $r;
+    }
+    my ($verdict, $detail) = Oracle::Verdict::classify(\%runs);
+    my $x = read_record("$dir/xcheck.seed0.1");
+    $detail->{agrees_with_xcheck} = $x ? (Oracle::Verdict::exact_key($x) eq Oracle::Verdict::exact_key($runs{'stock.seed0.1'}) ? 1 : 0) : '-';
+    return ($verdict, $detail, \%runs);
+}
+
+sub cmd_verdict {
+    my ($results, @tests) = @_;
+    my @rows;
+    my %count;
+    for my $t (@tests) {
+        my ($verdict, $detail) = classify_test($results, $t);
+        $count{$verdict}++;
+        my $info = join ' ', map { "$_=$detail->{$_}" } sort keys %$detail;
+        push @rows, "$t->{id}\t$verdict\t$info";
+        printf "%-46s %-22s %s\n", $t->{id}, $verdict, $info;
+    }
+    spew("$results/verdicts.tsv", join("\n", @rows) . "\n");
+    print "\n", join(', ', map { "$_: $count{$_}" } sort keys %count), "\n";
+}
+
+# Expected outputs: the verdict, exact-normalized seed0 channels from stock run 1, canonical seed0 and
+# random channels, and, when present, the exact-normalized cross-check build's seed0 channels.
+sub cmd_bless {
+    my ($corpus, $results, @tests) = @_;
+    for my $t (@tests) {
+        my ($verdict, $detail, $runs) = classify_test($results, $t);
+        my $dir = test_dir("$corpus/expected", $t->{id});
+        remove_tree($dir);
+        make_path($dir);
+        spew("$dir/verdict", "$verdict\n");
+        if ($runs) {
+            my $s = $runs->{'stock.seed0.1'};
+            my @exact = Oracle::Normalize::exact(@{$s}{qw(stdout stderr fd3)});
+            spew("$dir/seed0.$_", shift @exact) for qw(stdout stderr fd3);
+            spew("$dir/seed0.exit", $s->{exit});
+            spew("$dir/also_lane_b", "$detail->{also_lane_b}\n");
+            for my $mode (qw(seed0 random)) {
+                my $r = $runs->{"stock.$mode.1"};
+                my @canon = Oracle::Normalize::canonical(@{$r}{qw(stdout stderr fd3)});
+                spew("$dir/canonical.$mode.$_", shift @canon) for qw(stdout stderr fd3);
+                spew("$dir/canonical.$mode.exit", $r->{exit});
+            }
+        }
+        my $x = read_record(test_dir($results, $t->{id}) . "/xcheck.seed0.1");
+        if ($x) {
+            my @exact = Oracle::Normalize::exact(@{$x}{qw(stdout stderr fd3)});
+            spew("$dir/xcheck.seed0.$_", shift @exact) for qw(stdout stderr fd3);
+            spew("$dir/xcheck.seed0.exit", $x->{exit});
+        }
+        printf "blessed %-44s %s\n", $t->{id}, $verdict;
+    }
+}
+
+sub cmd_selftest {
+    my ($corpus, $results, @tests) = @_;
+    my $failures = 0;
+    for my $t (@tests) {
+        my $dir = test_dir("$corpus/expected", $t->{id});
+        my $want = slurp("$dir/verdict");
+        chomp $want;
+        my ($verdict, undef, $runs) = classify_test($results, $t);
+        my @problems;
+        push @problems, "verdict $verdict, expected $want" if $verdict ne $want;
+        if ($runs && $want eq 'lane-A-eligible') {
+            my @exact = Oracle::Normalize::exact(@{ $runs->{'stock.seed0.1'} }{qw(stdout stderr fd3)});
+            for my $ch (qw(stdout stderr fd3)) {
+                my $got = shift @exact;
+                push @problems, "seed0 $ch differs from expected" if $got ne slurp("$dir/seed0.$ch");
+            }
+        }
+        $failures++ if @problems;
+        printf "%-6s %-44s %s\n", (@problems ? 'FAIL' : 'ok'), $t->{id}, join('; ', @problems);
+    }
+    print $failures ? "\n$failures selftest failure(s)\n" : "\nselftest passed\n";
+    return $failures ? 1 : 0;
+}
+
+sub compare_channels {
+    my ($label, $got, $dir, $prefix, $diffdir, $id) = @_;
+    my @bad;
+    for my $ch (qw(stdout stderr fd3 exit)) {
+        my $want = slurp("$dir/$prefix.$ch");
+        next if $got->{$ch} eq $want;
+        push @bad, $ch;
+        (my $safe = $id) =~ s/\@/__/g;
+        spew("$diffdir/$safe.$prefix.$ch.expected", $want);
+        spew("$diffdir/$safe.$prefix.$ch.actual", $got->{$ch});
+    }
+    return @bad ? ("$label: " . join(',', @bad)) : ();
+}
+
+sub cmd_check {
+    my ($conf, $corpus, $results, @tests) = @_;
+    my $impl = $conf->{impl} or die "check needs --impl PATH or impl= in the config\n";
+    my $diffdir = "$results/check-diffs";
+    remove_tree($diffdir);
+    make_path($diffdir);
+    my %tally;
+    for my $t (@tests) {
+        my $edir = test_dir("$corpus/expected", $t->{id});
+        my $verdict = slurp("$edir/verdict");
+        chomp $verdict;
+        my $wdir = test_dir("$results/check", $t->{id});
+        remove_tree($wdir);
+        make_path($wdir);
+        my %got;
+        for my $mode (qw(seed0 random)) {
+            Oracle::Run::run(
+                perl => $impl, file => $t->{file}, prefix => "$wdir/impl.$mode", mode => $mode,
+                extra_env => $t->{env}, probe_lib => ($t->{probe} ? "$Bin/../probe-lib" : undef),
+                timeout => $t->{timeout} // $conf->{timeout},
+            );
+            $got{$mode} = read_record("$wdir/impl.$mode");
+        }
+        my ($status, @notes);
+        if ($verdict eq 'lane-A-eligible' || $verdict eq 'lane-B-only') {
+            my @problems;
+            if ($verdict eq 'lane-A-eligible') {
+                my %e = (exit => $got{seed0}{exit});
+                @e{qw(stdout stderr fd3)} = Oracle::Normalize::exact(@{ $got{seed0} }{qw(stdout stderr fd3)});
+                push @problems, compare_channels('lane A seed0 exact', \%e, $edir, 'seed0', $diffdir, $t->{id});
+            }
+            for my $mode (qw(seed0 random)) {
+                next if $verdict eq 'lane-A-eligible' && !($mode eq 'random' && slurp("$edir/also_lane_b") =~ /^1/);
+                my %c = (exit => $got{$mode}{exit});
+                @c{qw(stdout stderr fd3)} = Oracle::Normalize::canonical(@{ $got{$mode} }{qw(stdout stderr fd3)});
+                push @problems, compare_channels("lane B $mode canonical", \%c, $edir, "canonical.$mode", $diffdir, $t->{id});
+            }
+            $status = @problems ? 'FAIL' : 'PASS';
+            @notes = @problems;
+        }
+        elsif ($verdict eq 'allocator-sensitive' || $verdict eq 'perl-nondeterministic') {
+            my $bad = grep { $got{$_}{exit} =~ /^(timeout|signal)/ } qw(seed0 random);
+            $status = $bad ? 'FAIL' : 'SMOKE';
+            my ($se, $re) = map { (my $e = $got{$_}{exit}) =~ s/\s+\z//; $e } qw(seed0 random);
+            @notes = ("no output comparison; seed0 $se, random $re");
+        }
+        else {
+            $status = 'SKIP';
+            @notes = ("expected verdict '$verdict'");
+        }
+        $tally{$status}++;
+        printf "%-5s %-44s %-22s %s\n", $status, $t->{id}, $verdict, join('; ', @notes);
+    }
+    print "\n", join(', ', map { "$_: $tally{$_}" } sort keys %tally), "\n";
+    print "diffs in $diffdir\n" if $tally{FAIL};
+    return $tally{FAIL} ? 1 : 0;
+}
+
+my ($command, @args) = @ARGV;
+usage() unless defined $command;
+my ($results, $config, $only, $impl) = ('results', "$Bin/../oracle.conf", undef, undef);
+GetOptionsFromArray(\@args, 'results=s' => \$results, 'config=s' => \$config, 'only=s' => \$only, 'impl=s' => \$impl) or usage();
+my $corpus = shift @args;
+usage() unless defined $corpus && -d $corpus;
+$corpus  = File::Spec->rel2abs($corpus);
+$results = File::Spec->rel2abs($results);
+my $conf = load_config($config);
+$conf->{impl} = $impl if defined $impl;
+my @tests = discover($corpus, defined $only ? qr/$only/ : undef);
+make_path($results);
+if    ($command eq 'list')     { print "$_->{id}\n" for @tests }
+elsif ($command eq 'run')      { cmd_run($conf, $results, @tests) }
+elsif ($command eq 'verdict')  { cmd_verdict($results, @tests) }
+elsif ($command eq 'bless')    { cmd_bless($corpus, $results, @tests) }
+elsif ($command eq 'selftest') { cmd_run($conf, $results, @tests); exit cmd_selftest($corpus, $results, @tests) }
+elsif ($command eq 'check')    { exit cmd_check($conf, $corpus, $results, @tests) }
+else                           { usage() }
