@@ -1,0 +1,33 @@
+## default env
+each (scalar ctx): FIRSTKEY
+each (list ctx): NEXTKEY(a) FETCH(b)
+keys (void):
+keys (scalar): FIRSTKEY NEXTKEY(a) NEXTKEY(b) NEXTKEY(c)
+scalar(%t): SCALAR
+if (%t): SCALAR
+delete during each: FIRSTKEY NEXTKEY(a) DELETE(b) NEXTKEY(b) NEXTKEY(c)
+%t = (): CLEAR
+%t = (x=>1): CLEAR STORE(x,1)
+each after list-assign: FIRSTKEY FETCH(x) NEXTKEY(x)
+## PERL_HASH_SEED=0
+each (scalar ctx): FIRSTKEY
+each (list ctx): NEXTKEY(a) FETCH(b)
+keys (void):
+keys (scalar): FIRSTKEY NEXTKEY(a) NEXTKEY(b) NEXTKEY(c)
+scalar(%t): SCALAR
+if (%t): SCALAR
+delete during each: FIRSTKEY NEXTKEY(a) DELETE(b) NEXTKEY(b) NEXTKEY(c)
+%t = (): CLEAR
+%t = (x=>1): CLEAR STORE(x,1)
+each after list-assign: FIRSTKEY FETCH(x) NEXTKEY(x)
+## PERL_HASH_SEED=12345678
+each (scalar ctx): FIRSTKEY
+each (list ctx): NEXTKEY(a) FETCH(b)
+keys (void):
+keys (scalar): FIRSTKEY NEXTKEY(a) NEXTKEY(b) NEXTKEY(c)
+scalar(%t): SCALAR
+if (%t): SCALAR
+delete during each: FIRSTKEY NEXTKEY(a) DELETE(b) NEXTKEY(b) NEXTKEY(c)
+%t = (): CLEAR
+%t = (x=>1): CLEAR STORE(x,1)
+each after list-assign: FIRSTKEY FETCH(x) NEXTKEY(x)

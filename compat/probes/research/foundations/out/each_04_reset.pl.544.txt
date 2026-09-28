@@ -1,0 +1,39 @@
+## default env
+keys (void)                  RESETS
+keys (scalar)                RESETS
+keys (list)                  RESETS
+values (scalar)              RESETS
+scalar(%h)                   no reset
+if (%h)                      no reset
+exists                       no reset
+fetch $h{a}                  no reset
+store existing key           no reset
+each in list ctx copy        RESETS
+delete (other key)           no reset
+after exhaustion, next each returns a key again: yes
+## PERL_HASH_SEED=0
+keys (void)                  RESETS
+keys (scalar)                RESETS
+keys (list)                  RESETS
+values (scalar)              RESETS
+scalar(%h)                   no reset
+if (%h)                      no reset
+exists                       no reset
+fetch $h{a}                  no reset
+store existing key           no reset
+each in list ctx copy        RESETS
+delete (other key)           no reset
+after exhaustion, next each returns a key again: yes
+## PERL_HASH_SEED=12345678
+keys (void)                  RESETS
+keys (scalar)                RESETS
+keys (list)                  RESETS
+values (scalar)              RESETS
+scalar(%h)                   no reset
+if (%h)                      no reset
+exists                       no reset
+fetch $h{a}                  no reset
+store existing key           no reset
+each in list ctx copy        RESETS
+delete (other key)           no reset
+after exhaustion, next each returns a key again: yes

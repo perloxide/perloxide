@@ -1,0 +1,2 @@
+n=188338 e=232346 visited=188338 walk_ms=13.00 ns_per_node=69.0
+n=1000000 e=1300000 visited=1000000 walk_ms=86.30 ns_per_node=86.3

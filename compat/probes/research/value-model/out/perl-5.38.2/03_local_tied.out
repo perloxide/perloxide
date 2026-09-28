@@ -1,0 +1,1 @@
+enter FETCH(10) STORE(undef) | STORE(10) exit

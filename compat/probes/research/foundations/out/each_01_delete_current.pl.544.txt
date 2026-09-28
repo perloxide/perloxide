@@ -1,0 +1,6 @@
+## default env
+start=52 visited=52 dups=0 left=0
+## PERL_HASH_SEED=0
+start=52 visited=52 dups=0 left=0
+## PERL_HASH_SEED=12345678
+start=52 visited=52 dups=0 left=0

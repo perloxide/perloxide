@@ -1,0 +1,5 @@
+delcur: iters=10 left=0
+delother: victim_returned=0 iters=10
+insert: iters=47 dups=2 missed=3 warned=0
+keys_resets=1
+scalar_exists_preserve=1

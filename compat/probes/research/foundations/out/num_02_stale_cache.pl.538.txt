@@ -1,0 +1,6 @@
+## default env
+string=7xyz  numeric=3  (a fresh "7xyz" numifies to 7)
+## PERL_HASH_SEED=0
+string=7xyz  numeric=3  (a fresh "7xyz" numifies to 7)
+## PERL_HASH_SEED=12345678
+string=7xyz  numeric=3  (a fresh "7xyz" numifies to 7)

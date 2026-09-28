@@ -1,0 +1,9 @@
+## default env
+unvisited-deleted skipped, remaining order preserved: yes
+delete current + delete other: visited=1222 dups=0 left=0
+## PERL_HASH_SEED=0
+unvisited-deleted skipped, remaining order preserved: yes
+delete current + delete other: visited=1255 dups=0 left=0
+## PERL_HASH_SEED=12345678
+unvisited-deleted skipped, remaining order preserved: yes
+delete current + delete other: visited=1250 dups=0 left=0

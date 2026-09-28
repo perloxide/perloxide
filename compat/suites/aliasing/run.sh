@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: ./run.sh /path/to/perl-or-perloxide [expected-dir]   (default expected: 5.44.0)
+# usage: ./run.sh /path/to/interpreter [expected-dir]   (default expected: 5.44.0)
 # Each expected file ends with "exit=N". Cases named *_EXCLUDED read freed memory in perl and are not run.
 P=${1:-perl}; E=${2:-expected/5.44.0}; fail=0
 for c in cases/*.pl; do n=$(basename $c .pl); case $n in *_EXCLUDED) continue;; esac
