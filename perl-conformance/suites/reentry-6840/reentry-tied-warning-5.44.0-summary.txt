@@ -1,0 +1,22 @@
+{"action_count": 19, "arch": "x86_64-linux-thread-multi", "input_count": 18, "ivsize": "8", "nvtype": "double", "ops": ["add", "iv", "nv", "concat", "stringify"], "perl": "v5.44.0"}
+cases: 1710
+harness/process failures: 0
+
+RESULT DIFFERENCES FROM UNMUTATED SAME-OP BASELINE:
+('warn_tied', 'replace_float', 'add') [('junk12', '12', '99.5'), ('hextext', '0', '99.5'), ('empty', '0', '99.5'), ('fraction_junk', '12.5', '99.5')]
+('warn_tied', 'replace_float', 'iv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12', '99')]
+('warn_tied', 'replace_fraction_numify', 'add') [('junk12', '12', '99.5'), ('hextext', '0', '99.5'), ('empty', '0', '99.5'), ('fraction_junk', '12.5', '99.5')]
+('warn_tied', 'replace_fraction_numify', 'iv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12', '99')]
+
+EXCEPTIONS:
+('warn_tied', 'die', 'add', 'HANDLER_DIED\n') ['junk12', 'hextext', 'empty', 'undef', 'fraction_junk']
+('warn_tied', 'die', 'concat', 'HANDLER_DIED\n') ['undef']
+('warn_tied', 'die', 'iv', 'HANDLER_DIED\n') ['junk12', 'hextext', 'empty', 'undef', 'fraction_junk']
+('warn_tied', 'die', 'nv', 'HANDLER_DIED\n') ['junk12', 'hextext', 'empty', 'undef', 'fraction_junk']
+('warn_tied', 'die', 'stringify', 'HANDLER_DIED\n') ['undef']
+
+WARN junk12 SUMMARY (all numeric ops):
+
+FETCH junk12 SUMMARY (add):
+
+OVERLOAD junk12 SUMMARY (concat):
