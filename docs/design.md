@@ -3076,6 +3076,66 @@ would yield.  For `Const` cells the once-only state remains the
 `numify_warned` `AtomicBool`, present only where the payload can
 warn.
 
+**Placement of the value-flag record by representation form.** The
+facts about the record itself — which forms exist, which transitions
+each perl operation applies, and what reaches stdout — are the
+value-flags area of the compatibility reference
+(`compat/models/VF/section.md`, `compat/facts.md`).  What follows is
+where this design stores that record in the 16-byte envelope.  The
+string family uses 198 of the discriminant byte's 256 values, leaving
+58; taint and the UTF-8 class are discriminant twins.  The record needs
+a 4-bit code for the eleven `Str` states and three bits for numbers.
+
+
+| form | free bits | placement | cost |
+|---|---|---|---|
+| ASCII inline, full (15 payload bytes, implied length) | none | discriminant twins for the eleven flagged states of the untainted twin; tainted-and-flagged spills to `Dual` | 11 of the 58 |
+| ASCII inline, short (length byte, high nibble unused) | 4 | the nibble | free |
+| Latin-1 inline (nibble used) | none | discriminant twins | 11 more |
+| UTF-8 inline (nibble used) | none | `Dual` on first numification | 32-byte body, on a path that warned |
+| heap tiers (length, capacity, scan class, char count in the envelope) | scan-class byte | the nibble shares the scan-class byte when the class enumeration is 3 bits or fewer; otherwise twins | free or 11 per tier |
+| packed digit tier | length field spare bits | pure digits reach only `IP, IPU, NP, INP` (two orders): a 3-bit code; without spare bits, re-encode to ASCII inline on first numification | free or a re-encode |
+| datetime / UUID tiers | none | numification always warns and lands in `inP`/`nP`: re-encode to the general form | paid on the warning path |
+| `Int` / `Unsigned` | 7 bytes | `num_form`, `stringified`, `private` | free |
+| `Float` | 7 bytes | `int_form`, `is_uv`, `private` | free |
+
+Discriminant values consumed: 22 of 58. `COW` and `UTF8` are properties of the
+buffer and the envelope respectively and are not part of this budget.
+
+Packed array pages carry one value-flag record bit per element in the trailing bit block: `stringified`
+for integer pages, public-`I` for float pages. That is the whole stdout-observable
+state of a packed element (§6); the full three bits per element are a build option
+for `B`-level fidelity.
+
+**Constants and tasks.** Perl's compiled constants are mutable flag
+cells (`compat/facts.md`, value flags: constants).  Here, a literal
+reached through an alias or reference site (`f("10")`, `for ("10")`,
+`\"10"`) is a READONLY cell per task, so value flags left on it persist
+across calls of the same code in that task; rvalue literal sites are
+immediates.  A constant sub's value is one cell per task shared by every
+site that inlines it, and compile-time folding of an expression over it
+(`ZZ + 0`) leaves value flags on the compiling task's cell before
+runtime — which is why a range `$lo .. ZZ` can be numeric on its first
+execution.  Task creation copies the parent's materialized literal
+cells, as the ithreads clone does.  Shared-tier reads never write value
+flags.  Because the nine partner-typed operators read a literal
+partner's public flags, per-task constant cells are what keep one task's
+string arithmetic through `0 + $x` from changing another task's
+`Data::Dumper` output for an unrelated value.
+
+**What this design does not reproduce.** The private cache flags
+themselves, as seen by `B::svref_2object->FLAGS` or `Devel::Peek`, are
+reproduced by projection from the value-flag record (the projection is
+validated by the flag lane), except on packed array elements, where
+only the one stdout-visible bit is stored: an integer element's `N`
+record and a float element's private `I` record and `is_uv` are not
+kept.  `SVf_IsCOW` as such is not projected: the `COW` bit models
+`SvTHINKFIRST`, not the COW refcount.  Where perl reads freed memory —
+the float-path `__WARN__` handler that changes the scalar's kind, `@_`
+aliases to a shifted element, `values` aliases across `delete` — the
+behavior is the recompute-from-the-current-holder rule of §1.1.1.
+
+
 #### 2.3.5 String equality and hashing:
 
 Perl `eq` compares **character sequences**; the utf8 flag changes the
@@ -5740,6 +5800,32 @@ Task A's `local` only affects task A's cells.  Task B sees the shared
 global throughout.  No locking is needed because each task only writes
 to its own task-local cells.  Direct writes to the shared global
 (`$/ = ","` without `local`) use the per-value `RwLock` from §13.5.
+
+#### 3.3.4 Why the overlay is sound for bindings and not for elements:
+
+The facts that license this design are the save-stack area of the
+compatibility reference (`compat/models/SS/section.md`): perl never
+mutates the saved SV, restores by site identity, re-fetches element
+sites through the container with a vivifying lookup, deletes absent
+elements on unwind, and lets tied containers observe every step.
+
+This design implements `local` on a *binding* site (package scalar, glob
+slot) as a per-task overlay entry keyed by the site, consulted at symbol
+resolution: the shared cell is never touched, other tasks see it
+unchanged, and unwinding pops the overlay. This is observationally
+equivalent to perl's rebinding precisely because perl itself never
+mutates the saved SV and restores by site identity. Element
+sites cannot use the overlay: the container is a shared value, the
+save record is keyed by container-plus-index/key with a vivifying
+re-fetch, delete-on-unwind changes container shape, and tied
+containers observe every step. Element `local` is therefore
+implemented literally — the shared container's slot is rebound exactly as
+`Perl_save_aelem_flags`/`Perl_save_helem_flags` and their
+`Perl_leave_scope` cases prescribe — and a `local` element on a container
+shared across tasks is a cross-task visible mutation, matching perl. The
+unwind machinery is task-local either way and follows perl's contract verbatim:
+pop-before-execute, cleanups pushed before fallible magic, no rollback,
+exceptions surfaced after the remaining records run.
 
 ---
 
