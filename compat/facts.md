@@ -25,6 +25,21 @@ Entries: to be filled from the section text.
 Section: `models/SS/section.md`.  Model: `models/SS/SS.pm` (312 cells, both Perls).  Probes:
 `probes/research/value-model/` (01-03), `probes/corpus/local_*`, `probes/corpus/tie_*`.
 
+Entries:
+
+- The save record for an element holds the element's SV, not its value: a reference taken before the `local` names that
+  SV, reads the pre-`local` value throughout the scope, and a write through it is what the restore brings back.
+  `Perl_save_aelem_flags`, `Perl_leave_scope` (`SAVEt_AELEM`).  Probe: `probes/corpus/local_elem_sv_identity.pl`.
+- The SV that `local` installs is an ordinary element: a structural operation (`shift`, `unshift`, `splice`) moves it
+  and may return it to the program, and it lives on afterward with the localized value; nothing reclaims it at scope
+  exit. Undocumented; the same probe.
+- The restore is by the original index into whatever the array has become (`av_fetch(av, idx, 1)` in
+  `Perl_leave_scope`): the saved SV goes back at that index whatever now occupies it, and an emptied array is extended
+  to reach it. perlsub documents the extension; the same probe.
+- The extension leaves the skipped slots as holes (`exists` false), not undef elements (`av_store` fills intermediate
+  entries with NULL). perlsub says "filling in the skipped elements with `undef`", which is not what happens. The same
+  probe.
+
 ## Finalization and temporary lifetime
 
 Section: `models/FZ/section.md`.  Model: `models/FZ/FZ.pm` (114 scenarios, both Perls).  Probes:
@@ -42,6 +57,17 @@ Section: `models/PV/section.md`.  Model: `models/PV/PV.pm` (in progress; `status
 ## Element aliasing
 
 Suite: `suites/aliasing` (27 cases, 25 identical on both Perls, 2 undefined in Perl).
+
+## Arrays
+
+Entries:
+
+- `shift` and `pop` return the element's SV itself, not a copy: a reference taken to the returned value has the address
+  the element had in the array. `Perl_av_shift`, `Perl_av_pop`.  Probe: `probes/corpus/local_elem_sv_identity.pl`.
+- An array's storage is an array of `SV*` and a NULL entry is a hole: `delete` on a middle element, `$#a =` growth, and
+  a store past the end all leave holes, which `exists` reports as absent while `scalar(@a)` counts them. Lvalue-context
+  access -- `\$a[i]`, `\(@a)`, `foreach` aliasing, passing `$a[i]` to a sub -- vivifies a hole into a fresh SV
+  (`Perl_av_fetch` with `lval`). The same probe.
 
 ## Address identity, literal cells, and global destruction
 
