@@ -1,0 +1,150 @@
+{"action_count": 19, "arch": "x86_64-linux-thread-multi", "input_count": 18, "ivsize": "8", "nvtype": "double", "ops": ["add", "iv", "nv", "concat", "stringify"], "perl": "v5.44.0"}
+cases: 5130
+harness/process failures: 8
+{"action": "replace_num", "child_status": 11, "input": "junk12", "mode": "warn", "op": "nv", "partial": ""}
+{"action": "replace_float", "child_status": 11, "input": "junk12", "mode": "warn", "op": "nv", "partial": ""}
+{"action": "replace_num", "child_status": 11, "input": "hextext", "mode": "warn", "op": "nv", "partial": ""}
+{"action": "replace_float", "child_status": 11, "input": "hextext", "mode": "warn", "op": "nv", "partial": ""}
+{"action": "replace_num", "child_status": 11, "input": "empty", "mode": "warn", "op": "nv", "partial": ""}
+{"action": "replace_float", "child_status": 11, "input": "empty", "mode": "warn", "op": "nv", "partial": ""}
+{"action": "replace_num", "child_status": 11, "input": "fraction_junk", "mode": "warn", "op": "nv", "partial": ""}
+{"action": "replace_float", "child_status": 11, "input": "fraction_junk", "mode": "warn", "op": "nv", "partial": ""}
+
+RESULT DIFFERENCES FROM UNMUTATED SAME-OP BASELINE:
+('warn', 'bless_ref', 'add') [('junk12', '12', '93835793989488'), ('hextext', '0', '93835793989488'), ('empty', '0', '93835793989488'), ('fraction_junk', '12.5', '93835793989488')]
+('warn', 'bless_ref', 'nv') [('junk12', '12', '0'), ('fraction_junk', '12.5', '0')]
+('warn', 'replace99', 'nv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12.5', '99')]
+('warn', 'replace99_numify', 'nv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12.5', '99')]
+('warn', 'replace99_numify_iv', 'nv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12.5', '99')]
+('warn', 'replace99_numify_nv', 'add') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12.5', '99')]
+('warn', 'replace99_numify_nv', 'iv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12', '99')]
+('warn', 'replace99_numify_nv', 'nv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12.5', '99')]
+('warn', 'replace_bad', 'nv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12.5', '99')]
+('warn', 'replace_float', 'add') [('junk12', '12', '99.5'), ('hextext', '0', '99.5'), ('empty', '0', '99.5'), ('fraction_junk', '12.5', '99.5')]
+('warn', 'replace_float', 'iv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12', '99')]
+('warn', 'replace_fraction_numify', 'add') [('junk12', '12', '99.5'), ('hextext', '0', '99.5'), ('empty', '0', '99.5'), ('fraction_junk', '12.5', '99.5')]
+('warn', 'replace_fraction_numify', 'iv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12', '99')]
+('warn', 'replace_fraction_numify', 'nv') [('junk12', '12', '99.5'), ('hextext', '0', '99.5'), ('empty', '0', '99.5'), ('fraction_junk', '12.5', '99.5')]
+('warn', 'replace_fraction_numify_nv', 'add') [('junk12', '12', '99.5'), ('hextext', '0', '99.5'), ('empty', '0', '99.5'), ('fraction_junk', '12.5', '99.5')]
+('warn', 'replace_fraction_numify_nv', 'iv') [('junk12', '12', '99'), ('hextext', '0', '99'), ('empty', '0', '99'), ('fraction_junk', '12', '99')]
+('warn', 'replace_fraction_numify_nv', 'nv') [('junk12', '12', '99.5'), ('hextext', '0', '99.5'), ('empty', '0', '99.5'), ('fraction_junk', '12.5', '99.5')]
+('warn', 'weaken_ref', 'add') [('junk12', '12', '93835793989488'), ('hextext', '0', '93835793989488'), ('empty', '0', '93835793989488'), ('fraction_junk', '12.5', '93835793989488')]
+('warn', 'weaken_ref', 'nv') [('junk12', '12', '0'), ('fraction_junk', '12.5', '0')]
+
+EXCEPTIONS:
+('fetch', 'die', 'add', 'HANDLER_DIED\n') ['zero_true', 'space12', 'junk12', 'exp1e5', 'hextext', 'inf', 'nan', 'ivmax', 'uvmax', 'minuszero', 'empty', 'undef', 'ivmax_text', 'uvmax_text', 'zero_num', 'twelve_num', 'fraction_num', 'fraction_junk']
+('fetch', 'die', 'concat', 'HANDLER_DIED\n') ['zero_true', 'space12', 'junk12', 'exp1e5', 'hextext', 'inf', 'nan', 'ivmax', 'uvmax', 'minuszero', 'empty', 'undef', 'ivmax_text', 'uvmax_text', 'zero_num', 'twelve_num', 'fraction_num', 'fraction_junk']
+('fetch', 'die', 'iv', 'HANDLER_DIED\n') ['zero_true', 'space12', 'junk12', 'exp1e5', 'hextext', 'inf', 'nan', 'ivmax', 'uvmax', 'minuszero', 'empty', 'undef', 'ivmax_text', 'uvmax_text', 'zero_num', 'twelve_num', 'fraction_num', 'fraction_junk']
+('fetch', 'die', 'nv', 'HANDLER_DIED\n') ['zero_true', 'space12', 'junk12', 'exp1e5', 'hextext', 'inf', 'nan', 'ivmax', 'uvmax', 'minuszero', 'empty', 'undef', 'ivmax_text', 'uvmax_text', 'zero_num', 'twelve_num', 'fraction_num', 'fraction_junk']
+('fetch', 'die', 'stringify', 'HANDLER_DIED\n') ['zero_true', 'space12', 'junk12', 'exp1e5', 'hextext', 'inf', 'nan', 'ivmax', 'uvmax', 'minuszero', 'empty', 'undef', 'ivmax_text', 'uvmax_text', 'zero_num', 'twelve_num', 'fraction_num', 'fraction_junk']
+('overload', 'die', 'add', 'HANDLER_DIED\n') ['zero_true', 'space12', 'junk12', 'exp1e5', 'hextext', 'inf', 'nan', 'ivmax', 'uvmax', 'minuszero', 'empty', 'undef', 'ivmax_text', 'uvmax_text', 'zero_num', 'twelve_num', 'fraction_num', 'fraction_junk']
+('overload', 'die', 'concat', 'HANDLER_DIED\n') ['zero_true', 'space12', 'junk12', 'exp1e5', 'hextext', 'inf', 'nan', 'ivmax', 'uvmax', 'minuszero', 'empty', 'undef', 'ivmax_text', 'uvmax_text', 'zero_num', 'twelve_num', 'fraction_num', 'fraction_junk']
+('overload', 'die', 'iv', 'HANDLER_DIED\n') ['zero_true', 'space12', 'junk12', 'exp1e5', 'hextext', 'inf', 'nan', 'ivmax', 'uvmax', 'minuszero', 'empty', 'undef', 'ivmax_text', 'uvmax_text', 'zero_num', 'twelve_num', 'fraction_num', 'fraction_junk']
+('overload', 'die', 'nv', 'HANDLER_DIED\n') ['zero_true', 'space12', 'junk12', 'exp1e5', 'hextext', 'inf', 'nan', 'ivmax', 'uvmax', 'minuszero', 'empty', 'undef', 'ivmax_text', 'uvmax_text', 'zero_num', 'twelve_num', 'fraction_num', 'fraction_junk']
+('overload', 'die', 'stringify', 'HANDLER_DIED\n') ['zero_true', 'space12', 'junk12', 'exp1e5', 'hextext', 'inf', 'nan', 'ivmax', 'uvmax', 'minuszero', 'empty', 'undef', 'ivmax_text', 'uvmax_text', 'zero_num', 'twelve_num', 'fraction_num', 'fraction_junk']
+('warn', 'die', 'add', 'HANDLER_DIED\n') ['junk12', 'hextext', 'empty', 'undef', 'fraction_junk']
+('warn', 'die', 'concat', 'HANDLER_DIED\n') ['undef']
+('warn', 'die', 'iv', 'HANDLER_DIED\n') ['junk12', 'hextext', 'empty', 'undef', 'fraction_junk']
+('warn', 'die', 'nv', 'HANDLER_DIED\n') ['junk12', 'hextext', 'empty', 'undef', 'fraction_junk']
+('warn', 'die', 'stringify', 'HANDLER_DIED\n') ['undef']
+
+WARN junk12 SUMMARY (all numeric ops):
+none add result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+none iv result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+none nv result=12 post={'flags': '10006406', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+replace99 add result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '99'}
+replace99 iv result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '99'}
+replace99 nv result=99 post={'flags': '10006406', 'nv': '99', 'nv_slot': '99', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99', 'text': '99'}
+replace_bad add result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '99y', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '99y'}
+replace_bad iv result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '99y', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '99y'}
+replace_bad nv result=99 post={'flags': '10006406', 'nv': '99', 'nv_slot': '99', 'pv': '99y', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99', 'text': '99y'}
+replace_num add result=12 post={'flags': '00003006', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': ''}
+replace_num iv result=12 post={'flags': '00003006', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': ''}
+replace_num nv result=None post=None obs={}
+replace_float add result=99.5 post={'flags': '00003006', 'iv': '99', 'nv': '99.5', 'nv_slot': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99.5', 'text': ''}
+replace_float iv result=99 post={'flags': '00003006', 'iv': '99', 'nv': '99.5', 'nv_slot': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99.5', 'text': ''}
+replace_float nv result=None post=None obs={}
+numify_current add result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+numify_current iv result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+numify_current nv result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+numify_current_nv add result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+numify_current_nv iv result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+numify_current_nv nv result=12 post={'flags': '10006406', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+replace99_numify add result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '99'}
+replace99_numify iv result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '99'}
+replace99_numify nv result=99 post={'flags': '10007406', 'iv': '99', 'nv': '99', 'nv_slot': '99', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99', 'text': '99'}
+replace99_numify_iv add result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '99'}
+replace99_numify_iv iv result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '99'}
+replace99_numify_iv nv result=99 post={'flags': '10007406', 'iv': '99', 'nv': '99', 'nv_slot': '99', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99', 'text': '99'}
+replace99_numify_nv add result=99 post={'flags': '10007406', 'iv': '99', 'nv': '99', 'nv_slot': '99', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99', 'text': '99'}
+replace99_numify_nv iv result=99 post={'flags': '10007406', 'iv': '99', 'nv': '99', 'nv_slot': '99', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99', 'text': '99'}
+replace99_numify_nv nv result=99 post={'flags': '10006406', 'nv': '99', 'nv_slot': '99', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99', 'text': '99'}
+replace_fraction_numify add result=99.5 post={'flags': '10007406', 'iv': '99', 'nv': '99.5', 'nv_slot': '99.5', 'pv': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99.5', 'text': '99.5'}
+replace_fraction_numify iv result=99 post={'flags': '10007406', 'iv': '99', 'nv': '99.5', 'nv_slot': '99.5', 'pv': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99.5', 'text': '99.5'}
+replace_fraction_numify nv result=99.5 post={'flags': '10007406', 'iv': '99', 'nv': '99.5', 'nv_slot': '99.5', 'pv': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99.5', 'text': '99.5'}
+replace_fraction_numify_nv add result=99.5 post={'flags': '10007406', 'iv': '99', 'nv': '99.5', 'nv_slot': '99.5', 'pv': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99.5', 'text': '99.5'}
+replace_fraction_numify_nv iv result=99 post={'flags': '10007406', 'iv': '99', 'nv': '99.5', 'nv_slot': '99.5', 'pv': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99.5', 'text': '99.5'}
+replace_fraction_numify_nv nv result=99.5 post={'flags': '10006406', 'nv': '99.5', 'nv_slot': '99.5', 'pv': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '99.5', 'text': '99.5'}
+bless_cell add result=12 post={'flags': '10107407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} obs={'error': None, 'next': '12', 'text': '12x'}
+bless_cell iv result=12 post={'flags': '10107407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} obs={'error': None, 'next': '12', 'text': '12x'}
+bless_cell nv result=12 post={'flags': '10106407', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} obs={'error': None, 'next': '12', 'text': '12x'}
+bless_ref add result=93835793989488 post={'flags': '00003806', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'rok': 1, 'svtype': 'B::PVNV', 'weak': 0} obs={'error': None, 'next': '93835793989488', 'text': 'Reentry::Object=HASH(0x5557d92aff70)'}
+bless_ref iv result=12 post={'flags': '00003806', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'rok': 1, 'svtype': 'B::PVNV', 'weak': 0} obs={'error': None, 'next': '93835793989488', 'text': 'Reentry::Object=HASH(0x5557d92aff70)'}
+bless_ref nv result=0 post={'flags': '00002806', 'nv': '0', 'nv_slot': '0', 'rok': 1, 'svtype': 'B::PVNV', 'weak': 0} obs={'error': None, 'next': '93835793989488', 'text': 'Reentry::Object=HASH(0x5557d92aff70)'}
+weaken_ref add result=93835793989488 post={'flags': '80003806', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'rok': 1, 'svtype': 'B::PVNV', 'weak': 1} obs={'error': None, 'next': '93835793989488', 'text': 'HASH(0x5557d92aff70)'}
+weaken_ref iv result=12 post={'flags': '80003806', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'rok': 1, 'svtype': 'B::PVNV', 'weak': 1} obs={'error': None, 'next': '93835793989488', 'text': 'HASH(0x5557d92aff70)'}
+weaken_ref nv result=0 post={'flags': '80002806', 'nv': '0', 'nv_slot': '0', 'rok': 1, 'svtype': 'B::PVNV', 'weak': 1} obs={'error': None, 'next': '93835793989488', 'text': 'HASH(0x5557d92aff70)'}
+localize add result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+localize iv result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+localize nv result=12 post={'flags': '10006406', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+tie add result=12 post={'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} obs={'error': None, 'next': '77', 'text': '77'}
+tie iv result=12 post={'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} obs={'error': None, 'next': '77', 'text': '77'}
+tie nv result=12 post={'flags': '10e06407', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} obs={'error': None, 'next': '77', 'text': '77'}
+untie add result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+untie iv result=12 post={'flags': '10007406', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+untie nv result=12 post={'flags': '10006406', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+die add result=None post={'flags': '10004406', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+die iv result=None post={'flags': '10004406', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+die nv result=None post={'flags': '10004406', 'nv_slot': '0', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVNV'} obs={'error': None, 'next': '12', 'text': '12x'}
+
+FETCH junk12 SUMMARY (add):
+none 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+replace99 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+replace_bad 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+replace_num 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+replace_float 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+numify_current 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'WARN', 'nested', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+numify_current_nv 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'WARN', 'nested', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+replace99_numify 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'nested', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+replace99_numify_iv 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'nested', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+replace99_numify_nv 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'nested', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+replace_fraction_numify 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'nested', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+replace_fraction_numify_nv 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'nested', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+bless_cell 12 {'flags': '10f07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+bless_ref 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+weaken_ref 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'handler.leave', 'FETCH.return', 'WARN'] 12x
+localize 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'STORE', 'STORE', 'local.body', 'handler.leave', 'FETCH.return', 'WARN'] 99
+tie 12 {'flags': '10e07407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'handler.leave', 'FETCH.return', 'tie.DESTROY', 'WARN'] 77
+untie 12 {'flags': '10007407', 'iv': '12', 'nv': '12', 'nv_slot': '12', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter', 'handler.leave', 'FETCH.return', 'tie.DESTROY', 'WARN'] 12x
+die None {'flags': '10e04407', 'nv_slot': '0', 'pv': '12x', 'rok': 0, 'svtype': 'B::PVMG'} ['FETCH.enter', 'handler.enter'] 12x
+
+OVERLOAD junk12 SUMMARY (concat):
+none 12x:tail {'flags': '00000803', 'rok': 1, 'svtype': 'B::PV', 'weak': 0} ['overload.enter', 'handler.enter', 'handler.leave', 'overload.return'] 12x
+replace99 12x:tail {'flags': '10004403', 'pv': '99', 'rok': 0, 'svtype': 'B::PV'} ['overload.enter', 'handler.enter', 'handler.leave', 'overload.return', 'overload.DESTROY'] 99
+replace_bad 12x:tail {'flags': '10004403', 'pv': '99y', 'rok': 0, 'svtype': 'B::PV'} ['overload.enter', 'handler.enter', 'handler.leave', 'overload.return', 'overload.DESTROY'] 99y
+replace_num 12x:tail {'flags': '00001105', 'iv': '99', 'rok': 0, 'svtype': 'B::PVIV'} ['overload.enter', 'handler.enter', 'handler.leave', 'overload.return', 'overload.DESTROY'] 99
+replace_float 12x:tail {'flags': '00002206', 'nv': '99.5', 'nv_slot': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} ['overload.enter', 'handler.enter', 'handler.leave', 'overload.return', 'overload.DESTROY'] 99.5
+numify_current 12x:tail {'flags': '00000803', 'rok': 1, 'svtype': 'B::PV', 'weak': 0} ['overload.enter', 'handler.enter', 'overload.enter', 'overload.return', 'WARN', 'nested', 'handler.leave', 'overload.return'] 12x
+numify_current_nv 12x:tail {'flags': '00000803', 'rok': 1, 'svtype': 'B::PV', 'weak': 0} ['overload.enter', 'handler.enter', 'overload.enter', 'overload.return', 'WARN', 'nested', 'handler.leave', 'overload.return'] 12x
+replace99_numify 12x:tail {'flags': '10005505', 'iv': '99', 'pv': '99', 'rok': 0, 'svtype': 'B::PVIV'} ['overload.enter', 'handler.enter', 'nested', 'handler.leave', 'overload.return', 'overload.DESTROY'] 99
+replace99_numify_iv 12x:tail {'flags': '10005505', 'iv': '99', 'pv': '99', 'rok': 0, 'svtype': 'B::PVIV'} ['overload.enter', 'handler.enter', 'nested', 'handler.leave', 'overload.return', 'overload.DESTROY'] 99
+replace99_numify_nv 12x:tail {'flags': '10006606', 'nv': '99', 'nv_slot': '99', 'pv': '99', 'rok': 0, 'svtype': 'B::PVNV'} ['overload.enter', 'handler.enter', 'nested', 'handler.leave', 'overload.return', 'overload.DESTROY'] 99
+replace_fraction_numify 12x:tail {'flags': '10007606', 'iv': '99', 'nv': '99.5', 'nv_slot': '99.5', 'pv': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} ['overload.enter', 'handler.enter', 'nested', 'handler.leave', 'overload.return', 'overload.DESTROY'] 99.5
+replace_fraction_numify_nv 12x:tail {'flags': '10006606', 'nv': '99.5', 'nv_slot': '99.5', 'pv': '99.5', 'rok': 0, 'svtype': 'B::PVNV'} ['overload.enter', 'handler.enter', 'nested', 'handler.leave', 'overload.return', 'overload.DESTROY'] 99.5
+bless_cell 12x:tail {'flags': '00100807', 'nv_slot': '0', 'rok': 1, 'svtype': 'B::PVMG', 'weak': 0} ['overload.enter', 'handler.enter', 'handler.leave', 'overload.return'] 12x
+bless_ref 12x:tail {'flags': '00000803', 'rok': 1, 'svtype': 'B::PV', 'weak': 0} ['overload.enter', 'handler.enter', 'handler.leave', 'overload.return', 'overload.DESTROY'] Reentry::Object=HASH(0x5557d9359f40)
+weaken_ref 12x:tail {'flags': '80000803', 'rok': 1, 'svtype': 'B::PV', 'weak': 1} ['overload.enter', 'handler.enter', 'handler.leave', 'overload.return', 'overload.DESTROY'] HASH(0x5557d9359f40)
+localize 12x:tail {'flags': '00000803', 'rok': 1, 'svtype': 'B::PV', 'weak': 0} ['overload.enter', 'handler.enter', 'local.body', 'handler.leave', 'overload.return'] 12x
+tie 12x:tail {'flags': '00e00807', 'nv_slot': '0', 'rok': 1, 'svtype': 'B::PVMG', 'weak': 0} ['overload.enter', 'handler.enter', 'handler.leave', 'overload.return'] 77
+untie 12x:tail {'flags': '00000803', 'rok': 1, 'svtype': 'B::PV', 'weak': 0} ['overload.enter', 'handler.enter', 'handler.leave', 'overload.return'] 12x
+die None {'flags': '00000803', 'rok': 1, 'svtype': 'B::PV', 'weak': 0} ['overload.enter', 'handler.enter'] 12x

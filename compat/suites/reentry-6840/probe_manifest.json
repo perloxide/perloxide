@@ -1,0 +1,70 @@
+{
+  "perl_5_44_source": "https://www.cpan.org/src/5.0/perl-5.44.0.tar.xz",
+  "perl_5_44_source_sha256": "505cf43912e9480495c344c70260452e32aa2a73c546a026b3f100053b23ce91",
+  "files": {
+    "perl_reentry_review.md": {
+      "bytes": 27584,
+      "sha256": "2d3587bf13f89434661f36a650576ea0833069b05c7357d78429603d9af70ceb"
+    },
+    "reentry_matrix.pl": {
+      "bytes": 8635,
+      "sha256": "15890167bd958d2845d10ac91804dbbe29eaafdfef48902d1063d73f523e44f0"
+    },
+    "analyze_reentry.py": {
+      "bytes": 3761,
+      "sha256": "5e5706d7f0193ea7b3ba81b5e4b4acbe9d1c9e02c4b9e12e14ce9102ad1159e1"
+    },
+    "catalog_results.py": {
+      "bytes": 2842,
+      "sha256": "295035594db586744650de2e6c54d0438d59e825864b068053ee6c28656e1fe4"
+    },
+    "continuation_probes.pl": {
+      "bytes": 6353,
+      "sha256": "90e3666787ca341f2889a1d408dd96556f7d2fcdb4b9354094492430a527268b"
+    },
+    "minimal_nv_reentry.pl": {
+      "bytes": 144,
+      "sha256": "6d5430e10c57c5749bea6fad85cef259f2a578bd391683b5dd7ffef475060469"
+    },
+    "matrix_findings.json": {
+      "bytes": 113709,
+      "sha256": "66f308523aa42f01028e97105b06038067b94913ee4dc620e4a8f52fdc508e64"
+    },
+    "crash_reproductions.json": {
+      "bytes": 181,
+      "sha256": "1104d079feb50b02490af70c4501b64b54f61aaa63be5ed82c110bdbb345d946"
+    },
+    "reentry-5.38.2.jsonl": {
+      "bytes": 5004070,
+      "sha256": "f2358e73c5afb42a1957b9491a98ce472d9db2d8c0f5c3407c2cf66260ad4302"
+    },
+    "reentry-5.44.0.jsonl": {
+      "bytes": 4995547,
+      "sha256": "2f76a59a6d42ae51f48983b221749c1507e4f9c7c66872a8ace788c974163451"
+    },
+    "reentry-tied-warning-5.38.2.jsonl": {
+      "bytes": 2000629,
+      "sha256": "6340179b110533c2906671b423d12ebb70088ee20e94316923f982f5ff077cbe"
+    },
+    "reentry-tied-warning-5.44.0.jsonl": {
+      "bytes": 2000625,
+      "sha256": "42d60388263e2e217ad9c27c32abae4755ffbb963da17802e3c431ef7baadac1"
+    },
+    "continuation-5.38.2.jsonl": {
+      "bytes": 3332,
+      "sha256": "30a27f6610fda1e5379dfdabfb56e1d421a85283bbf8ceda4b7c9452c694b9b3"
+    },
+    "continuation-5.44.0.jsonl": {
+      "bytes": 3332,
+      "sha256": "645eca3a62bbe0d980d3bdbdc66ef217526da0efdd9d84fb435d1f8f3316051f"
+    },
+    "reentry-5.44.0-summary.txt": {
+      "bytes": 24846,
+      "sha256": "3db62a1bf2c5c3563f08282953d94d8fc3ff0d38cb0cc108907767dda40b1b16"
+    },
+    "reentry-tied-warning-5.44.0-summary.txt": {
+      "bytes": 1418,
+      "sha256": "e7cb243dce777b8fa54de934e8c3e0157c3d62a8371a6acc5b57a09e12d6477e"
+    }
+  }
+}
