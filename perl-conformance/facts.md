@@ -63,7 +63,8 @@ Entries:
   element magic stores at the original index.  `local $a[1] = 99; shift @a` on `(10, 20, 30)` leaves `(20, 20)` where
   a plain array leaves `(99, 20)`; the `unshift` form leaves `(0, 20, 20, 30)` against `(0, 20, 99, 30)`.  No second
   thread is involved.  `sharedsv_scalar_mg_set`, `sharedsv_elem_mg_STORE` and the magic ordering noted above it
-  (dist/threads-shared/shared.xs).  Probe: `probes/research/value-model/24_local_shared_elem.pl`.
+  (dist/threads-shared/shared.xs).  Probes: `probes/corpus/local_03_shared_elem_move.pl` (threaded family) and
+  `probes/research/value-model/24_local_shared_elem.pl`, which has the mechanism.
 
 ## Finalization and temporary lifetime
 
