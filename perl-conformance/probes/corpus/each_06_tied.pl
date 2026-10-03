@@ -13,7 +13,7 @@ sub NEXTKEY  { push @log, "NEXTKEY($_[1])"; shift @{$_[0]{it}} }
 sub SCALAR   { push @log, "SCALAR"; scalar %{$_[0]{d}} }
 package main;
 tie my %t, 'LogHash';
-sub run { my ($name, $code) = @_; @LogHash::log = (); $code->(); print "$name: @LogHash::log\n" }
+sub run { my ($name, $code) = @_; @LogHash::log = (); $code->(); print "$name:", (@LogHash::log ? " @LogHash::log" : ""), "\n" }
 run('each (scalar ctx)',      sub { my $k = each %t });
 run('each (list ctx)',        sub { my ($k, $v) = each %t });
 run('keys (void)',            sub { keys %t; });
