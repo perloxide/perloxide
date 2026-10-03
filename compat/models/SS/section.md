@@ -1,15 +1,19 @@
 # `local` and the save stack
 
-Validation: every rule below is transcribed into `SS.pm` and replayed by `gen3.pl` over 312 cells — {plain, tied,
-magical (`$/`, `$0`), glob-aliased} × {package scalar, element present, element absent, whole glob} × {bare, assignment,
-self-assignment} × {no mutation, pre-`local`-ref mutation, container clear, delete} × {normal exit, die in body, die in
-a restoration `STORE`, die in the displaced value's `DESTROY`} × nesting depth 1–2 — observing the callback trace,
-first-appearance-normalized addresses at three points, final values, `exists`, and `$@` at the catch and at the
-following statement boundary. perl 5.38.2 and 5.44.0 produce byte-identical observation lines on all 312 cells, and
-`SS.pm` matches both on all 312.  Zero mismatches, zero crashes. Address triples on tied-container elements are masked
-in both columns: a held reference always yields a distinct mirror address, and the cross-statement equalities perl
-exhibits are reuse of a freed mirror's memory — an allocator artifact, excluded under the freed-memory rule. Source
-citations are perl 5.44.0.
+Validation: every rule below is transcribed into `SS.pm` and replayed by `generators/ss_gen.pl` over 400 cells.  The
+first block is 312 cells — {plain, tied, magical (`$/`, `$0`), glob-aliased} × {package scalar, element present, element
+absent, whole glob} × {bare, assignment, self-assignment} × {no mutation, pre-`local`-ref mutation, container clear,
+delete} × {normal exit, die in body, die in a restoration `STORE`, die in the displaced value's `DESTROY`} × nesting
+depth 1–2 — observing the callback trace, first-appearance-normalized addresses at three points, final values, `exists`,
+and `$@` at the catch and at the following statement boundary.  The second block is 88 structural cells on a plain array
+— {element present, element absent} × {bare, assignment} × {no change, `shift`, `shift` twice, `unshift`, `pop`, `push`,
+`splice` removing, `splice` inserting, `$#a = -1`, `$#a = 0`, clear-and-refill} × {normal exit, die in body} — observing
+per-index (identity, `exists`, value) over indices 0–6 after the scope, the final `$#a`, and references captured inside
+the scope to the SV `local` installed and to the SV a removing operation returned.  perl 5.38.2 and 5.44.0 produce
+byte-identical observation lines on all 400 cells, and `SS.pm` matches both on all 400.  Zero mismatches, zero crashes.
+Address triples on tied-container elements are masked in both columns: a held reference always yields a distinct mirror
+address, and the cross-statement equalities perl exhibits are reuse of a freed mirror's memory — an allocator artifact,
+excluded under the freed-memory rule. Source citations are perl 5.44.0.
 
 ## 1. `local` is slot rebinding, never value mutation
 
@@ -28,9 +32,14 @@ pointer.  `Perl_save_aelem_flags` pushes `SAVEt_AELEM` holding the array, the in
 `Perl_leave_scope` re-fetches the slot through the container: `av_fetch(av, idx, 1)` for `SAVEt_AELEM`,
 `hv_fetch_ent(hv, key, 1, 0)` for `SAVEt_HELEM`. The lvalue re-fetch vivifies: `local $c[1] = 99; @c = ()` ends with the
 unwind re-creating slot 1 and installing the saved SV there, so the element is resurrected at its index after a
-container clear or an in-scope `delete`. The record for an element that did not exist stores no old cell at all:
-`pp_aelem` and `pp_helem` decide preeminence up front (through `EXISTS` when the container is tied and
-`SvCANEXISTDELETE`) and push `SAVEADELETE`/`SAVEHDELETE` instead (§6).
+container clear or an in-scope `delete`. The index is all the record knows, so a structural change inside the scope is
+not compensated: after `unshift @c, 7` the saved SV is installed at index 1 over the element that migrated there (the
+former `$c[0]`), which is freed, while the SV `local` installed sits at index 2 and stays; after `shift @c` it is
+installed over the element that moved down into index 1, and the installed SV is now `$c[0]` (or, taken by reference
+from the `shift`, lives on outside the array).  Nothing reclaims the installed SV at scope exit; it is an ordinary
+element wherever it ended up. The record for an element that did not exist stores no old cell at all: `pp_aelem` and
+`pp_helem` decide preeminence up front (through `EXISTS` when the container is tied and `SvCANEXISTDELETE`) and push
+`SAVEADELETE`/`SAVEHDELETE` instead (§6).
 
 ## 3. The fresh cell's magic: `mg_localize` splits container from value
 
@@ -78,8 +87,10 @@ Localizing an element that does not exist pushes `SAVEADELETE` (`Perl_save_adele
 save-stack frame into `SAVEt_FREESV` (and `SAVEt_FREEPV` for the copied key) *before* calling the delete, so a die
 inside a tied `DELETE` still releases the container and key in the continuing unwind. On a plain array, deleting the top
 element shrinks the array past any contiguous holes below it, so the array shrinks only if the deleted element was
-trailing. The vivification that the entry's lvalue fetch performed is thereby undone: the element does not exist after
-the scope, even though it existed (undef) inside it.
+trailing. Deleting past the fill is a no-op (`Perl_av_delete` returns at `key > AvFILLp`). The vivification that the
+entry's lvalue fetch performed is thereby undone: the element does not exist after the scope, even though it existed
+(undef) inside it.  Both are by the original index: if a `shift` moved the vivified element below that index it survives
+there, and if a `push` or `unshift` moved other elements above it the deletion leaves a hole between them.
 
 ## 7. The unwind contract
 

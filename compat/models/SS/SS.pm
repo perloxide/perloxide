@@ -270,6 +270,91 @@ sub hv_clear {
     $hv->{elems} = {};
 }
 
+# Structural array operations on a plain (untied) array. The array is its
+# element list: a defined entry is an SV, an undef entry is a NULL slot (a
+# hole), and the list's last index is AvFILLp. None of these look inside
+# the save stack, which is why a `local` on an element survives them
+# unchanged: the AELEM record names the array and the original index, and
+# the restore re-fetches by that index into whatever the array has become.
+# The tied forms (SHIFT/UNSHIFT/PUSH/POP/STORESIZE/SPLICE method calls)
+# are not modeled; the structural cells of the generator are plain-only.
+
+# Perl_av_shift (av.c:934): returns the first SV itself, ownership passed
+# to the caller; pp_shift mortalizes it. An empty array yields undef here,
+# standing in for &PL_sv_undef.
+sub av_shift {
+    my ($avid) = @_;
+    my $av = $AV{$avid};
+    die "av_shift: tied arrays are not modeled" if $av->{tie};
+    return undef unless @{ $av->{elems} };
+    return shift @{ $av->{elems} };
+}
+
+# Perl_av_pop (av.c:810): the mirror image, from the top index.
+sub av_pop {
+    my ($avid) = @_;
+    my $av = $AV{$avid};
+    die "av_pop: tied arrays are not modeled" if $av->{tie};
+    return undef unless @{ $av->{elems} };
+    return pop @{ $av->{elems} };
+}
+
+# Perl_av_unshift (av.c:868): opens $num NULL slots at the front. The
+# values pp_unshift then stores are fresh copies (newSVsv), never the
+# caller's SVs.
+sub av_unshift {
+    my ($avid, $num) = @_;
+    my $av = $AV{$avid};
+    die "av_unshift: tied arrays are not modeled" if $av->{tie};
+    unshift @{ $av->{elems} }, (undef) x $num;
+}
+
+# Perl_av_push (av.c:780) is av_store at AvFILLp + 1; pp_push stores a
+# fresh copy of each argument.
+sub av_push {
+    my ($avid, $cell) = @_;
+    my $av = $AV{$avid};
+    die "av_push: tied arrays are not modeled" if $av->{tie};
+    push @{ $av->{elems} }, $cell;
+}
+
+# Perl_av_fill (av.c:1010), the `$#a = N` store: shrinking frees the SVs
+# above the new fill and NULLs their slots; growing extends with NULL
+# slots, which are holes, not undef elements.
+sub av_fill {
+    my ($avid, $fill) = @_;
+    my $av = $AV{$avid};
+    die "av_fill: tied arrays are not modeled" if $av->{tie};
+    $fill = -1 if $fill < 0;
+    my $e = $av->{elems};
+    if ($fill < $#$e) {
+        rc_dec($_) for grep { defined } @$e[$fill + 1 .. $#$e];
+        $#$e = $fill;
+    }
+    elsif ($fill > $#$e) { $#$e = $fill }
+}
+
+# pp_splice (pp.c:6109) on a plain array. $gimme is 'list' or 'scalar'
+# (void takes the scalar path). The inserted SVs are the caller's cells,
+# already fresh copies as pp_splice makes them (newSVsv) before touching
+# the array. The removed SVs are returned themselves, not copied: in list
+# context every one is mortalized; in scalar context only the last is
+# mortalized and returned, the rest are freed on the spot.
+sub av_splice {
+    my ($avid, $gimme, $offset, $length, @new) = @_;
+    my $av = $AV{$avid};
+    die "av_splice: tied arrays are not modeled" if $av->{tie};
+    my $e = $av->{elems};
+    $offset = @$e if $offset > @$e;
+    $length = @$e - $offset if $offset + $length > @$e;
+    my @removed = splice @$e, $offset, $length, @new;
+    if ($gimme eq 'list') { mortal($_) for grep { defined } @removed; return @removed }
+    my $last = @removed ? pop @removed : undef;
+    rc_dec($_) for grep { defined } @removed;
+    mortal($last) if defined $last;
+    return $last;
+}
+
 # ---------------- globs ----------------
 
 sub new_glob {
