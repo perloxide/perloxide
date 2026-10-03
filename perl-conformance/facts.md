@@ -57,6 +57,13 @@ Entries:
   (`SAVEt_ADELETE`), `Perl_av_delete`.
 - A `die` in the body changes none of this: the structural rows pair `ok` and `dieB` cells whose observations differ
   only in `$@`.
+- On a `threads::shared` array the restore writes the saved value twice.  The element proxy carries tied-element magic
+  addressing the aggregate by index and shared-scalar magic pointing at the shared element SV itself, and the exit
+  `mg_set` runs both: the scalar magic stores into that SV wherever a `shift` or `unshift` has moved it, then the
+  element magic stores at the original index.  `local $a[1] = 99; shift @a` on `(10, 20, 30)` leaves `(20, 20)` where
+  a plain array leaves `(99, 20)`; the `unshift` form leaves `(0, 20, 20, 30)` against `(0, 20, 99, 30)`.  No second
+  thread is involved.  `sharedsv_scalar_mg_set`, `sharedsv_elem_mg_STORE` and the magic ordering noted above it
+  (dist/threads-shared/shared.xs).  Probe: `probes/research/value-model/24_local_shared_elem.pl`.
 
 ## Finalization and temporary lifetime
 
