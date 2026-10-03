@@ -1,0 +1,22 @@
+
+
+
+
+  local $a[1] = 99                 (10, 99, 30)
+  local $a[1] = 99                 (10, 99, 30)
+  local $a[1] = 99                 (10, 99, 30)
+  local $a[1] = 99                 (10, 99, 30)
+  shift                            (99, 30)
+  shift                            (99, 30)
+  unshift 0                        (0, 10, 99, 30)
+  unshift 0                        (0, 10, 99, 30)
+plain, after scope                 (0, 20, 99, 30)
+plain, after scope                 (99, 20)
+plain, start                       (10, 20, 30)
+plain, start                       (10, 20, 30)
+plain, write in scope, no move     (10, 20, 30)
+shared, after scope                (0, 20, 20, 30)
+shared, after scope                (20, 20)
+shared, start                      (10, 20, 30)
+shared, start                      (10, 20, 30)
+shared, write in scope, no move    (10, 20, 30)
