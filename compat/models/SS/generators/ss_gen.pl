@@ -7,6 +7,16 @@
 # x depth 1-2. Observables: callback trace, first-appearance-normalized
 # refaddrs at three points, final value, exists, $@ at the catch and at the
 # following statement boundary.
+#
+# A second block enumerates structural array changes under an element
+# local: plain array x {element present, element absent} x {bare,
+# assignment} x {no change, shift, shift twice, unshift, pop, push,
+# splice remove, splice insert, $#a = -1, $#a = 0, clear-and-refill} x
+# {normal, die in body}. Its observables are per-index (identity, exists,
+# value) over indices 0-6 after the scope, the final $#a, and two
+# references captured inside the scope: one to the SV the local installed,
+# one to the SV a removing operation handed back. Those show where the
+# installed SV went and that it outlives the scope.
 use strict; use warnings; use FindBin; use lib ($ENV{MODEL_ROOT} || "$FindBin::Bin/.."); my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK;
 require SS;
 my $PERL = $ENV{ORACLE} || 'perl';
@@ -44,6 +54,22 @@ for my $k (qw(plain tied)) {
             for my $ex (qw(ok dieB)) {
                 push @cells, { k => $k, s => $s, m => $m, mu => 'none',
                     ex => $ex, d => 2 };
+            }
+        }
+    }
+}
+
+# Structural cells: plain arrays only. The element is index 1 of three
+# (present) or index 5 (absent, vivified by the local). The no-change
+# mutation is named keep so its key differs from the none cells above.
+my @STRUCT = qw(keep shift1 shift2 unshift1 pop1 push1 splice_rm splice_ins
+    fill_neg1 fill0 refill);
+for my $s (qw(aeP aeA)) {
+    for my $m (qw(bare assign)) {
+        for my $mu (@STRUCT) {
+            for my $ex (qw(ok dieB)) {
+                push @cells, { k => 'plain', s => $s, m => $m, mu => $mu,
+                    ex => $ex, d => 1, st => 1 };
             }
         }
     }
@@ -150,6 +176,51 @@ sub render_child {
         . "\$p3 = ('$s' !~ /A\$/ || \$ex) ? refaddr(\\$site) : '-';\n"
         . "print join('|', 'T=' . join(',', \@T), \"I=\$p1:\$p2:\$p3\","
         . " \"F=\$fv\", \"X=\$ex\", \"Q=\$e1/\$e2\"), \"\\n\";\n";
+    return $code;
+}
+
+# The structural mutations as the child runs them. $r2 captures the SV a
+# removing operation hands back; the backslash on shift/pop/splice takes a
+# reference to that SV itself, not to a copy.
+my %STRUCT_CODE = (
+    keep       => '',
+    shift1     => '$r2 = \shift @a;',
+    shift2     => 'shift @a; $r2 = \shift @a;',
+    unshift1   => 'unshift @a, 7;',
+    pop1       => '$r2 = \pop @a;',
+    push1      => 'push @a, 7;',
+    splice_rm  => '($r2) = \splice(@a, 0, 1);',
+    splice_ins => 'splice(@a, 0, 0, 7);',
+    fill_neg1  => '$#a = -1;',
+    fill0      => '$#a = 0;',
+    refill     => '@a = (7, 8);',
+);
+my $STRUCT_TOP = 6;
+
+sub render_struct_child {
+    my ($c) = @_;
+    my ($s, $m, $mu, $ex) = @$c{qw(s m mu ex)};
+    my $i = $s eq 'aeP' ? 1 : 5;
+    my $localstmt = $m eq 'bare' ? "local \$a[$i];" : "local \$a[$i] = 50;";
+    my $exit = $ex eq 'dieB' ? 'die "B\\n";' : '';
+    my $code = $prelude . "\nour \@a; \@a = (10, 20, 30);\n"
+        . "my (\$p1, \$p2) = ('-', '-');\n"
+        . ($s eq 'aeP' ? "\$p1 = refaddr(\\\$a[$i]);\n" : '')
+        . "my (\$r1, \$r2);\n"
+        . "my (\$e1, \$e2) = ('', '');\n"
+        . "eval {\n  $localstmt\n  \$p2 = refaddr(\\\$a[$i]);\n  \$r1 = \\\$a[$i];\n"
+        . "  $STRUCT_CODE{$mu}\n" . ($exit ? "  $exit\n" : '') . "  1;\n};\n"
+        . "\$e1 = fmte(\$@);\n"
+        . "eval { my \$zz = 1; };\n\$e2 = fmte(\$@);\n"
+        . "my \@X = map { exists \$a[\$_] ? 1 : 0 } 0 .. $STRUCT_TOP;\n"
+        . "my \@I = map { \$X[\$_] ? refaddr(\\\$a[\$_]) : '-' } 0 .. $STRUCT_TOP;\n"
+        . "my \@F = map { \$X[\$_] ? ss(\$a[\$_]) : '-' } 0 .. $STRUCT_TOP;\n"
+        . "my \@R = map { defined \$_ ? refaddr(\$_) : '-' } \$r1, \$r2;\n"
+        . "my \@V = map { defined \$_ ? ss(\$\$_) : '-' } \$r1, \$r2;\n"
+        . "print join('|', 'T=' . join(',', \@T),"
+        . " 'I=' . join(':', \$p1, \$p2, \@I, \@R), 'F=' . join(',', \@F),"
+        . " 'X=' . join('', \@X), 'N=' . \$#a, 'E=' . join(',', \@V),"
+        . " \"Q=\$e1/\$e2\"), \"\\n\";\n";
     return $code;
 }
 
@@ -386,13 +457,84 @@ sub replay {
         "F=$fv", "X=$exv", "Q=$e1/$e2"));
 }
 
+sub replay_struct {
+    my ($c) = @_;
+    my ($s, $m, $mu, $ex) = @$c{qw(s m mu ex)};
+    SS::reset_world();
+    my $idx = $s eq 'aeP' ? 1 : 5;
+    my $avid = SS::new_av();
+    my $mkval = sub { my $c2 = SS::new_cell(); $SS::CELL{$c2}{v} = $_[0]; $c2 };
+    $SS::AV{$avid}{elems} = [ map { $mkval->($_) } 10, 20, 30 ];
+    my $elems = sub { $SS::AV{$avid}{elems} };
+    my ($p1, $p2) = ('-', '-');
+    $p1 = $elems->()[$idx] if $s eq 'aeP';
+    my ($r1, $r2);
+    my $base = @SS::SS;
+    $SS::PENDING = undef;
+
+    # A removing operation's result is mortal (pp_shift, pp_pop, pp_splice
+    # in list context); the reference taken to it holds a count of its
+    # own, and the mortal count goes at the statement boundary.
+    my $take = sub { my ($cell) = @_; $r2 = defined $cell ? SS::rc_inc($cell) : undef };
+    eval {
+        my $slotref = SS::local_aelem($avid, $idx, $m ne 'bare');
+        SS::cell_set($$slotref, 50) if $m eq 'assign';
+        SS::boundary();
+        $p2 = $elems->()[$idx];
+        SS::boundary();
+        $r1 = SS::rc_inc($elems->()[$idx]);
+        SS::boundary();
+        if ($mu eq 'keep') { }
+        elsif ($mu eq 'shift1') { $take->(SS::mortal(SS::av_shift($avid))); SS::boundary() }
+        elsif ($mu eq 'shift2') {
+            SS::mortal(SS::av_shift($avid)); SS::boundary();
+            $take->(SS::mortal(SS::av_shift($avid))); SS::boundary();
+        }
+        elsif ($mu eq 'unshift1') {
+            SS::av_unshift($avid, 1);
+            $elems->()[0] = $mkval->(7);
+            SS::boundary();
+        }
+        elsif ($mu eq 'pop1') { $take->(SS::mortal(SS::av_pop($avid))); SS::boundary() }
+        elsif ($mu eq 'push1') { SS::av_push($avid, $mkval->(7)); SS::boundary() }
+        elsif ($mu eq 'splice_rm') { $take->((SS::av_splice($avid, 'list', 0, 1))[0]); SS::boundary() }
+        elsif ($mu eq 'splice_ins') { SS::av_splice($avid, 'scalar', 0, 0, $mkval->(7)); SS::boundary() }
+        elsif ($mu eq 'fill_neg1') { SS::av_fill($avid, -1); SS::boundary() }
+        elsif ($mu eq 'fill0') { SS::av_fill($avid, 0); SS::boundary() }
+        elsif ($mu eq 'refill') {
+
+            # pp_aassign to an array: av_clear, then a fresh copy of each
+            # right-hand value stored in order.
+            SS::av_clear($avid);
+            push @{ $elems->() }, $mkval->(7), $mkval->(8);
+            SS::boundary();
+        }
+        die "B\n" if $ex eq 'dieB';
+    };
+    my $bodyerr = $@;
+    $SS::PENDING = undef;
+    SS::leave_scope($base);
+    my $e1 = fmte(defined $SS::PENDING ? $SS::PENDING : $bodyerr);
+    eval { SS::boundary() };
+    my $e2 = fmte($@);
+    my $e = $elems->();
+    my @X = map { $_ <= $#$e && defined $e->[$_] ? 1 : 0 } 0 .. $STRUCT_TOP;
+    my @I = map { $X[$_] ? $e->[$_] : '-' } 0 .. $STRUCT_TOP;
+    my @F = map { $X[$_] ? SS::vv(SS::cell_get($e->[$_])) : '-' } 0 .. $STRUCT_TOP;
+    my @R = map { defined $_ ? $_ : '-' } $r1, $r2;
+    my @V = map { defined $_ ? SS::vv(SS::cell_get($_)) : '-' } $r1, $r2;
+    return norm_ids(join('|', 'T=' . join(',', @SS::TRACE),
+        'I=' . join(':', $p1, $p2, @I, @R), 'F=' . join(',', @F),
+        'X=' . join('', @X), 'N=' . $#$e, 'E=' . join(',', @V), "Q=$e1/$e2"));
+}
+
 # ---------------- drive ----------------
 my ($n, $ok, $bad, $crash) = (0, 0, 0, 0);
 my @report;
 open my $tab, '>', ($ENV{TABLE} || '/dev/null') or die $!;
 for my $c (@cells) {
     my $key = join('/', @$c{qw(k s m mu ex)}, "d$c->{d}");
-    my $code = render_child($c);
+    my $code = $c->{st} ? render_struct_child($c) : render_child($c);
     open my $fh, '>', "$WORK/ss_child.pl" or die $!;
     print $fh $code; close $fh;
     my $out = `timeout 5 $PERL $WORK/ss_child.pl 2>/dev/null`;
@@ -404,7 +546,7 @@ for my $c (@cells) {
         next;
     }
     chomp $out; $out = norm_ids($out);
-    my $mod = eval { replay($c) };
+    my $mod = eval { $c->{st} ? replay_struct($c) : replay($c) };
     $mod = "REPLAY-DIED: " . fmte($@) unless defined $mod;
     if ($c->{k} eq 'tied' && $c->{s} ne 'pkg') {
         $_ =~ s/I=[^|]*/I=masked/ for $out, $mod;
