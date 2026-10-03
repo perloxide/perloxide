@@ -2,7 +2,10 @@
 # or where the choice of cached slot (IV versus NV) changes a printed value.
 use strict; use warnings; no warnings qw(numeric void);
 sub fresh { my $c = "" . $_[0]; $c }        # a new scalar holding only the string
-sub show { my ($label, $cached, $recomputed) = @_; printf "%-44s cached=%-24s fresh=%-24s %s\n", $label, $cached, $recomputed, ($cached eq $recomputed ? '' : 'DIFFERS') }
+sub show { my ($label, $cached, $recomputed) = @_;
+    my $line = sprintf "%-44s cached=%-24s fresh=%-24s %s", $label, $cached, $recomputed, ($cached eq $recomputed ? '' : 'DIFFERS');
+    $line =~ s/ +$//;   # the marker column is empty when the two agree
+    print "$line\n" }
 # negative zero: does an integer cache lose the sign that a fresh parse keeps?
 for my $str ("-0", "-0.0", "-0e0", "+0", "00") {
     for my $op (['$s + 0', sub { my $x = $_[0] + 0 }], ['$s | 0', sub { my $x = $_[0] | 0 }], ['int $s', sub { my $x = int $_[0] }], ['$a[$s]', sub { my @a; my $x = $a[$_[0]] }]) {
