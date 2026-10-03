@@ -1,0 +1,55 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    # $#x = -1  => scalar(@x) = 0
+                    # $#x = 2   => scalar(@x) = 3
+                    # $#x = 2   => scalar(@x) = 3
+                    # $r  = \27                         => SCALAR(ADDR)
+                    # $r  = \3                          => SCALAR(ADDR)
+                    # $r  = \3                          => SCALAR(ADDR)
+                    # $r  = \531441                     => SCALAR(ADDR)
+                    # $r  = \729                        => SCALAR(ADDR)
+                    # $r  = \729                        => SCALAR(ADDR)
+                    # $r2 = \1                          => SCALAR(ADDR)
+                    # $r2 = \2                          => SCALAR(ADDR)
+                    # $r2 = \2                          => SCALAR(ADDR)
+                    # $r2 = \3                          => SCALAR(ADDR)
+                    # $r2 = \5                          => SCALAR(ADDR)
+                    # $r2 = \5                          => SCALAR(ADDR)
+                    # $r2 = \5                          => SCALAR(ADDR)
+                    # $x[0] does not exist
+                    # $x[0] does not exist
+                    # $x[0] exists
+                    # $x[1] does not exist
+                    # $x[1] does not exist
+                    # $x[1] exists
+                    # $x[2] does not exist
+                    # $x[2] exists
+                    # $x[2] exists
+                    # @x  = (undef, undef, 531441)      => SCALAR(ADDR) SCALAR(ADDR) SCALAR(ADDR)
+                    # @x  = (undef, undef, 729)         => SCALAR(ADDR) SCALAR(ADDR) SCALAR(ADDR)
+  $$r **= 2;        # $r  = \729                        => SCALAR(ADDR)
+  $$r **= 3;        # $r  = \27                         => SCALAR(ADDR)
+  $r2 = \shift @x;  # @x  = ()
+  $r2 = \shift @x;  # @x  = (2, 5)                      => SCALAR(ADDR) SCALAR(ADDR)
+  $r2 = \shift @x;  # @x  = (5)                         => SCALAR(ADDR)
+  local $x[2] = 5;  # @x  = (1, 2, 5)                   => SCALAR(ADDR) SCALAR(ADDR) SCALAR(ADDR)
+$$r **= 2;          # $r  = \531441                     => SCALAR(ADDR)
+do {                # scope begins
+my $r = \$x[2];     # $r  = \3                          => SCALAR(ADDR)
+my $r2 = $r;        # $r2 = \3                          => SCALAR(ADDR)
+my @x = (1, 2, 3);  # @x  = (1, 2, 3)                   => SCALAR(ADDR) SCALAR(ADDR) SCALAR(ADDR)
+my @y = \(@x);      # @y  = (\undef, \undef, \729)      => SCALAR(ADDR) SCALAR(ADDR) SCALAR(ADDR)
+}                   # scope ends
