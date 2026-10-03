@@ -6,7 +6,7 @@
 # {normal, die in body, die in restoration STORE, die in displaced DESTROY}
 # x depth 1-2. Observables: callback trace, first-appearance-normalized
 # refaddrs at three points, final value, exists, $@ at the catch and at the
-# following statement boundary.
+# following statement pp_nextstate.
 #
 # A second block enumerates structural array changes under an element
 # local: plain array x {element present, element absent} x {bare,
@@ -247,18 +247,18 @@ sub fmte { my $e = shift; return '' unless $e; $e =~ s/\n.*//s; $e =~ s/ at .*//
 sub replay {
     my ($c) = @_;
     my ($k, $s, $m, $mu, $ex, $d) = @$c{qw(k s m mu ex d)};
-    SS::reset_world();
+    SS::Harness::Reset();
     $RSG = 10; $ZG = 'ten';
     my ($avid, $hvid, $gv, $idx, $key);
     my ($p1, $p2, $p3) = ('-', '-', '-');
     my $site_read; my $site_addr; my $exists_q = sub { '-' };
     if ($s eq 'pkg') {
-        $gv = SS::new_glob('x');
-        my $cell = ${ SS::glob_svslot('x') };
+        $gv = SS::gv_fetchpv('x');
+        my $cell = ${ SS::GvSV('x') };
         if ($k eq 'plain') { $SS::CELL{$cell}{v} = 10 }
         elsif ($k eq 'tied') {
             my $tie = { v => 10 };
-            push @{ $SS::CELL{$cell}{mag} }, { t => 'ties', o => $tie };
+            push @{ $SS::CELL{$cell}{mag} }, { t => 'tied', o => $tie };
             $SS::CELL{$cell}{smag} = $SS::CELL{$cell}{gmag} = 1;
         }
         elsif ($k eq 'mrs') {
@@ -272,63 +272,63 @@ sub replay {
             $SS::CELL{$cell}{v} = 'ten';
         }
         elsif ($k eq 'alias') { $SS::CELL{$cell}{v} = 10 }
-        $site_addr = sub { ${ SS::glob_svslot('x') } };
-        $site_read = sub { SS::cell_get(${ SS::glob_svslot('x') }) };
+        $site_addr = sub { ${ SS::GvSV('x') } };
+        $site_read = sub { SS::Harness::Read(${ SS::GvSV('x') }) };
     }
     elsif ($s =~ /^ae/) {
         $idx = $s eq 'aeP' ? 1 : 5;
-        $avid = SS::new_av();
+        $avid = SS::newAV();
         if ($k eq 'tied') {
             $SS::AV{$avid}{tie} = { store => { 0 => 10, 1 => 20, 2 => 30 }, top => 2 };
         }
         else {
-            $SS::AV{$avid}{elems} = [ map { my $c2 = SS::new_cell(); $SS::CELL{$c2}{v} = $_; $c2 } 10, 20, 30 ];
+            $SS::AV{$avid}{elems} = [ map { my $c2 = SS::newSV(); $SS::CELL{$c2}{v} = $_; $c2 } 10, 20, 30 ];
         }
         $site_addr = sub {
-            if ($SS::AV{$avid}{tie}) { my (undef, $mm) = SS::av_fetch_lv($avid, $idx); return $mm }
+            if ($SS::AV{$avid}{tie}) { my (undef, $mm) = SS::av_fetch($avid, $idx, 0); return $mm }
             return $SS::AV{$avid}{elems}[$idx];
         };
         $site_read = sub {
             if ($SS::AV{$avid}{tie}) {
                 my $v = $SS::AV{$avid}{tie}{store}{$idx};
-                SS::trace('F', $idx, SS::vv($v)); return $v;
+                SS::Harness::Trace('F', $idx, SS::Harness::Show($v)); return $v;
             }
             my $e = $SS::AV{$avid}{elems}[$idx];
-            return defined $e ? SS::cell_get($e) : undef;
+            return defined $e ? SS::Harness::Read($e) : undef;
         };
         $exists_q = sub { SS::av_exists($avid, $idx) };
     }
     elsif ($s =~ /^he/) {
         $key = $s eq 'heP' ? 'k' : 'nk';
-        $hvid = SS::new_hv();
+        $hvid = SS::newHV();
         if ($k eq 'tied') { $SS::HV{$hvid}{tie} = { store => { k => 10 } } }
-        else { my $c2 = SS::new_cell(); $SS::CELL{$c2}{v} = 10; $SS::HV{$hvid}{elems}{k} = $c2 }
+        else { my $c2 = SS::newSV(); $SS::CELL{$c2}{v} = 10; $SS::HV{$hvid}{elems}{k} = $c2 }
         $site_addr = sub {
-            if ($SS::HV{$hvid}{tie}) { my (undef, $mm) = SS::hv_fetch_lv($hvid, $key); return $mm }
+            if ($SS::HV{$hvid}{tie}) { my (undef, $mm) = SS::hv_fetch_ent($hvid, $key, 0); return $mm }
             return $SS::HV{$hvid}{elems}{$key};
         };
         $site_read = sub {
             if ($SS::HV{$hvid}{tie}) {
                 my $v = $SS::HV{$hvid}{tie}{store}{$key};
-                SS::trace('F', $key, SS::vv($v)); return $v;
+                SS::Harness::Trace('F', $key, SS::Harness::Show($v)); return $v;
             }
             my $e = $SS::HV{$hvid}{elems}{$key};
-            return defined $e ? SS::cell_get($e) : undef;
+            return defined $e ? SS::Harness::Read($e) : undef;
         };
         $exists_q = sub { SS::hv_exists($hvid, $key) };
     }
     elsif ($s eq 'glob') {
-        $gv = SS::new_glob('x');
-        $SS::CELL{ ${ SS::glob_svslot('x') } }{v} = 10;
-        SS::new_glob('y');
-        $SS::CELL{ ${ SS::glob_svslot('y') } }{v} = 88;
-        $site_addr = sub { ${ SS::glob_svslot('x') } };
-        $site_read = sub { SS::cell_get(${ SS::glob_svslot('x') }) };
+        $gv = SS::gv_fetchpv('x');
+        $SS::CELL{ ${ SS::GvSV('x') } }{v} = 10;
+        SS::gv_fetchpv('y');
+        $SS::CELL{ ${ SS::GvSV('y') } }{v} = 88;
+        $site_addr = sub { ${ SS::GvSV('x') } };
+        $site_read = sub { SS::Harness::Read(${ SS::GvSV('x') }) };
     }
     my $pre_ok = !($s eq 'aeA' || $s eq 'heA');
     $p1 = $site_addr->() if $pre_ok;
     my $prerefcell;
-    if ($mu eq 'preref') { $prerefcell = SS::rc_inc($site_addr->()) }
+    if ($mu eq 'preref') { $prerefcell = SS::SvREFCNT_inc($site_addr->()) }
 
     my ($e1, $e2) = ('', '');
     my $base = @SS::SS;
@@ -336,22 +336,22 @@ sub replay {
     $SS::PENDING = undef;
     my $mkobj = sub {
         my ($n, $dd) = @_;
-        my $obj = SS::new_cell(obj => { n => $n, d => $dd });
-        my $tmp = SS::new_cell(); $SS::CELL{$tmp}{v} = ['RV', $obj];
-        SS::mortal($tmp);
+        my $obj = SS::newSV(obj => { n => $n, d => $dd });
+        my $tmp = SS::newSV(); $SS::CELL{$tmp}{v} = ['RV', $obj];
+        SS::sv_2mortal($tmp);
         return $obj;
     };
     my $do_local = sub {
         my ($assignv) = @_;
         my $fresh;
         if ($s eq 'pkg') {
-            my $rhs; $rhs = ${ SS::glob_svslot("x") } if $m eq "self";
-            $fresh = SS::local_pkg_scalar('x');
+            my $rhs; $rhs = ${ SS::GvSV("x") } if $m eq "self";
+            $fresh = SS::pp_gvsv('x');
             if ($m eq 'assign') {
-                if (ref $assignv) { SS::cell_set_rv($fresh, $$assignv) }
-                else { SS::cell_set($fresh, $assignv) }
+                if (ref $assignv) { SS::Harness::StoreRef($fresh, $$assignv) }
+                else { SS::Harness::Store($fresh, $assignv) }
             }
-            elsif ($m eq 'self') { my $v = SS::cell_get($rhs); SS::cell_set($fresh, $v) }
+            elsif ($m eq 'self') { my $v = SS::Harness::Read($rhs); SS::Harness::Store($fresh, $v) }
         }
         elsif ($s =~ /^ae/ || $s =~ /^he/) {
             my ($rhs_v, $have_rhs);
@@ -359,34 +359,34 @@ sub replay {
                 my $rhsm;
                 if ($s =~ /^ae/) {
                     if ($SS::AV{$avid}{tie} || defined $SS::AV{$avid}{elems}[$idx]) {
-                        (undef, $rhsm) = SS::av_fetch_lv($avid, $idx);
+                        (undef, $rhsm) = SS::av_fetch($avid, $idx, 0);
                     }
                 }
                 else {
                     if ($SS::HV{$hvid}{tie} || exists $SS::HV{$hvid}{elems}{$key}) {
-                        (undef, $rhsm) = SS::hv_fetch_lv($hvid, $key);
+                        (undef, $rhsm) = SS::hv_fetch_ent($hvid, $key, 0);
                     }
                 }
-                $rhs_v = defined $rhsm ? SS::cell_get($rhsm) : undef;
+                $rhs_v = defined $rhsm ? SS::Harness::Read($rhsm) : undef;
                 $have_rhs = 1;
             }
             my $slotref = $s =~ /^ae/
-                ? SS::local_aelem($avid, $idx, $m ne 'bare')
-                : SS::local_helem($hvid, $key, $m ne 'bare');
+                ? SS::pp_aelem($avid, $idx, $m ne 'bare')
+                : SS::pp_helem($hvid, $key, $m ne 'bare');
             $fresh = $$slotref;
             if ($m eq 'assign') {
-                if (ref $assignv) { SS::cell_set_rv($fresh, $$assignv) }
-                else { SS::cell_set($fresh, $assignv) }
+                if (ref $assignv) { SS::Harness::StoreRef($fresh, $$assignv) }
+                else { SS::Harness::Store($fresh, $assignv) }
             }
-            elsif ($m eq 'self') { SS::cell_set($fresh, $rhs_v) }
+            elsif ($m eq 'self') { SS::Harness::Store($fresh, $rhs_v) }
         }
         elsif ($s eq 'glob') {
             my $oldgp = $SS::GLOB{x}{gp};
             SS::save_gp('x', 1);
             if ($m eq 'assign') {
-                my $slot = SS::glob_svslot('x');
-                my $ref = ${ SS::glob_svslot('y') };
-                SS::rc_dec($$slot); $$slot = SS::rc_inc($ref);
+                my $slot = SS::GvSV('x');
+                my $ref = ${ SS::GvSV('y') };
+                SS::SvREFCNT_dec($$slot); $$slot = SS::SvREFCNT_inc($ref);
             }
             elsif ($m eq 'self') {
                 SS::gp_free($SS::GLOB{x}{gp});
@@ -401,45 +401,45 @@ sub replay {
         if ($d == 1) {
             my $av = $ex eq 'dieD' ? \$mkobj->('V', 1) : 20;
             $do_local->($av);
-            SS::boundary();
+            SS::pp_nextstate();
             $p2 = $site_addr->();
-            SS::boundary();
-            if ($mu eq 'preref') { SS::cell_set($prerefcell, 77); SS::boundary() }
-            elsif ($mu eq 'clear') { ($s =~ /^ae/ ? SS::av_clear($avid) : SS::hv_clear($hvid)); SS::boundary() }
-            elsif ($mu eq 'del') { ($s =~ /^ae/ ? SS::av_delete($avid, 1) : SS::hv_delete($hvid, 'k')); SS::boundary() }
+            SS::pp_nextstate();
+            if ($mu eq 'preref') { SS::Harness::Store($prerefcell, 77); SS::pp_nextstate() }
+            elsif ($mu eq 'clear') { ($s =~ /^ae/ ? SS::av_clear($avid) : SS::hv_clear($hvid)); SS::pp_nextstate() }
+            elsif ($mu eq 'del') { ($s =~ /^ae/ ? SS::av_delete($avid, 1) : SS::hv_delete($hvid, 'k')); SS::pp_nextstate() }
             if ($ex eq 'dieB') { die "B\n" }
             elsif ($ex eq 'dieS') { $SS::ARMDIE = 1 }
         }
         else {
             $do_local->(20);
-            SS::boundary();
+            SS::pp_nextstate();
             my $pobj = $mkobj->('P', 0);
-            my $pc = SS::new_cell(); $SS::CELL{$pc}{v} = ['RV', SS::rc_inc($pobj)];
+            my $pc = SS::newSV(); $SS::CELL{$pc}{v} = ['RV', SS::SvREFCNT_inc($pobj)];
             $padslot = \$pc;
             SS::save_clearsv($padslot);
-            SS::boundary();
+            SS::pp_nextstate();
             {
                 my $b2 = @SS::SS;
                 if ($s eq 'glob') {
                     SS::save_gp('x', 1);
-                    my $slot = SS::glob_svslot('x');
-                    my $ref = ${ SS::glob_svslot('y') };
-                    SS::rc_dec($$slot); $$slot = SS::rc_inc($ref);
+                    my $slot = SS::GvSV('x');
+                    my $ref = ${ SS::GvSV('y') };
+                    SS::SvREFCNT_dec($$slot); $$slot = SS::SvREFCNT_inc($ref);
                 }
                 else {
                     my $slotref2 = $s eq 'pkg'
-                        ? do { SS::local_pkg_scalar('x'); SS::glob_svslot('x') }
-                        : $s =~ /^ae/ ? SS::local_aelem($avid, $idx, 1)
-                        : SS::local_helem($hvid, $key, 1);
-                    SS::cell_set($$slotref2, 30);
+                        ? do { SS::pp_gvsv('x'); SS::GvSV('x') }
+                        : $s =~ /^ae/ ? SS::pp_aelem($avid, $idx, 1)
+                        : SS::pp_helem($hvid, $key, 1);
+                    SS::Harness::Store($$slotref2, 30);
                 }
-                SS::boundary();
+                SS::pp_nextstate();
                 SS::leave_scope($b2);
                 die $SS::PENDING if defined $SS::PENDING;
             }
-            SS::boundary();
+            SS::pp_nextstate();
             $p2 = $site_addr->();
-            SS::boundary();
+            SS::pp_nextstate();
             if ($ex eq 'dieB') { die "B\n" }
         }
     };
@@ -447,11 +447,11 @@ sub replay {
     $SS::PENDING = undef;
     SS::leave_scope($base);
     $e1 = fmte(defined $SS::PENDING ? $SS::PENDING : $bodyerr);
-    eval { SS::boundary() };
+    eval { SS::pp_nextstate() };
     $e2 = fmte($@);
     my $exv = $exists_q->();
     my $fvr = $site_read->();
-    my $fv = SS::vv($fvr);
+    my $fv = SS::Harness::Show($fvr);
     $p3 = ($s !~ /A$/ || $exv) ? $site_addr->() : '-';
     return norm_ids(join('|', 'T=' . join(',', @SS::TRACE), "I=$p1:$p2:$p3",
         "F=$fv", "X=$exv", "Q=$e1/$e2"));
@@ -460,10 +460,10 @@ sub replay {
 sub replay_struct {
     my ($c) = @_;
     my ($s, $m, $mu, $ex) = @$c{qw(s m mu ex)};
-    SS::reset_world();
+    SS::Harness::Reset();
     my $idx = $s eq 'aeP' ? 1 : 5;
-    my $avid = SS::new_av();
-    my $mkval = sub { my $c2 = SS::new_cell(); $SS::CELL{$c2}{v} = $_[0]; $c2 };
+    my $avid = SS::newAV();
+    my $mkval = sub { my $c2 = SS::newSV(); $SS::CELL{$c2}{v} = $_[0]; $c2 };
     $SS::AV{$avid}{elems} = [ map { $mkval->($_) } 10, 20, 30 ];
     my $elems = sub { $SS::AV{$avid}{elems} };
     my ($p1, $p2) = ('-', '-');
@@ -472,42 +472,42 @@ sub replay_struct {
     my $base = @SS::SS;
     $SS::PENDING = undef;
 
-    # A removing operation's result is mortal (pp_shift, pp_pop, pp_splice
+    # A removing operation's result is sv_2mortal (pp_shift, pp_pop, pp_splice
     # in list context); the reference taken to it holds a count of its
-    # own, and the mortal count goes at the statement boundary.
-    my $take = sub { my ($cell) = @_; $r2 = defined $cell ? SS::rc_inc($cell) : undef };
+    # own, and the sv_2mortal count goes at the statement pp_nextstate.
+    my $take = sub { my ($cell) = @_; $r2 = defined $cell ? SS::SvREFCNT_inc($cell) : undef };
     eval {
-        my $slotref = SS::local_aelem($avid, $idx, $m ne 'bare');
-        SS::cell_set($$slotref, 50) if $m eq 'assign';
-        SS::boundary();
+        my $slotref = SS::pp_aelem($avid, $idx, $m ne 'bare');
+        SS::Harness::Store($$slotref, 50) if $m eq 'assign';
+        SS::pp_nextstate();
         $p2 = $elems->()[$idx];
-        SS::boundary();
-        $r1 = SS::rc_inc($elems->()[$idx]);
-        SS::boundary();
+        SS::pp_nextstate();
+        $r1 = SS::SvREFCNT_inc($elems->()[$idx]);
+        SS::pp_nextstate();
         if ($mu eq 'keep') { }
-        elsif ($mu eq 'shift1') { $take->(SS::mortal(SS::av_shift($avid))); SS::boundary() }
+        elsif ($mu eq 'shift1') { $take->(SS::sv_2mortal(SS::av_shift($avid))); SS::pp_nextstate() }
         elsif ($mu eq 'shift2') {
-            SS::mortal(SS::av_shift($avid)); SS::boundary();
-            $take->(SS::mortal(SS::av_shift($avid))); SS::boundary();
+            SS::sv_2mortal(SS::av_shift($avid)); SS::pp_nextstate();
+            $take->(SS::sv_2mortal(SS::av_shift($avid))); SS::pp_nextstate();
         }
         elsif ($mu eq 'unshift1') {
             SS::av_unshift($avid, 1);
             $elems->()[0] = $mkval->(7);
-            SS::boundary();
+            SS::pp_nextstate();
         }
-        elsif ($mu eq 'pop1') { $take->(SS::mortal(SS::av_pop($avid))); SS::boundary() }
-        elsif ($mu eq 'push1') { SS::av_push($avid, $mkval->(7)); SS::boundary() }
-        elsif ($mu eq 'splice_rm') { $take->((SS::av_splice($avid, 'list', 0, 1))[0]); SS::boundary() }
-        elsif ($mu eq 'splice_ins') { SS::av_splice($avid, 'scalar', 0, 0, $mkval->(7)); SS::boundary() }
-        elsif ($mu eq 'fill_neg1') { SS::av_fill($avid, -1); SS::boundary() }
-        elsif ($mu eq 'fill0') { SS::av_fill($avid, 0); SS::boundary() }
+        elsif ($mu eq 'pop1') { $take->(SS::sv_2mortal(SS::av_pop($avid))); SS::pp_nextstate() }
+        elsif ($mu eq 'push1') { SS::av_push($avid, $mkval->(7)); SS::pp_nextstate() }
+        elsif ($mu eq 'splice_rm') { $take->((SS::av_splice($avid, 'list', 0, 1))[0]); SS::pp_nextstate() }
+        elsif ($mu eq 'splice_ins') { SS::av_splice($avid, 'scalar', 0, 0, $mkval->(7)); SS::pp_nextstate() }
+        elsif ($mu eq 'fill_neg1') { SS::av_fill($avid, -1); SS::pp_nextstate() }
+        elsif ($mu eq 'fill0') { SS::av_fill($avid, 0); SS::pp_nextstate() }
         elsif ($mu eq 'refill') {
 
             # pp_aassign to an array: av_clear, then a fresh copy of each
             # right-hand value stored in order.
             SS::av_clear($avid);
             push @{ $elems->() }, $mkval->(7), $mkval->(8);
-            SS::boundary();
+            SS::pp_nextstate();
         }
         die "B\n" if $ex eq 'dieB';
     };
@@ -515,14 +515,14 @@ sub replay_struct {
     $SS::PENDING = undef;
     SS::leave_scope($base);
     my $e1 = fmte(defined $SS::PENDING ? $SS::PENDING : $bodyerr);
-    eval { SS::boundary() };
+    eval { SS::pp_nextstate() };
     my $e2 = fmte($@);
     my $e = $elems->();
     my @X = map { $_ <= $#$e && defined $e->[$_] ? 1 : 0 } 0 .. $STRUCT_TOP;
     my @I = map { $X[$_] ? $e->[$_] : '-' } 0 .. $STRUCT_TOP;
-    my @F = map { $X[$_] ? SS::vv(SS::cell_get($e->[$_])) : '-' } 0 .. $STRUCT_TOP;
+    my @F = map { $X[$_] ? SS::Harness::Show(SS::Harness::Read($e->[$_])) : '-' } 0 .. $STRUCT_TOP;
     my @R = map { defined $_ ? $_ : '-' } $r1, $r2;
-    my @V = map { defined $_ ? SS::vv(SS::cell_get($_)) : '-' } $r1, $r2;
+    my @V = map { defined $_ ? SS::Harness::Show(SS::Harness::Read($_)) : '-' } $r1, $r2;
     return norm_ids(join('|', 'T=' . join(',', @SS::TRACE),
         'I=' . join(':', $p1, $p2, @I, @R), 'F=' . join(',', @F),
         'X=' . join('', @X), 'N=' . $#$e, 'E=' . join(',', @V), "Q=$e1/$e2"));

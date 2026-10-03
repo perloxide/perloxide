@@ -24,5 +24,7 @@ methods are not modeled; the tied rows stay in the first block.
     ORACLE=... TABLE=reports/table.<ver>.tsv perl generators/ss_gen.pl
 
 Recorded: 400/400 on 5.38.2 and 5.44.0, byte-identical observation lines (`reports/`).  The section text is
-`section.md`.  Open: the key has not been audited against the save-record and `GP` structs, and the routine names
-predate the C-name convention (`rc_inc`/`rc_dec`, `mortal`, `boundary`, `cell_get`/`cell_set`); see `status.md`.
+`section.md`.  A snake_case routine in `SS.pm` mirrors the perl function or macro of that name (`Perl_`/`S_` removed:
+`SvREFCNT_inc`, `sv_2mortal`, `av_fetch`, `mg_find`, `pp_nextstate`, `pp_aelem`); what has no C counterpart is harness
+glue in `SS::Harness` (`Read`, `Store`, `StoreRef`, `RetainPayload`, `ReleasePayload`, `Trace`, `Show`, `Reset`).
+Open: the key has not been audited against the save-record and `GP` structs; see `status.md`.
