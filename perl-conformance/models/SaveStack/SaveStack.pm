@@ -289,62 +289,129 @@ sub hv_clear {
     $hv->{elems} = {};
 }
 
-# Structural array operations on a plain (untied) array. The array is its
-# element list: a defined entry is an SV, an undef entry is a NULL slot (a
-# hole), and the list's last index is AvFILLp. None of these look inside
-# the save stack, which is why a `local` on an element survives them
-# unchanged: the AELEM record names the array and the original index, and
-# the restore re-fetches by that index into whatever the array has become.
-# The tied forms (SHIFT/UNSHIFT/PUSH/POP/STORESIZE/SPLICE method calls)
-# are not modeled; the structural cells of the generator are plain-only.
+# Structural array operations. A plain array is its element list: a
+# defined entry is an SV, an undef entry is a NULL slot (a hole), and the
+# list's last index is AvFILLp. None of these look inside the save stack,
+# which is why a `local` on an element survives them unchanged: the AELEM
+# record names the array and the original index, and the restore
+# re-fetches by that index into whatever the array has become.
+#
+# A tied array routes each operation to the tie's method, as av.c and
+# pp_splice do through magic_methcall, and the model of the method is the
+# generator's TA class: a store keyed by index plus a top index, with
+# SHIFT/UNSHIFT/SPLICE renumbering the entries, POP/STORESIZE trimming
+# them, and SPLICE rebuilding the store from the element list, so holes
+# below the top become undef entries. Each method call is traced with the
+# arguments the method receives.
 
-# Perl_av_shift (av.c:934): returns the first SV itself, ownership passed
-# to the caller; pp_shift mortalizes it. An empty array yields undef here,
-# standing in for &PL_sv_undef.
+# The tie's store as the element list the TA class's SPLICE rebuilds from.
+sub _tie_list {
+    my ($t) = @_;
+    return map { $t->{store}{$_} } 0 .. ($t->{top} // -1);
+}
+
+sub _tie_set_list {
+    my ($t, @list) = @_;
+    SS::Harness::ReleasePayload($_) for values %{ $t->{store} };
+    $t->{store} = { map { $_ => SS::Harness::RetainPayload($list[$_]) } 0 .. $#list };
+    $t->{top} = $#list;
+}
+
+# Perl_av_shift (av.c:934): tied, the SHIFT method's result copied into a
+# fresh SV (newSVsv); plain, the first SV itself with ownership passed to
+# the caller. pp_shift mortalizes either. An empty plain array yields undef
+# here, standing in for &PL_sv_undef.
 sub av_shift {
     my ($avid) = @_;
     my $av = $AV{$avid};
-    die "av_shift: tied arrays are not modeled" if $av->{tie};
+    if (my $t = $av->{tie}) {
+        SS::Harness::Trace('SH');
+        my $v = delete $t->{store}{0};
+        for my $i (1 .. ($t->{top} // -1)) {
+            $t->{store}{ $i - 1 } = delete $t->{store}{$i} if exists $t->{store}{$i};
+        }
+        $t->{top}-- if $t->{top} >= 0;
+        my $copy = newSV();
+        $CELL{$copy}{v} = $v;
+        return $copy;
+    }
     return undef unless @{ $av->{elems} };
     return shift @{ $av->{elems} };
 }
 
-# Perl_av_pop (av.c:810): the mirror image, from the top index.
+# Perl_av_pop (av.c:810): the mirror image, from the top index; tied, the
+# POP method's result copied.
 sub av_pop {
     my ($avid) = @_;
     my $av = $AV{$avid};
-    die "av_pop: tied arrays are not modeled" if $av->{tie};
+    if (my $t = $av->{tie}) {
+        SS::Harness::Trace('PO');
+        my $v = delete $t->{store}{ $t->{top} };
+        $t->{top}-- if $t->{top} >= 0;
+        my $copy = newSV();
+        $CELL{$copy}{v} = $v;
+        return $copy;
+    }
     return undef unless @{ $av->{elems} };
     return pop @{ $av->{elems} };
 }
 
-# Perl_av_unshift (av.c:868): opens $num NULL slots at the front. The
-# values pp_unshift then stores are fresh copies (newSVsv), never the
-# caller's SVs.
-sub av_unshift {
-    my ($avid, $num) = @_;
+# pp_unshift (pp.c): tied, one UNSHIFT call with the values; plain,
+# Perl_av_unshift (av.c:868) opens the NULL slots and a fresh copy of each
+# value (newSVsv) is stored into them.
+sub pp_unshift {
+    my ($avid, @vals) = @_;
     my $av = $AV{$avid};
-    die "av_unshift: tied arrays are not modeled" if $av->{tie};
-    unshift @{ $av->{elems} }, (undef) x $num;
+    if (my $t = $av->{tie}) {
+        SS::Harness::Trace('UN', map { SS::Harness::Show($_) } @vals);
+        my $n = @vals;
+        for my $i (reverse 0 .. ($t->{top} // -1)) {
+            $t->{store}{ $i + $n } = delete $t->{store}{$i} if exists $t->{store}{$i};
+        }
+        $t->{store}{$_} = SS::Harness::RetainPayload($vals[$_]) for 0 .. $#vals;
+        $t->{top} = ($t->{top} // -1) + $n;
+        return;
+    }
+    unshift @{ $av->{elems} }, (undef) x @vals;
+    for my $i (0 .. $#vals) {
+        my $copy = newSV();
+        $CELL{$copy}{v} = $vals[$i];
+        $av->{elems}[$i] = $copy;
+    }
 }
 
-# Perl_av_push (av.c:780) is av_store at AvFILLp + 1; pp_push stores a
-# fresh copy of each argument.
-sub av_push {
-    my ($avid, $cell) = @_;
+# pp_push (pp.c): tied, one PUSH call with the values; plain, Perl_av_push
+# (av.c:780) is av_store at AvFILLp + 1 of a fresh copy of each value.
+sub pp_push {
+    my ($avid, @vals) = @_;
     my $av = $AV{$avid};
-    die "av_push: tied arrays are not modeled" if $av->{tie};
-    push @{ $av->{elems} }, $cell;
+    if (my $t = $av->{tie}) {
+        SS::Harness::Trace('PU', map { SS::Harness::Show($_) } @vals);
+        $t->{store}{ ++$t->{top} } = SS::Harness::RetainPayload($_) for @vals;
+        return;
+    }
+    for my $v (@vals) {
+        my $copy = newSV();
+        $CELL{$copy}{v} = $v;
+        push @{ $av->{elems} }, $copy;
+    }
 }
 
-# Perl_av_fill (av.c:1010), the `$#a = N` store: shrinking frees the SVs
-# above the new fill and NULLs their slots; growing extends with NULL
-# slots, which are holes, not undef elements.
+# Perl_av_fill (av.c:1010), the `$#a = N` store: tied, STORESIZE(N + 1);
+# plain, shrinking frees the SVs above the new fill and NULLs their slots,
+# growing extends with NULL slots, which are holes, not undef elements.
 sub av_fill {
     my ($avid, $fill) = @_;
     my $av = $AV{$avid};
-    die "av_fill: tied arrays are not modeled" if $av->{tie};
     $fill = -1 if $fill < 0;
+    if (my $t = $av->{tie}) {
+        SS::Harness::Trace('SZ', $fill + 1);
+        $t->{top} = $fill;
+        for my $k (grep { $_ > $fill } keys %{ $t->{store} }) {
+            SS::Harness::ReleasePayload(delete $t->{store}{$k});
+        }
+        return;
+    }
     my $e = $av->{elems};
     if ($fill < $#$e) {
         SvREFCNT_dec($_) for grep { defined } @$e[$fill + 1 .. $#$e];
@@ -353,25 +420,60 @@ sub av_fill {
     elsif ($fill > $#$e) { $#$e = $fill }
 }
 
-# pp_splice (pp.c:6109) on a plain array. $gimme is 'list' or 'scalar'
-# (void takes the scalar path). The inserted SVs are the caller's cells,
-# already fresh copies as pp_splice makes them (newSVsv) before touching
-# the array. The removed SVs are returned themselves, not copied: in list
-# context every one is mortalized; in scalar context only the last is
-# mortalized and returned, the rest are freed on the spot.
-sub av_splice {
-    my ($avid, $gimme, $offset, $length, @new) = @_;
+# pp_splice (pp.c:6109). $gimme is 'list' or 'scalar' (void takes the
+# scalar path). Tied: one SPLICE call with the offset, the length and the
+# values, its results copied (list context) or the last copied (scalar).
+# Plain: the inserted SVs are fresh copies, as pp_splice makes them
+# (newSVsv) before touching the array; the removed SVs are returned
+# themselves, not copied: in list context every one is mortalized, in
+# scalar context only the last is mortalized and returned and the rest are
+# freed on the spot.
+sub pp_splice {
+    my ($avid, $gimme, $offset, $length, @vals) = @_;
     my $av = $AV{$avid};
-    die "av_splice: tied arrays are not modeled" if $av->{tie};
+    if (my $t = $av->{tie}) {
+        SS::Harness::Trace('SP', $offset, $length, map { SS::Harness::Show($_) } @vals);
+        my @list = _tie_list($t);
+        my @removed = splice @list, $offset, $length, @vals;
+        _tie_set_list($t, @list);
+        my @copies = map { my $c = newSV(); $CELL{$c}{v} = $_; sv_2mortal($c) } @removed;
+        return $gimme eq 'list' ? @copies : $copies[-1];
+    }
     my $e = $av->{elems};
     $offset = @$e if $offset > @$e;
     $length = @$e - $offset if $offset + $length > @$e;
+    my @new = map { my $c = newSV(); $CELL{$c}{v} = $_; $c } @vals;
     my @removed = splice @$e, $offset, $length, @new;
     if ($gimme eq 'list') { sv_2mortal($_) for grep { defined } @removed; return @removed }
     my $last = @removed ? pop @removed : undef;
     SvREFCNT_dec($_) for grep { defined } @removed;
     sv_2mortal($last) if defined $last;
     return $last;
+}
+
+# pp_aassign to an array (pp_hot.c): av_clear, then, with values to store,
+# av_extend to the count (EXTEND on a tied array) and av_store of a fresh
+# copy of each value in order (STORE on a tied array).
+sub pp_aassign_av {
+    my ($avid, @vals) = @_;
+    my $av = $AV{$avid};
+    av_clear($avid);
+    return unless @vals;
+    if (my $t = $av->{tie}) {
+        SS::Harness::Trace('EX', scalar @vals);
+        for my $i (0 .. $#vals) {
+            SS::Harness::Trace('S', $i, SS::Harness::Show($vals[$i]));
+            die "S\n" if $ARMDIE;
+            $t->{store}{$i} = SS::Harness::RetainPayload($vals[$i]);
+            $t->{top} = $i if $i > ($t->{top} // -1);
+        }
+        return;
+    }
+    for my $v (@vals) {
+        my $copy = newSV();
+        $CELL{$copy}{v} = $v;
+        push @{ $av->{elems} }, $copy;
+    }
 }
 
 # ---------------- globs ----------------

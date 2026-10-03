@@ -1,19 +1,19 @@
 # `local` and the save stack
 
-Validation: every rule below is transcribed into `SS.pm` and replayed by `generators/ss_gen.pl` over 400 cells.  The
+Validation: every rule below is transcribed into `SS.pm` and replayed by `generators/ss_gen.pl` over 488 cells.  The
 first block is 312 cells — {plain, tied, magical (`$/`, `$0`), glob-aliased} × {package scalar, element present, element
 absent, whole glob} × {bare, assignment, self-assignment} × {no mutation, pre-`local`-ref mutation, container clear,
 delete} × {normal exit, die in body, die in a restoration `STORE`, die in the displaced value's `DESTROY`} × nesting
 depth 1–2 — observing the callback trace, first-appearance-normalized addresses at three points, final values, `exists`,
-and `$@` at the catch and at the following statement boundary.  The second block is 88 structural cells on a plain array
-— {element present, element absent} × {bare, assignment} × {no change, `shift`, `shift` twice, `unshift`, `pop`, `push`,
-`splice` removing, `splice` inserting, `$#a = -1`, `$#a = 0`, clear-and-refill} × {normal exit, die in body} — observing
-per-index (identity, `exists`, value) over indices 0–6 after the scope, the final `$#a`, and references captured inside
-the scope to the SV `local` installed and to the SV a removing operation returned.  perl 5.38.2 and 5.44.0 produce
-byte-identical observation lines on all 400 cells, and `SS.pm` matches both on all 400.  Zero mismatches, zero crashes.
-Address triples on tied-container elements are masked in both columns: a held reference always yields a distinct mirror
-address, and the cross-statement equalities perl exhibits are reuse of a freed mirror's memory — an allocator artifact,
-excluded under the freed-memory rule. Source citations are perl 5.44.0.
+and `$@` at the catch and at the following statement boundary.  The second block is 176 structural cells — {plain array,
+tied array} × {element present, element absent} × {bare, assignment} × {no change, `shift`, `shift` twice, `unshift`,
+`pop`, `push`, `splice` removing, `splice` inserting, `$#a = -1`, `$#a = 0`, clear-and-refill} × {normal exit, die in
+body} — observing per-index (identity, `exists`, value) over indices 0–6 after the scope, the final `$#a`, and
+references captured inside the scope to the SV `local` installed and to the SV a removing operation returned.  perl
+5.38.2 and 5.44.0 produce byte-identical observation lines on all 488 cells, and `SS.pm` matches both on all 488.  Zero
+mismatches, zero crashes. Address triples on tied-container elements are masked in both columns: a held reference always
+yields a distinct mirror address, and the cross-statement equalities perl exhibits are reuse of a freed mirror's memory
+— an allocator artifact, excluded under the freed-memory rule. Source citations are perl 5.44.0.
 
 ## 1. `local` is slot rebinding, never value mutation
 
@@ -37,9 +37,11 @@ not compensated: after `unshift @c, 7` the saved SV is installed at index 1 over
 former `$c[0]`), which is freed, while the SV `local` installed sits at index 2 and stays; after `shift @c` it is
 installed over the element that moved down into index 1, and the installed SV is now `$c[0]` (or, taken by reference
 from the `shift`, lives on outside the array).  Nothing reclaims the installed SV at scope exit; it is an ordinary
-element wherever it ended up. The record for an element that did not exist stores no old cell at all: `pp_aelem` and
-`pp_helem` decide preeminence up front (through `EXISTS` when the container is tied and `SvCANEXISTDELETE`) and push
-`SAVEADELETE`/`SAVEHDELETE` instead (§6).
+element wherever it ended up.  On a tied array the re-fetch yields a fresh proxy and the restore is the exit `mg_set`'s
+`STORE(idx)` (§5): one write at the original index, whatever the tie's own `SHIFT`, `UNSHIFT` or `SPLICE` has put there.
+The record for an element that did not exist stores no old cell at all: `pp_aelem` and `pp_helem` decide preeminence up
+front (through `EXISTS` when the container is tied and `SvCANEXISTDELETE`) and push `SAVEADELETE`/`SAVEHDELETE` instead
+(§6).
 
 ## 3. The fresh cell's magic: `mg_localize` splits container from value
 
