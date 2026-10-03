@@ -59,17 +59,20 @@ for my $k (qw(plain tied)) {
     }
 }
 
-# Structural cells: plain arrays only. The element is index 1 of three
-# (present) or index 5 (absent, vivified by the local). The no-change
-# mutation is named keep so its key differs from the none cells above.
+# Structural cells, on a plain and on a tied array. The element is index 1
+# of three (present) or index 5 (absent, vivified by the local). The
+# no-change mutation is named keep so its key differs from the none cells
+# above.
 my @STRUCT = qw(keep shift1 shift2 unshift1 pop1 push1 splice_rm splice_ins
     fill_neg1 fill0 refill);
-for my $s (qw(aeP aeA)) {
-    for my $m (qw(bare assign)) {
-        for my $mu (@STRUCT) {
-            for my $ex (qw(ok dieB)) {
-                push @cells, { k => 'plain', s => $s, m => $m, mu => $mu,
-                    ex => $ex, d => 1, st => 1 };
+for my $k (qw(plain tied)) {
+    for my $s (qw(aeP aeA)) {
+        for my $m (qw(bare assign)) {
+            for my $mu (@STRUCT) {
+                for my $ex (qw(ok dieB)) {
+                    push @cells, { k => $k, s => $s, m => $m, mu => $mu,
+                        ex => $ex, d => 1, st => 1 };
+                }
             }
         }
     }
@@ -89,7 +92,21 @@ package TA; sub TIEARRAY { my ($c, @v) = @_; my %s; $s{$_} = $v[$_] for 0 .. $#v
 sub FETCH { main::tr2('F', $_[1], main::ss($_[0]{s}{$_[1]})); $_[0]{s}{$_[1]} }
 sub STORE { main::tr2('S', $_[1], main::ss($_[2])); die "S\n" if $main::ARMDIE;
     $_[0]{s}{$_[1]} = $_[2]; $_[0]{top} = $_[1] if $_[1] > $_[0]{top} }
-sub FETCHSIZE { $_[0]{top} + 1 } sub STORESIZE { $_[0]{top} = $_[1] - 1 } sub EXTEND { }
+sub FETCHSIZE { $_[0]{top} + 1 }
+sub STORESIZE { main::tr2('SZ', $_[1]); my $t = $_[0]; $t->{top} = $_[1] - 1;
+    delete $t->{s}{$_} for grep { $_ > $t->{top} } keys %{$t->{s}} }
+sub EXTEND { main::tr2('EX', $_[1]) }
+sub SHIFT { main::tr2('SH'); my $t = $_[0]; my $v = delete $t->{s}{0};
+    for my $i (1 .. $t->{top}) { $t->{s}{$i - 1} = delete $t->{s}{$i} if exists $t->{s}{$i} }
+    $t->{top}-- if $t->{top} >= 0; $v }
+sub POP { main::tr2('PO'); my $t = $_[0]; my $v = delete $t->{s}{$t->{top}}; $t->{top}-- if $t->{top} >= 0; $v }
+sub PUSH { my ($t, @v) = @_; main::tr2('PU', map { main::ss($_) } @v); $t->{s}{++$t->{top}} = $_ for @v }
+sub UNSHIFT { my ($t, @v) = @_; main::tr2('UN', map { main::ss($_) } @v); my $n = @v;
+    for my $i (reverse 0 .. $t->{top}) { $t->{s}{$i + $n} = delete $t->{s}{$i} if exists $t->{s}{$i} }
+    $t->{s}{$_} = $v[$_] for 0 .. $#v; $t->{top} += $n }
+sub SPLICE { my ($t, $off, $len, @v) = @_; main::tr2('SP', $off, $len, map { main::ss($_) } @v);
+    my @list = map { $t->{s}{$_} } 0 .. $t->{top}; my @removed = splice @list, $off, $len, @v;
+    $t->{s} = { map { $_ => $list[$_] } 0 .. $#list }; $t->{top} = $#list; @removed }
 sub EXISTS { main::tr2('E', $_[1]); exists $_[0]{s}{$_[1]} }
 sub DELETE { main::tr2('D', $_[1]); my $t = $_[0]; delete $t->{s}{$_[1]};
     if ($_[1] == $t->{top}) { my $i = $_[1] - 1; $i-- while $i >= 0 && !exists $t->{s}{$i}; $t->{top} = $i } }
@@ -199,11 +216,13 @@ my $STRUCT_TOP = 6;
 
 sub render_struct_child {
     my ($c) = @_;
-    my ($s, $m, $mu, $ex) = @$c{qw(s m mu ex)};
+    my ($k, $s, $m, $mu, $ex) = @$c{qw(k s m mu ex)};
     my $i = $s eq 'aeP' ? 1 : 5;
     my $localstmt = $m eq 'bare' ? "local \$a[$i];" : "local \$a[$i] = 50;";
     my $exit = $ex eq 'dieB' ? 'die "B\\n";' : '';
-    my $code = $prelude . "\nour \@a; \@a = (10, 20, 30);\n"
+    my $setup = $k eq 'tied' ? "tie our \@a, 'TA', 10, 20, 30;" : 'our @a; @a = (10, 20, 30);';
+    my $code = $prelude . "\n$setup\n"
+
         . "my (\$p1, \$p2) = ('-', '-');\n"
         . ($s eq 'aeP' ? "\$p1 = refaddr(\\\$a[$i]);\n" : '')
         . "my (\$r1, \$r2);\n"
@@ -459,15 +478,24 @@ sub replay {
 
 sub replay_struct {
     my ($c) = @_;
-    my ($s, $m, $mu, $ex) = @$c{qw(s m mu ex)};
+    my ($k, $s, $m, $mu, $ex) = @$c{qw(k s m mu ex)};
     SS::Harness::Reset();
     my $idx = $s eq 'aeP' ? 1 : 5;
     my $avid = SS::newAV();
     my $mkval = sub { my $c2 = SS::newSV(); $SS::CELL{$c2}{v} = $_[0]; $c2 };
-    $SS::AV{$avid}{elems} = [ map { $mkval->($_) } 10, 20, 30 ];
-    my $elems = sub { $SS::AV{$avid}{elems} };
+    if ($k eq 'tied') { $SS::AV{$avid}{tie} = { store => { 0 => 10, 1 => 20, 2 => 30 }, top => 2 } }
+    else { $SS::AV{$avid}{elems} = [ map { $mkval->($_) } 10, 20, 30 ] }
+    my $tied = $SS::AV{$avid}{tie};
+
+    # The SV at an index as the child's \$a[$i] names it: the element SV of
+    # a plain array, a fresh mortal mirror of a tied one.
+    my $site_addr = sub {
+        my ($i) = @_;
+        my (undef, $cell) = SS::av_fetch($avid, $i, 1);
+        return $cell;
+    };
     my ($p1, $p2) = ('-', '-');
-    $p1 = $elems->()[$idx] if $s eq 'aeP';
+    $p1 = $site_addr->($idx) if $s eq 'aeP';
     my ($r1, $r2);
     my $base = @SS::SS;
     $SS::PENDING = undef;
@@ -480,9 +508,9 @@ sub replay_struct {
         my $slotref = SS::pp_aelem($avid, $idx, $m ne 'bare');
         SS::Harness::Store($$slotref, 50) if $m eq 'assign';
         SS::pp_nextstate();
-        $p2 = $elems->()[$idx];
+        $p2 = $site_addr->($idx);
         SS::pp_nextstate();
-        $r1 = SS::SvREFCNT_inc($elems->()[$idx]);
+        $r1 = SS::SvREFCNT_inc($site_addr->($idx));
         SS::pp_nextstate();
         if ($mu eq 'keep') { }
         elsif ($mu eq 'shift1') { $take->(SS::sv_2mortal(SS::av_shift($avid))); SS::pp_nextstate() }
@@ -490,25 +518,14 @@ sub replay_struct {
             SS::sv_2mortal(SS::av_shift($avid)); SS::pp_nextstate();
             $take->(SS::sv_2mortal(SS::av_shift($avid))); SS::pp_nextstate();
         }
-        elsif ($mu eq 'unshift1') {
-            SS::av_unshift($avid, 1);
-            $elems->()[0] = $mkval->(7);
-            SS::pp_nextstate();
-        }
+        elsif ($mu eq 'unshift1') { SS::pp_unshift($avid, 7); SS::pp_nextstate() }
         elsif ($mu eq 'pop1') { $take->(SS::sv_2mortal(SS::av_pop($avid))); SS::pp_nextstate() }
-        elsif ($mu eq 'push1') { SS::av_push($avid, $mkval->(7)); SS::pp_nextstate() }
-        elsif ($mu eq 'splice_rm') { $take->((SS::av_splice($avid, 'list', 0, 1))[0]); SS::pp_nextstate() }
-        elsif ($mu eq 'splice_ins') { SS::av_splice($avid, 'scalar', 0, 0, $mkval->(7)); SS::pp_nextstate() }
+        elsif ($mu eq 'push1') { SS::pp_push($avid, 7); SS::pp_nextstate() }
+        elsif ($mu eq 'splice_rm') { $take->((SS::pp_splice($avid, 'list', 0, 1))[0]); SS::pp_nextstate() }
+        elsif ($mu eq 'splice_ins') { SS::pp_splice($avid, 'scalar', 0, 0, 7); SS::pp_nextstate() }
         elsif ($mu eq 'fill_neg1') { SS::av_fill($avid, -1); SS::pp_nextstate() }
         elsif ($mu eq 'fill0') { SS::av_fill($avid, 0); SS::pp_nextstate() }
-        elsif ($mu eq 'refill') {
-
-            # pp_aassign to an array: av_clear, then a fresh copy of each
-            # right-hand value stored in order.
-            SS::av_clear($avid);
-            push @{ $elems->() }, $mkval->(7), $mkval->(8);
-            SS::pp_nextstate();
-        }
+        elsif ($mu eq 'refill') { SS::pp_aassign_av($avid, 7, 8); SS::pp_nextstate() }
         die "B\n" if $ex eq 'dieB';
     };
     my $bodyerr = $@;
@@ -517,15 +534,22 @@ sub replay_struct {
     my $e1 = fmte(defined $SS::PENDING ? $SS::PENDING : $bodyerr);
     eval { SS::pp_nextstate() };
     my $e2 = fmte($@);
-    my $e = $elems->();
-    my @X = map { $_ <= $#$e && defined $e->[$_] ? 1 : 0 } 0 .. $STRUCT_TOP;
-    my @I = map { $X[$_] ? $e->[$_] : '-' } 0 .. $STRUCT_TOP;
-    my @F = map { $X[$_] ? SS::Harness::Show(SS::Harness::Read($e->[$_])) : '-' } 0 .. $STRUCT_TOP;
+
+    # The observation in the child's order: exists for every index, then
+    # the address of each existing element, then its value (a FETCH on a
+    # tied array), then the two references' addresses and values.
+    my $fill = $tied ? ($tied->{top} // -1) : $#{ $SS::AV{$avid}{elems} };
+    my @X = map { SS::av_exists($avid, $_) } 0 .. $STRUCT_TOP;
+    my @I = map { $X[$_] ? $site_addr->($_) : '-' } 0 .. $STRUCT_TOP;
+    my @F = map {
+        if ($X[$_]) { my (undef, $cell) = SS::av_fetch($avid, $_, 0); SS::Harness::Show(SS::Harness::Read($cell)) }
+        else { '-' }
+    } 0 .. $STRUCT_TOP;
     my @R = map { defined $_ ? $_ : '-' } $r1, $r2;
     my @V = map { defined $_ ? SS::Harness::Show(SS::Harness::Read($_)) : '-' } $r1, $r2;
     return norm_ids(join('|', 'T=' . join(',', @SS::TRACE),
         'I=' . join(':', $p1, $p2, @I, @R), 'F=' . join(',', @F),
-        'X=' . join('', @X), 'N=' . $#$e, 'E=' . join(',', @V), "Q=$e1/$e2"));
+        'X=' . join('', @X), 'N=' . $fill, 'E=' . join(',', @V), "Q=$e1/$e2"));
 }
 
 # ---------------- drive ----------------
