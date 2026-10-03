@@ -2,37 +2,43 @@ package SS;
 # Executable transcription of scope.c's `local` semantics over a miniature
 # SV world: cells with refcounts, a mortals stack freed at statement
 # boundaries, container/value magic, tied containers, a glob/GP layer, and
-# the save stack with Perl_leave_scope's pop-before-execute unwind. Function
-# names mirror the perl 5.44.0 originals; comments cite them.
+# the save stack with Perl_leave_scope's pop-before-execute unwind. A
+# snake_case routine mirrors the perl 5.44.0 function or macro of that name
+# (Perl_/S_ removed); comments cite them. What has no C counterpart is
+# harness glue in SS::Harness: Reset, Trace and Show for the world and the
+# observation, Read and Store for a payload read with get magic and a
+# payload store with set magic (the value side of sv_setsv_mg, over opaque
+# payloads), StoreRef for sv_setrv_inc_mg, RetainPayload and ReleasePayload
+# for the references a tie's own store holds.
 use strict; use warnings;
 
 our (%CELL, %AV, %HV, %GLOB, %GP, @SS, @TMPS, @TRACE);
 our ($NID, $ARMDIE, $PENDING);
 
-sub reset_world {
+sub SS::Harness::Reset {
     %CELL = (); %AV = (); %HV = (); %GLOB = (); %GP = ();
     @SS = (); @TMPS = (); @TRACE = ();
     $NID = 0; $ARMDIE = 0; $PENDING = undef;
 }
 
-sub trace { push @TRACE, join(':', @_) }
-sub vv { my $v = shift; !defined $v ? 'u' : ref $v ? 'r' : $v }
+sub SS::Harness::Trace { push @TRACE, join(':', @_) }
+sub SS::Harness::Show { my $v = shift; !defined $v ? 'u' : ref $v ? 'r' : $v }
 
 # ---------------- cells ----------------
 # A cell is one SV: { v => payload, rc, mag => [..], smag, gmag, obj }.
 # Payloads: plain scalar, undef, ['RV', cellid]. obj => { n => name,
 # d => dies-in-DESTROY } marks a blessed referent.
 
-sub new_cell {
+sub newSV {
     my (%f) = @_;
     my $id = 'c' . ++$NID;
     $CELL{$id} = { v => undef, rc => 1, mag => [], smag => 0, gmag => 0, %f };
     return $id;
 }
 
-sub rc_inc { $CELL{$_[0]}{rc}++; $_[0] }
+sub SvREFCNT_inc { $CELL{$_[0]}{rc}++; $_[0] }
 
-sub rc_dec {
+sub SvREFCNT_dec {
     my ($id) = @_;
     return unless defined $id && $CELL{$id};
     my $c = $CELL{$id};
@@ -43,35 +49,42 @@ sub rc_dec {
         # S_curse invokes DESTROY via call_sv with G_EVAL|G_KEEPERR
         # (sv.c:7783): an exception raised inside an implicit destructor is
         # downgraded to a "(in cleanup)" warning and never propagates.
-        trace('X', $o->{n});
+        SS::Harness::Trace('X', $o->{n});
         warn "D\n" if $o->{d};
     }
-    if (ref $c->{v} && $c->{v}[0] eq 'RV') { rc_dec($c->{v}[1]) }
+    if (ref $c->{v} && $c->{v}[0] eq 'RV') { SvREFCNT_dec($c->{v}[1]) }
 }
 
-sub mortal { push @TMPS, $_[0]; $_[0] }
+sub sv_2mortal { push @TMPS, $_[0]; $_[0] }
 
 # A tie's own store holds real references: storing an RV payload retains
 # the referent, and overwriting or deleting the entry releases it. This is
 # what defers a displaced object's DESTROY until the restore STORE
 # overwrites the tie slot.
-sub rv_inc { my ($v) = @_; rc_inc($v->[1]) if ref $v && $v->[0] eq 'RV'; $v }
-sub rv_dec { my ($v) = @_; rc_dec($v->[1]) if ref $v && $v->[0] eq 'RV' }
+sub SS::Harness::RetainPayload {
+    my ($v) = @_;
+    SvREFCNT_inc($v->[1]) if ref $v && $v->[0] eq 'RV';
+    return $v;
+}
+
+sub SS::Harness::ReleasePayload {
+    my ($v) = @_;
+    SvREFCNT_dec($v->[1]) if ref $v && $v->[0] eq 'RV';
+}
 
 # FREETMPS: tmps popped and released newest-first.
-sub free_tmps { while (@TMPS) { rc_dec(pop @TMPS) } }
+sub free_tmps { while (@TMPS) { SvREFCNT_dec(pop @TMPS) } }
 
-# A statement boundary is pp_nextstate's FREETMPS.
-sub boundary { free_tmps() }
+# A statement boundary: pp_nextstate's FREETMPS.
+sub pp_nextstate { free_tmps() }
 
 # ---------------- magic ----------------
-# Container magic entries: { t => 'ties', o => tieobj } tied scalar,
-# { t => 'tiee', cont => id, key => k, kind => 'A'|'H' } tied element,
-# { t => 'sv', name => '$/'|'$0', gref => \$global } magical non-tied.
-
-sub tie_of { my ($c) = @_; for (@{ $c->{mag} }) { return $_ if $_->{t} eq 'ties' } return }
-sub tiee_of { my ($c) = @_; for (@{ $c->{mag} }) { return $_ if $_->{t} eq 'tiee' } return }
-sub svmag_of { my ($c) = @_; for (@{ $c->{mag} }) { return $_ if $_->{t} eq 'sv' } return }
+# Magic entries, keyed by the PERL_MAGIC_ name of their type:
+#   { t => 'tied',     o => tieobj }                       PERL_MAGIC_tied, a tied scalar
+#   { t => 'tiedelem', cont => id, key => k, kind => 'A'|'H' }  PERL_MAGIC_tiedelem, a tied element
+#   { t => 'sv',       name => '$/'|'$0', gref => \$global }  PERL_MAGIC_sv, a magical variable
+# mg_find(sv, type) returns the first entry of that type, as Perl_mg_find does.
+sub mg_find { my ($c, $type) = @_; for (@{ $c->{mag} }) { return $_ if $_->{t} eq $type } return }
 
 # mg_get: tied scalar FETCH / tied element FETCH(key) / magical read; the
 # fetched value lands in the cell's payload cache.
@@ -79,18 +92,18 @@ sub mg_get {
     my ($id) = @_;
     my $c = $CELL{$id};
     return unless $c->{gmag};
-    if (my $m = tie_of($c)) {
+    if (my $m = mg_find($c, 'tied')) {
         my $v = $m->{o}{v};
-        trace('F', vv($v));
+        SS::Harness::Trace('F', SS::Harness::Show($v));
         $c->{v} = $v;
     }
-    elsif (my $e = tiee_of($c)) {
+    elsif (my $e = mg_find($c, 'tiedelem')) {
         my $cont = $e->{kind} eq 'A' ? $AV{ $e->{cont} } : $HV{ $e->{cont} };
         my $v = $cont->{tie}{store}{ $e->{key} };
-        trace('F', $e->{key}, vv($v));
+        SS::Harness::Trace('F', $e->{key}, SS::Harness::Show($v));
         $c->{v} = $v;
     }
-    elsif (my $s = svmag_of($c)) {
+    elsif (my $s = mg_find($c, 'sv')) {
 
         # Perl_magic_get's cases for these variables are empty (mg.c:1237
         # '/': break with no body): the read keeps the cached payload, and
@@ -106,104 +119,106 @@ sub mg_set {
     my ($id) = @_;
     my $c = $CELL{$id};
     return unless $c->{smag};
-    if (my $m = tie_of($c)) {
-        trace('S', vv($c->{v}));
+    if (my $m = mg_find($c, 'tied')) {
+        SS::Harness::Trace('S', SS::Harness::Show($c->{v}));
         die "S\n" if $ARMDIE;
         my $old = $m->{o}{v};
-        $m->{o}{v} = rv_inc($c->{v});
-        rv_dec($old);
+        $m->{o}{v} = SS::Harness::RetainPayload($c->{v});
+        SS::Harness::ReleasePayload($old);
     }
-    elsif (my $e = tiee_of($c)) {
+    elsif (my $e = mg_find($c, 'tiedelem')) {
         my $cont = $e->{kind} eq 'A' ? $AV{ $e->{cont} } : $HV{ $e->{cont} };
-        trace('S', $e->{key}, vv($c->{v}));
+        SS::Harness::Trace('S', $e->{key}, SS::Harness::Show($c->{v}));
         die "S\n" if $ARMDIE;
         my $old = $cont->{tie}{store}{ $e->{key} };
-        $cont->{tie}{store}{ $e->{key} } = rv_inc($c->{v});
-        rv_dec($old);
+        $cont->{tie}{store}{ $e->{key} } = SS::Harness::RetainPayload($c->{v});
+        SS::Harness::ReleasePayload($old);
         my $t = $cont->{tie};
         $t->{top} = $e->{key} if $e->{kind} eq 'A' && $e->{key} > ($t->{top} // -1);
     }
-    elsif (my $s = svmag_of($c)) { ${ $s->{gref} } = $c->{v} }
+    elsif (my $s = mg_find($c, 'sv')) { ${ $s->{gref} } = $c->{v} }
 }
 
-sub cell_get { my ($id) = @_; mg_get($id); $CELL{$id}{v} }
-sub cell_set {
+sub SS::Harness::Read { my ($id) = @_; mg_get($id); $CELL{$id}{v} }
+sub SS::Harness::Store {
     my ($id, $v) = @_;
     my $old = $CELL{$id}{v};
     $CELL{$id}{v} = $v;
-    rv_dec($old) if ref $old;
+    SS::Harness::ReleasePayload($old) if ref $old;
     mg_set($id);
 }
 
-# sv_setsv + SvSETMAGIC for RV payloads: the destination takes a new
-# reference to the same referent.
-sub cell_set_rv {
+# sv_setrv_inc_mg: the destination takes a new reference to the referent,
+# then set magic runs.
+sub SS::Harness::StoreRef {
     my ($id, $target) = @_;
-    rc_inc($target);
+    SvREFCNT_inc($target);
     my $old = $CELL{$id}{v};
     $CELL{$id}{v} = ['RV', $target];
-    rc_dec($old->[1]) if ref $old && $old->[0] eq 'RV';
+    SvREFCNT_dec($old->[1]) if ref $old && $old->[0] eq 'RV';
     mg_set($id);
 }
 
 # ---------------- containers ----------------
 
-sub new_av {
+sub newAV {
     my (%f) = @_;
     my $id = 'a' . ++$NID;
     $AV{$id} = { elems => [], tie => undef, %f };
     return $id;
 }
 
-sub new_hv {
+sub newHV {
     my (%f) = @_;
     my $id = 'h' . ++$NID;
     $HV{$id} = { elems => {}, tie => undef, %f };
     return $id;
 }
 
-# av_fetch / hv_fetch, lvalue form. A tied container yields a fresh mirror
-# cell carrying tiedelem magic; no FETCH happens until mg_get. A plain
-# lvalue fetch vivifies the slot.
-sub av_fetch_lv {
-    my ($avid, $idx) = @_;
+# av_fetch / hv_fetch_ent. A tied container yields a fresh mirror cell
+# carrying tiedelem magic; no FETCH happens until mg_get. A plain fetch
+# with lval set vivifies the slot; without it a missing slot is undef.
+sub av_fetch {
+    my ($avid, $idx, $lval) = @_;
     my $av = $AV{$avid};
     if ($av->{tie}) {
-        my $m = new_cell();
-        push @{ $CELL{$m}{mag} }, { t => 'tiee', cont => $avid, key => $idx, kind => 'A' };
+        my $m = newSV();
+        push @{ $CELL{$m}{mag} }, { t => 'tiedelem', cont => $avid, key => $idx, kind => 'A' };
         $CELL{$m}{smag} = $CELL{$m}{gmag} = 1;
-        mortal($m);
+        sv_2mortal($m);
         return \$av->{mirror}[$idx], ($av->{mirror}[$idx] = $m);
     }
-    $av->{elems}[$idx] = new_cell() unless defined $av->{elems}[$idx];
+    return (undef, undef) if !$lval && !defined $av->{elems}[$idx];
+    $av->{elems}[$idx] = newSV() unless defined $av->{elems}[$idx];
     return \$av->{elems}[$idx], $av->{elems}[$idx];
 }
 
-sub hv_fetch_lv {
-    my ($hvid, $key) = @_;
+sub hv_fetch_ent {
+    my ($hvid, $key, $lval) = @_;
     my $hv = $HV{$hvid};
     if ($hv->{tie}) {
-        my $m = new_cell();
-        push @{ $CELL{$m}{mag} }, { t => 'tiee', cont => $hvid, key => $key, kind => 'H' };
+        my $m = newSV();
+        push @{ $CELL{$m}{mag} }, { t => 'tiedelem', cont => $hvid, key => $key, kind => 'H' };
         $CELL{$m}{smag} = $CELL{$m}{gmag} = 1;
-        mortal($m);
+        sv_2mortal($m);
         return \$hv->{mirror}{$key}, ($hv->{mirror}{$key} = $m);
     }
-    $hv->{elems}{$key} = new_cell() unless defined $hv->{elems}{$key};
+    return (undef, undef) if !$lval && !exists $hv->{elems}{$key};
+    $hv->{elems}{$key} = newSV() unless defined $hv->{elems}{$key};
     return \$hv->{elems}{$key}, $hv->{elems}{$key};
 }
 
 sub av_exists {
     my ($avid, $idx) = @_;
     my $av = $AV{$avid};
-    if ($av->{tie}) { trace('E', $idx); return exists $av->{tie}{store}{$idx} ? 1 : 0 }
+    if ($av->{tie}) { SS::Harness::Trace('E', $idx); return exists $av->{tie}{store}{$idx} ? 1 : 0 }
     return defined $av->{elems}[$idx] ? 1 : 0;
 }
 
 sub hv_exists {
     my ($hvid, $key) = @_;
     my $hv = $HV{$hvid};
-    if ($hv->{tie}) { trace('E', $key); return exists $hv->{tie}{store}{$key} ? 1 : 0 }
+    if ($hv->{tie}) { SS::Harness::Trace('E', $key); return exists $hv->{tie}{store}{$key} ? 1 : 0 }
     return exists $hv->{elems}{$key} ? 1 : 0;
 }
 
@@ -218,8 +233,8 @@ sub av_delete {
     my ($avid, $idx) = @_;
     my $av = $AV{$avid};
     if ($av->{tie}) {
-        trace('D', $idx);
-        rv_dec(delete $av->{tie}{store}{$idx});
+        SS::Harness::Trace('D', $idx);
+        SS::Harness::ReleasePayload(delete $av->{tie}{store}{$idx});
         if ($idx == ($av->{tie}{top} // -1)) {
             my $t = $idx - 1;
             $t-- while $t >= 0 && !exists $av->{tie}{store}{$t};
@@ -229,7 +244,7 @@ sub av_delete {
     }
     my $e = $av->{elems};
     return if $idx > $#$e;
-    rc_dec($e->[$idx]) if defined $e->[$idx];
+    SvREFCNT_dec($e->[$idx]) if defined $e->[$idx];
     $e->[$idx] = undef;
     if ($idx == $#$e) { pop @$e; pop @$e while @$e && !defined $e->[-1] }
 }
@@ -237,22 +252,26 @@ sub av_delete {
 sub hv_delete {
     my ($hvid, $key) = @_;
     my $hv = $HV{$hvid};
-    if ($hv->{tie}) { trace('D', $key); rv_dec(delete $hv->{tie}{store}{$key}); return }
+    if ($hv->{tie}) {
+        SS::Harness::Trace('D', $key);
+        SS::Harness::ReleasePayload(delete $hv->{tie}{store}{$key});
+        return;
+    }
     my $c = delete $hv->{elems}{$key};
-    rc_dec($c) if defined $c;
+    SvREFCNT_dec($c) if defined $c;
 }
 
 sub av_clear {
     my ($avid) = @_;
     my $av = $AV{$avid};
     if ($av->{tie}) {
-        trace('C');
+        SS::Harness::Trace('C');
         my $st = $av->{tie}{store};
         $av->{tie}{store} = {}; $av->{tie}{top} = -1;
-        rv_dec($st->{$_}) for sort keys %$st;
+        SS::Harness::ReleasePayload($st->{$_}) for sort keys %$st;
         return;
     }
-    rc_dec($_) for grep { defined } @{ $av->{elems} };
+    SvREFCNT_dec($_) for grep { defined } @{ $av->{elems} };
     $av->{elems} = [];
 }
 
@@ -260,13 +279,13 @@ sub hv_clear {
     my ($hvid) = @_;
     my $hv = $HV{$hvid};
     if ($hv->{tie}) {
-        trace('C');
+        SS::Harness::Trace('C');
         my $st = $hv->{tie}{store};
         $hv->{tie}{store} = {};
-        rv_dec($st->{$_}) for sort keys %$st;
+        SS::Harness::ReleasePayload($st->{$_}) for sort keys %$st;
         return;
     }
-    rc_dec($_) for values %{ $hv->{elems} };
+    SvREFCNT_dec($_) for values %{ $hv->{elems} };
     $hv->{elems} = {};
 }
 
@@ -328,7 +347,7 @@ sub av_fill {
     $fill = -1 if $fill < 0;
     my $e = $av->{elems};
     if ($fill < $#$e) {
-        rc_dec($_) for grep { defined } @$e[$fill + 1 .. $#$e];
+        SvREFCNT_dec($_) for grep { defined } @$e[$fill + 1 .. $#$e];
         $#$e = $fill;
     }
     elsif ($fill > $#$e) { $#$e = $fill }
@@ -348,19 +367,20 @@ sub av_splice {
     $offset = @$e if $offset > @$e;
     $length = @$e - $offset if $offset + $length > @$e;
     my @removed = splice @$e, $offset, $length, @new;
-    if ($gimme eq 'list') { mortal($_) for grep { defined } @removed; return @removed }
+    if ($gimme eq 'list') { sv_2mortal($_) for grep { defined } @removed; return @removed }
     my $last = @removed ? pop @removed : undef;
-    rc_dec($_) for grep { defined } @removed;
-    mortal($last) if defined $last;
+    SvREFCNT_dec($_) for grep { defined } @removed;
+    sv_2mortal($last) if defined $last;
     return $last;
 }
 
 # ---------------- globs ----------------
 
-sub new_glob {
+# gv_fetchpv with GV_ADD: a fresh GV whose GP holds a fresh scalar slot.
+sub gv_fetchpv {
     my ($name) = @_;
     my $gpid = 'g' . ++$NID;
-    $GP{$gpid} = { sv => new_cell(), rc => 1 };
+    $GP{$gpid} = { sv => newSV(), rc => 1 };
     $GLOB{$name} = { gp => $gpid };
     return $name;
 }
@@ -368,11 +388,12 @@ sub new_glob {
 sub gp_free {
     my ($gpid) = @_;
     return if --$GP{$gpid}{rc} > 0;
-    rc_dec($GP{$gpid}{sv});
+    SvREFCNT_dec($GP{$gpid}{sv});
     delete $GP{$gpid};
 }
 
-sub glob_svslot { \$GP{ $GLOB{ $_[0] }{gp} }{sv} }
+# GvSV as an lvalue: a reference to the scalar slot of the glob's current GP.
+sub GvSV { \$GP{ $GLOB{ $_[0] }{gp} }{sv} }
 
 # ---------------- the save stack: scope.c transcriptions ----------------
 
@@ -384,7 +405,7 @@ sub SAVEf_SETMAGIC () { 1 }
 sub save_scalar_at {
     my ($slotref, $flags) = @_;
     my $old = $$slotref;
-    my $fresh = new_cell();
+    my $fresh = newSV();
     $$slotref = $fresh;
     mg_localize($old, $fresh, $flags & SAVEf_SETMAGIC) if @{ $CELL{$old}{mag} };
     return $fresh;
@@ -406,9 +427,9 @@ sub mg_localize {
 # save_scalar_at with SAVEf_SETMAGIC.
 sub save_scalar {
     my ($gvname) = @_;
-    my $slotref = glob_svslot($gvname);
+    my $slotref = GvSV($gvname);
     mg_get($$slotref) if $CELL{$$slotref}{gmag};
-    push @SS, ['SV', $gvname, rc_inc($$slotref)];
+    push @SS, ['SV', $gvname, SvREFCNT_inc($$slotref)];
     return save_scalar_at($slotref, SAVEf_SETMAGIC);
 }
 
@@ -418,18 +439,18 @@ sub save_scalar {
 sub save_aelem_flags {
     my ($avid, $idx, $slotref, $flags) = @_;
     mg_get($$slotref) if $CELL{$$slotref}{gmag};
-    push @SS, ['AELEM', $avid, $idx, rc_inc($$slotref)];
+    push @SS, ['AELEM', $avid, $idx, SvREFCNT_inc($$slotref)];
     my $fresh = save_scalar_at($slotref, $flags);
-    mortal($fresh) if $AV{$avid}{tie};
+    sv_2mortal($fresh) if $AV{$avid}{tie};
 }
 
 # Perl_save_helem_flags: identical shape, key saved by copy (newSVsv).
 sub save_helem_flags {
     my ($hvid, $key, $slotref, $flags) = @_;
     mg_get($$slotref) if $CELL{$$slotref}{gmag};
-    push @SS, ['HELEM', $hvid, $key, rc_inc($$slotref)];
+    push @SS, ['HELEM', $hvid, $key, SvREFCNT_inc($$slotref)];
     my $fresh = save_scalar_at($slotref, $flags);
-    mortal($fresh) if $HV{$hvid}{tie};
+    sv_2mortal($fresh) if $HV{$hvid}{tie};
 }
 
 sub save_adelete { push @SS, ['ADELETE', $_[0], $_[1]] }
@@ -443,7 +464,7 @@ sub save_gp {
     push @SS, ['GP', $gvname, $g->{gp}];
     if ($empty) {
         my $gpid = 'g' . ++$NID;
-        $GP{$gpid} = { sv => new_cell(), rc => 1 };
+        $GP{$gpid} = { sv => newSV(), rc => 1 };
         $g->{gp} = $gpid;
     }
     else { $GP{ $g->{gp} }{rc}++ }
@@ -453,25 +474,25 @@ sub save_gp {
 sub save_clearsv { push @SS, ['CLEARSV', $_[0]] }
 
 # pp_gvsv with OPpLVAL_INTRO.
-sub local_pkg_scalar { save_scalar($_[0]) }
+sub pp_gvsv { save_scalar($_[0]) }
 
 # pp_aelem's localizing block: preeminence via EXISTS when the container
 # can, save_aelem (always SAVEf_SETMAGIC) when present, SAVEADELETE when
 # absent. pp_helem is the same shape except that OPf_SPECIAL — the
 # assignment form — suppresses SAVEf_SETMAGIC.
-sub local_aelem {
+sub pp_aelem {
     my ($avid, $idx, $assign) = @_;
     my $pre = av_exists($avid, $idx);
-    my ($slotref) = av_fetch_lv($avid, $idx);
+    my ($slotref) = av_fetch($avid, $idx, 1);
     if ($pre) { save_aelem_flags($avid, $idx, $slotref, SAVEf_SETMAGIC) }
     else { save_adelete($avid, $idx) }
     return $slotref;
 }
 
-sub local_helem {
+sub pp_helem {
     my ($hvid, $key, $assign) = @_;
     my $pre = hv_exists($hvid, $key);
-    my ($slotref) = hv_fetch_lv($hvid, $key);
+    my ($slotref) = hv_fetch_ent($hvid, $key, 1);
     if ($pre) { save_helem_flags($hvid, $key, $slotref, $assign ? 0 : SAVEf_SETMAGIC) }
     else { save_hdelete($hvid, $key) }
     return $slotref;
@@ -490,7 +511,7 @@ sub restore_sv {
     my ($slotref, $value, $refsv_cell) = @_;
     my $displaced = $$slotref;
     $$slotref = $value;
-    rc_dec($displaced);
+    SvREFCNT_dec($displaced);
     if ($CELL{$value}{smag}) {
         push @SS, ['FREESV', $value], ['FREESV', $refsv_cell // ()];
         pop @SS if !defined $refsv_cell;
@@ -498,8 +519,8 @@ sub restore_sv {
         $PENDING = $@ if $@ && !defined $PENDING;
         return;
     }
-    rc_dec($value);
-    rc_dec($refsv_cell) if defined $refsv_cell;
+    SvREFCNT_dec($value);
+    SvREFCNT_dec($refsv_cell) if defined $refsv_cell;
 }
 
 sub leave_scope {
@@ -509,21 +530,21 @@ sub leave_scope {
         my ($t) = @$rec;
         if ($t eq 'SV') {
             my (undef, $gvname, $saved) = @$rec;
-            restore_sv(glob_svslot($gvname), $saved, undef);
+            restore_sv(GvSV($gvname), $saved, undef);
         }
         elsif ($t eq 'AELEM') {
             my (undef, $avid, $idx, $saved) = @$rec;
 
             # av_fetch(av, idx, 1): the re-fetch is keyed by container and
             # index, vivifying the slot if the array was cleared.
-            my ($slotref, $cur) = av_fetch_lv($avid, $idx);
-            rc_inc($cur) if $AV{$avid}{tie};
+            my ($slotref, $cur) = av_fetch($avid, $idx, 1);
+            SvREFCNT_inc($cur) if $AV{$avid}{tie};
             restore_sv($slotref, $saved, undef);
         }
         elsif ($t eq 'HELEM') {
             my (undef, $hvid, $key, $saved) = @$rec;
-            my ($slotref, $cur) = hv_fetch_lv($hvid, $key);
-            rc_inc($cur) if $HV{$hvid}{tie};
+            my ($slotref, $cur) = hv_fetch_ent($hvid, $key, 1);
+            SvREFCNT_inc($cur) if $HV{$hvid}{tie};
             restore_sv($slotref, $saved, undef);
         }
         elsif ($t eq 'ADELETE') {
@@ -550,18 +571,18 @@ sub leave_scope {
             if ($c->{rc} == 1 && !$c->{obj}) {
                 my $v = $c->{v};
                 $c->{v} = undef;
-                eval { rc_dec($v->[1]) if ref $v && $v->[0] eq 'RV' };
+                eval { SvREFCNT_dec($v->[1]) if ref $v && $v->[0] eq 'RV' };
                 $PENDING = $@ if $@ && !defined $PENDING;
             }
             else {
                 my $old = $$padref;
-                $$padref = new_cell();
-                eval { rc_dec($old) };
+                $$padref = newSV();
+                eval { SvREFCNT_dec($old) };
                 $PENDING = $@ if $@ && !defined $PENDING;
             }
         }
         elsif ($t eq 'FREESV') {
-            eval { rc_dec($rec->[1]) };
+            eval { SvREFCNT_dec($rec->[1]) };
             $PENDING = $@ if $@ && !defined $PENDING;
         }
     }
