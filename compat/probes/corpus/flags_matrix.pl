@@ -81,14 +81,16 @@ my $stale_check = q{
     my $num  = do { no warnings; sprintf "%.17g", 0 + $s };
     my $copy = do { no warnings; my $c = defined $s ? "".$s : undef; defined $c ? sprintf("%.17g", 0 + $c) : 'u' };
 };
-printf "%-18s", 'op \\ start'; printf " %-12s", $_->[0] for @starts; print "\n";
+# One padded row per op; the last cell is not padded, so no line ends in whitespace.
+sub row { my ($head, @cells) = @_; my $line = join " ", sprintf("%-18s", $head), map { sprintf "%-12s", $_ } @cells; $line =~ s/ +$//; print "$line\n" }
+row('op \\ start', map { $_->[0] } @starts);
 for my $op (@ops) {
-    printf "%-18s", $op->[0];
+    my @cells;
     for my $st (@starts) {
         my $code = "sub { $st->[1] $op->[1] my \$p = main::proj(\\\$s); $stale_check return \$p . (defined \$s && \$num ne \$copy ? '!' : ''); }";
         my $sub = eval $code or die "$@\n$code";
         my $res = eval { $sub->() }; unless (defined $res) { $res = "die"; warn "ERR [$st->[0]] [$op->[0]]: $@" if $ENV{DEBUG} }
-        printf " %-12s", $res;
+        push @cells, $res;
     }
-    print "\n";
+    row($op->[0], @cells);
 }
