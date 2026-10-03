@@ -27,6 +27,10 @@ use File::Spec;
 use Getopt::Long qw(GetOptionsFromArray);
 use Oracle::Run;
 use Oracle::Normalize;
+use Oracle::Locales;
+
+# The LOCPATH holding the harness's compiled locales, set at startup; undef when they could not be compiled.
+our $LOCPATH;
 use Oracle::Verdict;
 
 my @RUN_PLAN = (
@@ -107,9 +111,10 @@ sub has_capability {
         $ok = ($out // '') eq '1' ? 1 : 0;
     }
     elsif ($kind eq 'locale') {
-        (my $want = lc($args[0] // '')) =~ s/[-_.]//g;
-        $ok = grep { (my $l = lc $_) =~ s/[-_.]//g; $l eq $want } split /\n/, `locale -a 2>/dev/null`;
-        $ok = $ok ? 1 : 0;
+        # A locale requirement names one of the harness's own compiled locales (harness/locales/),
+        # never a system locale, so a probe runs the same wherever localedef and the glibc i18n
+        # sources exist. It is unmet when those are missing (reported once at startup).
+        $ok = ($LOCPATH && Oracle::Locales::provides($args[0] // '')) ? 1 : 0;
     }
     else {
         die "unknown requirement '$kind'\n";
@@ -148,7 +153,7 @@ sub cmd_run {
             for my $n (1 .. $count) {
                 Oracle::Run::run(
                     perl => $perl, file => $t->{file}, prefix => "$dir/$build.$mode.$n", mode => $mode,
-                    extra_env => $t->{env}, probe_lib => ($t->{probe} ? "$Bin/../probe-lib" : undef),
+                    extra_env => { %{ $t->{env} || {} }, ($LOCPATH ? (LOCPATH => $LOCPATH) : ()) }, probe_lib => ($t->{probe} ? "$Bin/../probe-lib" : undef),
                     timeout => $t->{timeout} // $conf->{timeout},
                 );
             }
@@ -278,7 +283,7 @@ sub cmd_check {
         for my $mode (qw(seed0 random)) {
             Oracle::Run::run(
                 perl => $impl, file => $t->{file}, prefix => "$wdir/impl.$mode", mode => $mode,
-                extra_env => $t->{env}, probe_lib => ($t->{probe} ? "$Bin/../probe-lib" : undef),
+                extra_env => { %{ $t->{env} || {} }, ($LOCPATH ? (LOCPATH => $LOCPATH) : ()) }, probe_lib => ($t->{probe} ? "$Bin/../probe-lib" : undef),
                 timeout => $t->{timeout} // $conf->{timeout},
             );
             $got{$mode} = read_record("$wdir/impl.$mode");
@@ -327,6 +332,8 @@ usage() unless defined $corpus && -d $corpus;
 $corpus  = File::Spec->rel2abs($corpus);
 $results = File::Spec->rel2abs($results);
 my $conf = load_config($config);
+$LOCPATH = Oracle::Locales::compile("$results/locales");
+print STDERR "oracle: compiled locales unavailable ($Oracle::Locales::WHY); probes that require one are skipped\n" unless $LOCPATH;
 $conf->{impl} = $impl if defined $impl;
 my @tests = discover($corpus, defined $only ? qr/$only/ : undef);
 make_path($results);
