@@ -1,14 +1,19 @@
 #!/bin/bash
-# Builds the three perl 5.44.0 interpreters the harness needs, using perlbrew from a GitHub tag
-# tarball (CPAN downloads are not required):
+# Builds the six perl 5.44.0 interpreters the harness needs, using perlbrew from a GitHub tag
+# tarball (CPAN downloads are not required).  Two families, the unthreaded one and the one built
+# with -Dusethreads, each in three variants:
 #
-#   perl-5.44.0             stock, the oracle
-#   perl-5.44.0-noreuse     noreuse.patch: freed SV heads never return to the free list
-#   perl-5.44.0-descending  descending.patch: each new SV arena's free list is threaded high to low
+#   perl-5.44.0                     stock, the oracle
+#   perl-5.44.0-noreuse             noreuse.patch: freed SV heads never return to the free list
+#   perl-5.44.0-descending          descending.patch: each new SV arena's free list is threaded high to low
+#   perl-5.44.0-threads             the same three with -Dusethreads, the oracle for probes that
+#   perl-5.44.0-threads-noreuse     require ithreads and the configuration cross-check for the rest
+#   perl-5.44.0-threads-descending
 #
-# Usage: build-perls.sh [--prepare-only] [--jobs N]
+# Usage: build-perls.sh [--prepare-only] [--jobs N] [--family plain|threads|all]
 #   --prepare-only  clone the tag, apply both patches, and create the three source tarballs, but do
 #                   not compile. Useful for checking that the patches still apply.
+#   --family        build only one family (default all).
 #
 # Environment: PERLBREW_ROOT (default /opt/perlbrew), WORK (default /tmp/oracle-build).
 # Each build takes 15-30 minutes on one core. Status files: $WORK/<name>.DONE or $WORK/<name>.FAILED.
@@ -16,10 +21,17 @@
 set -u
 PREPARE_ONLY=0
 JOBS=$(nproc)
+FAMILIES="plain threads"
 while [ $# -gt 0 ]; do
     case "$1" in
         --prepare-only) PREPARE_ONLY=1 ;;
         --jobs) shift; JOBS="$1" ;;
+        --family) shift
+            case "$1" in
+                plain|threads) FAMILIES="$1" ;;
+                all) FAMILIES="plain threads" ;;
+                *) echo "unknown family $1" >&2; exit 2 ;;
+            esac ;;
         *) echo "unknown option $1" >&2; exit 2 ;;
     esac
     shift
@@ -41,6 +53,7 @@ if [ ! -d "$WORK/src" ]; then
 fi
 
 # Stage one source tree per variant. The directory inside each tarball must be named perl-VERSION.
+# Both families build from the same three tarballs; only the Configure flags differ.
 base=$(git -C "$WORK/src" rev-parse HEAD)
 for variant in stock noreuse descending; do
     if [ "$variant" != stock ]; then
@@ -59,20 +72,27 @@ if [ ! -x "$PERLBREW_ROOT/bin/perlbrew" ]; then
 fi
 set +u; source "$PERLBREW_ROOT/etc/bashrc" || fail bashrc all; set -u
 
-for variant in stock noreuse descending; do
-    name="perl-$VERSION"
-    [ "$variant" != stock ] && name="perl-$VERSION-$variant"
-    rm -f "$WORK/$name.DONE" "$WORK/$name.FAILED"
-    if [ -x "$PERLBREW_ROOT/perls/$name/bin/perl" ]; then
-        echo "already built: $name"
-    else
-        echo "building $name with -j$JOBS (log: $PERLBREW_ROOT/build.$name.log)"
-        start=$(date +%s)
-        perlbrew --notest install "$WORK/perl-$VERSION-$variant.tar.gz" --as "$name" -j "$JOBS" || fail "build $name" "$name"
-        echo "built $name in $(( $(date +%s) - start ))s"
-    fi
-    "$PERLBREW_ROOT/perls/$name/bin/perl" -e 'print "$]\n"' > "$WORK/$name.DONE"
-    echo "$name: perl $(cat "$WORK/$name.DONE")"
+for family in $FAMILIES; do
+    for variant in stock noreuse descending; do
+        name="perl-$VERSION"
+        flags=()
+        if [ "$family" = threads ]; then
+            name="$name-threads"
+            flags=(-Dusethreads)
+        fi
+        [ "$variant" != stock ] && name="$name-$variant"
+        rm -f "$WORK/$name.DONE" "$WORK/$name.FAILED"
+        if [ -x "$PERLBREW_ROOT/perls/$name/bin/perl" ]; then
+            echo "already built: $name"
+        else
+            echo "building $name with -j$JOBS ${flags[*]:-} (perlbrew logs under $PERLBREW_ROOT/build.*.log)"
+            start=$(date +%s)
+            perlbrew --notest install "$WORK/perl-$VERSION-$variant.tar.gz" --as "$name" -j "$JOBS" ${flags[@]+"${flags[@]}"} || fail "build $name" "$name"
+            echo "built $name in $(( $(date +%s) - start ))s"
+        fi
+        "$PERLBREW_ROOT/perls/$name/bin/perl" -e 'print "$]\n"' > "$WORK/$name.DONE"
+        echo "$name: perl $(cat "$WORK/$name.DONE") $("$PERLBREW_ROOT/perls/$name/bin/perl" -V:useithreads)"
+    done
 done
 
 echo "profile of perl-$VERSION:"
