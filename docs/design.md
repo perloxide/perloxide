@@ -5827,6 +5827,17 @@ unwind machinery is task-local either way and follows perl's contract verbatim:
 pop-before-execute, cleanups pushed before fallible magic, no rollback,
 exceptions surfaced after the remaining records run.
 
+One thing perl does here is not reproduced.  `threads::shared` restores a
+localized element through a proxy that encodes its target twice, by index and
+by shared SV, and writes the saved value through both; if the array moved under
+the `local`, the two writes land on two elements (`local $a[1] = 99; shift @a`
+on `(10, 20, 30)` leaves `(20, 20)`; the compatibility reference records this
+at `compat/probes/research/value-model/24_local_shared_elem.pl` and in
+`compat/facts.md`).  That is an artifact of the proxy layout, not a semantics,
+and this design's save record has one address and one restore write: under a
+concurrent structural change it does what same-task perl does, restoring at the
+original index and leaving the moved SV alone.
+
 ---
 
 ## 4. The Compile-Time Execution Problem
