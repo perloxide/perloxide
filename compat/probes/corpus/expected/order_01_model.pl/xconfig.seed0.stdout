@@ -1,0 +1,3 @@
+n=5    buckets=8     mask=ADDR1 model==keys: yes
+n=40   buckets=64    mask=ADDR1 model==keys: yes
+n=700  buckets=2048  mask=ADDR1 model==keys: yes
