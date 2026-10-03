@@ -1,9 +1,9 @@
-# oracle-requires: locale de_DE.UTF-8
+# oracle-requires: locale radix_comma.UTF-8
 # 'use locale' is lexical to the statement doing the numification; the cache follows the scalar across calls.
 use strict; use warnings; no warnings 'numeric';
 use POSIX qw(setlocale LC_NUMERIC);
 sub g { sprintf "%.17g", $_[0] }
-setlocale(LC_NUMERIC, "de_DE.UTF-8") or die "no de_DE locale\n";
+setlocale(LC_NUMERIC, "radix_comma.UTF-8") or die "no radix_comma locale\n";
 sub numify_in_locale { use locale; my $n = $_[0] + 0; $n }     # $_[0] aliases the caller's scalar
 sub numify_plain     { my $n = $_[0] + 0; $n }
 sub numify_copy_in_locale { use locale; my ($x) = @_; my $n = $x + 0; $n }

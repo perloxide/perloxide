@@ -16,6 +16,7 @@ The seed corpus is every probe from the value/type design research that produced
 | `lib/Oracle/Normalize.pm`                    | address bijection (`exact`) and line-order canonicalization (`canonical`)                                                                      |
 | `lib/Oracle/Verdict.pm`                      | the classification rules below                                                                                                                 |
 | `probe-lib/Probe.pm`                         | `__PROBE__($scalar, $label)`: flag projection written to fd 3                                                                                  |
+| `lib/Oracle/Locales.pm`, `locales/`           | compiles the harness's own locales (`radix_comma`: comma radix, else POSIX; `ctype_utf8`: i18n ctype, else POSIX) |
 | `../perls/build-perls.sh`                    | builds the three Perls from the GitHub tag; `--prepare-only` stops before compiling                                                            |
 | `../perls/noreuse.patch`                     | `plant_SV` never returns freed SV heads to `PL_sv_root`                                                                                        |
 | `../perls/descending.patch`                  | `S_sv_add_arena` threads each new arena's free list from the highest slot down                                                                 |
@@ -32,8 +33,11 @@ The seed corpus is every probe from the value/type design research that produced
 - Optional cross-check interpreter (`xcheck`, default `/usr/bin/perl`).  Its result is recorded as `agrees_with_xcheck`
   and never affects a verdict.
 - Linux, core Perl modules only.
-- A `de_DE.UTF-8` locale for the locale probes; a threaded Perl for `threads_01_const_marks.pl`.  Tests whose
-  requirements a build lacks are not run on that build.
+- `localedef` with the glibc i18n sources (the `locales` package on Debian and Ubuntu; part of glibc on most other
+  distributions) for the locale probes: at startup the harness compiles its own locales from `locales/` into
+  `RESULTS/locales` and passes that directory as `LOCPATH` to every run, so no probe depends on which locales the
+  system has generated.  A threaded Perl for `threads_01_const_marks.pl`.  Tests whose requirements a build lacks
+  are not run on that build.
 
 ## Quick start
 
@@ -114,7 +118,7 @@ Stock Perl itself passes `check` (34 PASS, 5 SMOKE, 1 SKIP).  `tools/impl-wrong-
 Comment lines anywhere in a test file:
 
     # oracle-requires: threads
-    # oracle-requires: locale de_DE.UTF-8
+    # oracle-requires: locale radix_comma.UTF-8   one of the harness's compiled locales (locales/)
     # oracle-variant: NAME VAR=VALUE ...     one test per variant; a file with variants has no default run
     # oracle-timeout: SECONDS
 

@@ -1,4 +1,4 @@
-start C           handler switches to de_DE.UTF-8 IV path ($s + 0)   handler_ran=1 flags=inp cached NV=2
-start C           handler switches to de_DE.UTF-8 NV path (sqrt $s)  handler_ran=1 flags=inp cached NV=2.25
-start de_DE.UTF-8 handler switches to C           IV path ($s + 0)   handler_ran=1 flags=inp cached NV=2.25
-start de_DE.UTF-8 handler switches to C           NV path (sqrt $s)  handler_ran=1 flags=inp cached NV=2
+start C           handler switches to radix_comma.UTF-8 IV path ($s + 0)   handler_ran=1 flags=inp cached NV=2
+start C           handler switches to radix_comma.UTF-8 NV path (sqrt $s)  handler_ran=1 flags=inp cached NV=2.25
+start radix_comma.UTF-8 handler switches to C           IV path ($s + 0)   handler_ran=1 flags=inp cached NV=2.25
+start radix_comma.UTF-8 handler switches to C           NV path (sqrt $s)  handler_ran=1 flags=inp cached NV=2

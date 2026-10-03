@@ -1,4 +1,4 @@
-# oracle-requires: locale de_DE.UTF-8
+# oracle-requires: locale radix_comma.UTF-8
 # setlocale inside a numeric-warning handler during a numification. The IV conversion path parses the NV
 # before the warning; the NV conversion path parses it after the handler returns.
 use strict; use warnings;
@@ -6,9 +6,9 @@ use POSIX qw(setlocale LC_NUMERIC);
 use B ();
 sub g { sprintf "%.17g", $_[0] }
 sub fl { my $f = B::svref_2object($_[0])->FLAGS; join '', ($f & B::SVp_IOK ? 'i' : ''), ($f & B::SVp_NOK ? 'n' : ''), ($f & B::SVp_POK ? 'p' : '') }
-for my $case (['de', 'C'], ['C', 'de_DE.UTF-8']) {
+for my $case (['de', 'C'], ['C', 'radix_comma.UTF-8']) {
     my ($start, $switch_to) = @$case;
-    my $start_name = $start eq 'de' ? 'de_DE.UTF-8' : 'C';
+    my $start_name = $start eq 'de' ? 'radix_comma.UTF-8' : 'C';
     for my $path (['IV path ($s + 0)', sub { use locale; my $n = $_[0] + 0; }], ['NV path (sqrt $s)', sub { use locale; my $n = sqrt $_[0]; }]) {
         setlocale(LC_NUMERIC, $start_name) or die;
         my $s = "" . "2,25x";
