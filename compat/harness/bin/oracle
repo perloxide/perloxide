@@ -12,7 +12,8 @@
 # Common options: --results DIR (default ./results), --config FILE (default oracle.conf next to bin/).
 #
 # Corpus directives, as comment lines anywhere in a test file:
-#   # oracle-requires: threads | locale NAME     skip the test on builds that lack the capability
+#   # oracle-requires: threads | locale NAME     skip the test on builds that lack the capability;
+#                                             a test that requires threads runs in the threaded family
 #   # oracle-variant: NAME VAR=VALUE ...         run the file once per variant with extra environment;
 #                                             a file with variants has no implicit default run
 #   # oracle-timeout: SECONDS
@@ -33,7 +34,16 @@ use Oracle::Locales;
 our $LOCPATH;
 use Oracle::Verdict;
 
-my @RUN_PLAN = (
+# The oracle is a family of three 5.44.0 builds: stock, and the two allocator variants.  There are
+# two families, unthreaded (plain) and built with -Dusethreads (threads).  A test runs in the plain
+# family unless it requires threads.  Whichever family is the test's oracle, its runs are recorded
+# under the generic names (stock.seed0.1 and so on), and the other family's stock build runs once
+# as the configuration cross-check (xconfig), beside the version cross-check (xcheck).
+my %FAMILY = (
+    plain   => { stock => 'stock',         noreuse => 'noreuse',         descending => 'descending' },
+    threads => { stock => 'threads_stock', noreuse => 'threads_noreuse', descending => 'threads_descending' },
+);
+my @ORACLE_PLAN = (
     [ 'stock',      'seed0',         2 ],
     [ 'stock',      'random',        2 ],
     [ 'stock',      'deterministic', 1 ],
@@ -41,8 +51,25 @@ my @RUN_PLAN = (
     [ 'noreuse',    'random',        1 ],
     [ 'descending', 'seed0',         1 ],
     [ 'descending', 'random',        1 ],
-    [ 'xcheck',     'seed0',         1 ],
 );
+my @CROSS_PLAN = (
+    [ 'xcheck',  'seed0', 1 ],
+    [ 'xconfig', 'seed0', 1 ],
+);
+my @BUILD_KEYS = qw(stock noreuse descending threads_stock threads_noreuse threads_descending xcheck);
+
+sub family_of {
+    my ($t) = @_;
+    return (grep { $_->[0] eq 'threads' } @{ $t->{requires} }) ? 'threads' : 'plain';
+}
+
+# The interpreter path for a run name within a test's family; xconfig is the other family's stock.
+sub build_path {
+    my ($conf, $family, $build) = @_;
+    return $conf->{xcheck} if $build eq 'xcheck';
+    return $conf->{ $FAMILY{ $family eq 'plain' ? 'threads' : 'plain' }{stock} } if $build eq 'xconfig';
+    return $conf->{ $FAMILY{$family}{$build} };
+}
 
 sub usage { die "usage: oracle list|run|verdict|bless|selftest|check CORPUS [options]\n" }
 
@@ -70,7 +97,7 @@ sub load_config {
         my ($k, $v) = $line =~ /^\s*(\w+)\s*=\s*(.*?)\s*$/ or die "bad config line in $path: $line\n";
         $conf{$k} = $v;
     }
-    for my $k (qw(stock noreuse descending xcheck impl timeout)) {
+    for my $k (@BUILD_KEYS, qw(impl timeout)) {
         $conf{$k} = $ENV{"ORACLE_" . uc $k} if defined $ENV{"ORACLE_" . uc $k};
     }
     return \%conf;
@@ -141,10 +168,11 @@ sub cmd_run {
         my $dir = test_dir($results, $t->{id});
         remove_tree($dir);
         make_path($dir);
+        my $family = family_of($t);
         my @skipped;
-        for my $step (@RUN_PLAN) {
+        for my $step (@ORACLE_PLAN, @CROSS_PLAN) {
             my ($build, $mode, $count) = @$step;
-            my $perl = $conf->{$build};
+            my $perl = build_path($conf, $family, $build);
             next unless defined $perl && length $perl && -x $perl;
             if (grep { !has_capability($perl, $_) } @{ $t->{requires} }) {
                 push @skipped, $build;
@@ -159,23 +187,31 @@ sub cmd_run {
             }
         }
         my %seen; @skipped = grep { !$seen{$_}++ } @skipped;
+        spew("$dir/family", "$family\n");
         spew("$dir/skipped", join("\n", @skipped) . (@skipped ? "\n" : ''));
-        printf "ran %-44s%s\n", $t->{id}, (@skipped ? "  (requirements unmet on: @skipped)" : '');
+        printf "ran %-44s%s%s\n", $t->{id}, ($family eq 'threads' ? "  [threads]" : ''),
+            (@skipped ? "  (requirements unmet on: @skipped)" : '');
     }
 }
 
 sub classify_test {
     my ($results, $t) = @_;
     my $dir = test_dir($results, $t->{id});
+    my $family = slurp("$dir/family");
+    chomp $family;
+    $family = 'plain' unless length $family;
     my %runs;
     for my $name (qw(stock.seed0.1 stock.seed0.2 noreuse.seed0.1 descending.seed0.1 stock.random.1 stock.random.2 noreuse.random.1 descending.random.1)) {
         my $r = read_record("$dir/$name");
-        return ('skipped', { reason => "missing run $name" }, undef) unless $r;
+        return ('skipped', { reason => "missing run $name", family => $family }, undef) unless $r;
         $runs{$name} = $r;
     }
     my ($verdict, $detail) = Oracle::Verdict::classify(\%runs);
-    my $x = read_record("$dir/xcheck.seed0.1");
-    $detail->{agrees_with_xcheck} = $x ? (Oracle::Verdict::exact_key($x) eq Oracle::Verdict::exact_key($runs{'stock.seed0.1'}) ? 1 : 0) : '-';
+    for my $cross (qw(xcheck xconfig)) {
+        my $x = read_record("$dir/$cross.seed0.1");
+        $detail->{"agrees_with_$cross"} = $x ? (Oracle::Verdict::exact_key($x) eq Oracle::Verdict::exact_key($runs{'stock.seed0.1'}) ? 1 : 0) : '-';
+    }
+    $detail->{family} = $family;
     return ($verdict, $detail, \%runs);
 }
 
@@ -194,8 +230,9 @@ sub cmd_verdict {
     print "\n", join(', ', map { "$_: $count{$_}" } sort keys %count), "\n";
 }
 
-# Expected outputs: the verdict, exact-normalized seed0 channels from stock run 1, canonical seed0 and
-# random channels, and, when present, the exact-normalized cross-check build's seed0 channels.
+# Expected outputs: the verdict, the family that produced it, exact-normalized seed0 channels from
+# stock run 1, canonical seed0 and random channels, and, when present, the exact-normalized seed0
+# channels of each cross-check build (xcheck, the other version; xconfig, the other family).
 sub cmd_bless {
     my ($corpus, $results, @tests) = @_;
     for my $t (@tests) {
@@ -204,6 +241,7 @@ sub cmd_bless {
         remove_tree($dir);
         make_path($dir);
         spew("$dir/verdict", "$verdict\n");
+        spew("$dir/family", "$detail->{family}\n");
         if ($runs) {
             my $s = $runs->{'stock.seed0.1'};
             my @exact = Oracle::Normalize::exact(@{$s}{qw(stdout stderr fd3)});
@@ -217,11 +255,11 @@ sub cmd_bless {
                 spew("$dir/canonical.$mode.exit", $r->{exit});
             }
         }
-        my $x = read_record(test_dir($results, $t->{id}) . "/xcheck.seed0.1");
-        if ($x) {
+        for my $cross (qw(xcheck xconfig)) {
+            my $x = read_record(test_dir($results, $t->{id}) . "/$cross.seed0.1") or next;
             my @exact = Oracle::Normalize::exact(@{$x}{qw(stdout stderr fd3)});
-            spew("$dir/xcheck.seed0.$_", shift @exact) for qw(stdout stderr fd3);
-            spew("$dir/xcheck.seed0.exit", $x->{exit});
+            spew("$dir/$cross.seed0.$_", shift @exact) for qw(stdout stderr fd3);
+            spew("$dir/$cross.seed0.exit", $x->{exit});
         }
         printf "blessed %-44s %s\n", $t->{id}, $verdict;
     }
@@ -240,9 +278,13 @@ sub cmd_selftest {
         my $dir = test_dir("$corpus/expected", $t->{id});
         my $want = slurp("$dir/verdict");
         chomp $want;
-        my ($verdict, undef, $runs) = classify_test($results, $t);
+        my $want_family = slurp("$dir/family");
+        chomp $want_family;
+        $want_family = 'plain' unless length $want_family;
+        my ($verdict, $detail, $runs) = classify_test($results, $t);
         my @problems;
         push @problems, "verdict $verdict, expected $want" if $verdict ne $want;
+        push @problems, "family $detail->{family}, expected $want_family" if $detail->{family} ne $want_family;
         if ($runs && $want eq 'lane-A-eligible') {
             my @exact = Oracle::Normalize::exact(@{ $runs->{'stock.seed0.1'} }{qw(stdout stderr fd3)});
             for my $ch (qw(stdout stderr fd3)) {
@@ -287,6 +329,12 @@ sub cmd_check {
         my $edir = test_dir("$corpus/expected", $t->{id});
         my $verdict = slurp("$edir/verdict");
         chomp $verdict;
+        my @lacks = map { $_->[0] } grep { !has_capability($impl, $_) } @{ $t->{requires} };
+        if (@lacks) {
+            $tally{SKIP}++;
+            printf "%-5s %-44s %-22s %s\n", 'SKIP', $t->{id}, $verdict, "implementation lacks @lacks";
+            next;
+        }
         my $wdir = test_dir("$results/check", $t->{id});
         remove_tree($wdir);
         make_path($wdir);

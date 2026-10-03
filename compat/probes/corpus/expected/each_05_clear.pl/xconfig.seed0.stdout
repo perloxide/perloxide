@@ -1,0 +1,5 @@
+bucket_ratio after %h=(): 0
+buckets after refill:     3/2048   fresh hash: 3/8
+order after refill: 2 3 1   fresh: 3 1 2
+buckets after undef+refill: 3/8
+each after clear+refill visits: 10

@@ -6,8 +6,9 @@ where it is stated.
 ## Pinned Perl
 
 - **Target:** Perl 5.44.0, built from the `v5.44.0` tag of https://github.com/Perl/perl5 with `perls/build-perls.sh`.
-  Unthreaded unless a probe states otherwise; the threaded and unthreaded builds differ only in the `Perl interpreter:
-  0x...` suffix of some diagnostics.
+  Unthreaded unless a probe states otherwise (`# oracle-requires: threads`), in which case the oracle is the same tag
+  built with `-Dusethreads`.  Every lane-A probe of the corpus produces identical normalized output on both; the builds
+  differ in the `Perl interpreter: 0x...` suffix of some diagnostics, which normalization removes.
 - **Second oracle:** Perl 5.38.2 (the Ubuntu 24.04 system Perl, threaded).  Its observations are recorded beside the
   target's; where they differ, the model follows 5.44.0 and the row is `version-divergent`.
 - **Instrumented variants of 5.44.0:** `noreuse` (`plant_SV` never returns freed SV heads to `PL_sv_root`) and

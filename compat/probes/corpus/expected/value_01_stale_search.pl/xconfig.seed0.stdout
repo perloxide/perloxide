@@ -1,0 +1,38 @@
+"-0" after $s + 0: sprintf "%g"              cached=0                        fresh=-0                       DIFFERS
+"-0" after $s | 0: sprintf "%g"              cached=0                        fresh=-0                       DIFFERS
+"-0" after int $s: sprintf "%g"              cached=0                        fresh=-0                       DIFFERS
+"-0" after $a[$s]: sprintf "%g"              cached=0                        fresh=-0                       DIFFERS
+"-0.0" after $s + 0: sprintf "%g"            cached=-0                       fresh=-0
+"-0.0" after $s | 0: sprintf "%g"            cached=-0                       fresh=-0
+"-0.0" after int $s: sprintf "%g"            cached=-0                       fresh=-0
+"-0.0" after $a[$s]: sprintf "%g"            cached=-0                       fresh=-0
+"-0e0" after $s + 0: sprintf "%g"            cached=-0                       fresh=-0
+"-0e0" after $s | 0: sprintf "%g"            cached=-0                       fresh=-0
+"-0e0" after int $s: sprintf "%g"            cached=-0                       fresh=-0
+"-0e0" after $a[$s]: sprintf "%g"            cached=-0                       fresh=-0
+"+0" after $s + 0: sprintf "%g"              cached=0                        fresh=0
+"+0" after $s | 0: sprintf "%g"              cached=0                        fresh=0
+"+0" after int $s: sprintf "%g"              cached=0                        fresh=0
+"+0" after $a[$s]: sprintf "%g"              cached=0                        fresh=0
+"00" after $s + 0: sprintf "%g"              cached=0                        fresh=0
+"00" after $s | 0: sprintf "%g"              cached=0                        fresh=0
+"00" after int $s: sprintf "%g"              cached=0                        fresh=0
+"00" after $a[$s]: sprintf "%g"              cached=0                        fresh=0
+print into PerlIO::scalar ("15" numified first) cached=75                       fresh=75
+read() at offset 0 ("15" numified first)     cached=7                        fresh=7
+sysread-like via read offset 1 ("15" numified first) cached=17                       fresh=17
+$s = reverse $s ("15" numified first)        cached=51                       fresh=51
+$s = join "", $s, "7" ("15" numified first)  cached=157                      fresh=157
+$s = lc $s ("15" numified first)             cached=15                       fresh=15
+$s = $s . "7" ("15" numified first)          cached=157                      fresh=157
+chomp ("15" numified first)                  cached=15                       fresh=15
+${\substr($s,0,1)} = "7" ("15" numified first) cached=75                       fresh=75
+utf8::decode ("15" numified first)           cached=15                       fresh=15
+4-arg select on bit vector ("15" numified first) cached=15                       fresh=15
+sprintf into self ("15" numified first)      cached=157                      fresh=157
+"Az"                   plain++ => Ba                      after ($s+0), $s++ => 1
+"a9"                   plain++ => b0                      after ($s+0), $s++ => 1
+"zz"                   plain++ => aaa                     after ($s+0), $s++ => 1
+"09"                   plain++ => 10                      after ($s+0), $s++ => 10
+"18446744073709551615" plain++ => 18446744073709551616    after ($s+0), $s++ => 1.84467440737096e+19
+"10"                   plain++ => 11                      after ($s+0), $s++ => 11

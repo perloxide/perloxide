@@ -1,0 +1,55 @@
+my @x = (1, 2, 3);  # @x  = (1, 2, 3)                   => SCALAR(ADDR1) SCALAR(ADDR2) SCALAR(ADDR3)
+my $r = \$x[2];     # $r  = \3                          => SCALAR(ADDR3)
+my $r2 = $r;        # $r2 = \3                          => SCALAR(ADDR3)
+
+do {                # scope begins
+
+  local $x[2] = 5;  # @x  = (1, 2, 5)                   => SCALAR(ADDR1) SCALAR(ADDR2) SCALAR(ADDR4)
+                    # $r  = \3                          => SCALAR(ADDR3)
+                    # $r2 = \3                          => SCALAR(ADDR3)
+
+  $r2 = \shift @x;  # @x  = (2, 5)                      => SCALAR(ADDR2) SCALAR(ADDR4)
+                    # $r  = \3                          => SCALAR(ADDR3)
+                    # $r2 = \1                          => SCALAR(ADDR1)
+
+  $$r **= 3;        # $r  = \27                         => SCALAR(ADDR3)
+
+  $r2 = \shift @x;  # @x  = (5)                         => SCALAR(ADDR4)
+                    # $r  = \27                         => SCALAR(ADDR3)
+                    # $r2 = \2                          => SCALAR(ADDR2)
+
+  $$r **= 2;        # $r  = \729                        => SCALAR(ADDR3)
+                    # $r2 = \2                          => SCALAR(ADDR2)
+
+  $r2 = \shift @x;  # @x  = ()
+                    # $r  = \729                        => SCALAR(ADDR3)
+                    # $r2 = \5                          => SCALAR(ADDR4)
+
+                    # $#x = -1  => scalar(@x) = 0
+                    # $x[0] does not exist
+                    # $x[1] does not exist
+                    # $x[2] does not exist
+
+}                   # scope ends
+
+                    # $#x = 2   => scalar(@x) = 3
+                    # $x[0] does not exist
+                    # $x[1] does not exist
+                    # $x[2] exists
+
+my @y = \(@x);      # @y  = (\undef, \undef, \729)      => SCALAR(ADDR5) SCALAR(ADDR6) SCALAR(ADDR3)
+
+                    # $#x = 2   => scalar(@x) = 3
+                    # $x[0] exists
+                    # $x[1] exists
+                    # $x[2] exists
+
+                    # @x  = (undef, undef, 729)         => SCALAR(ADDR5) SCALAR(ADDR6) SCALAR(ADDR3)
+                    # $r  = \729                        => SCALAR(ADDR3)
+                    # $r2 = \5                          => SCALAR(ADDR4)
+
+$$r **= 2;          # $r  = \531441                     => SCALAR(ADDR3)
+
+                    # @x  = (undef, undef, 531441)      => SCALAR(ADDR5) SCALAR(ADDR6) SCALAR(ADDR3)
+                    # $r  = \531441                     => SCALAR(ADDR3)
+                    # $r2 = \5                          => SCALAR(ADDR4)

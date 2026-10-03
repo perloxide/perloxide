@@ -1,7 +1,9 @@
 # oracle: a differential oracle harness for Perl
 
 `oracle` runs Perl programs through Perl 5.44.0 and two allocator-instrumented builds of it, in three hash modes, and
-classifies each program by what kind of comparison against Perl is meaningful.  It then checks an implementation under
+classifies each program by what kind of comparison against Perl is meaningful.  The three builds come in two families,
+unthreaded and `-Dusethreads`; a program runs in the unthreaded family unless it requires ithreads, and the other
+family's stock build is its configuration cross-check.  It then checks an implementation under
 test against the stored expected outputs, lane by lane.
 
 The seed corpus is every probe from the value/type design research that produced this reference, with expected outputs.
@@ -17,7 +19,7 @@ The seed corpus is every probe from the value/type design research that produced
 | `lib/Oracle/Verdict.pm`                      | the classification rules below                                                                                                                 |
 | `probe-lib/Probe.pm`                         | `__PROBE__($scalar, $label)`: flag projection written to fd 3                                                                                  |
 | `lib/Oracle/Locales.pm`, `locales/`           | compiles the harness's own locales (`radix_comma`: comma radix, else POSIX; `ctype_utf8`: i18n ctype, else POSIX) |
-| `../perls/build-perls.sh`                    | builds the three Perls from the GitHub tag; `--prepare-only` stops before compiling                                                            |
+| `../perls/build-perls.sh`                    | builds the six Perls (two families of three) from the GitHub tag; `--prepare-only` stops before compiling                                      |
 | `../perls/noreuse.patch`                     | `plant_SV` never returns freed SV heads to `PL_sv_root`                                                                                        |
 | `../perls/descending.patch`                  | `S_sv_add_arena` threads each new arena's free list from the highest slot down                                                                 |
 | `../probes/corpus/*.pl`                      | seed corpus                                                                                                                                    |
@@ -25,31 +27,34 @@ The seed corpus is every probe from the value/type design research that produced
 | `tools/gd_predict.pl`                        | arena-walk predictor for global destruction order (`gd_01_order.pl`)                                                                           |
 | `tools/impl-wrong-seed.sh`                   | a deliberately wrong implementation, for exercising `check`                                                                                    |
 | `tools/sources.tsv`, `tools/make-sources.pl` | citation table and the generator for `sources.md`                                                                                              |
-| `oracle.conf`                                | interpreter paths; each overridable by `ORACLE_STOCK`, `ORACLE_NOREUSE`, `ORACLE_DESCENDING`, `ORACLE_XCHECK`, `ORACLE_IMPL`, `ORACLE_TIMEOUT` |
+| `oracle.conf`                                | interpreter paths; each overridable by `ORACLE_` plus its key in upper case (`ORACLE_STOCK`, `ORACLE_THREADS_STOCK`, ...)                      |
 
 ## Requirements
 
-- The three builds from `../perls/build-perls.sh`: `perl-5.44.0`, `perl-5.44.0-noreuse`, `perl-5.44.0-descending`.
+- The six builds from `../perls/build-perls.sh`: `perl-5.44.0`, `perl-5.44.0-noreuse`, `perl-5.44.0-descending`, and the
+  same three with `-Dusethreads` as `perl-5.44.0-threads`, `perl-5.44.0-threads-noreuse` and
+  `perl-5.44.0-threads-descending`.  A missing family only loses the tests that need it and the cross-check on the rest.
 - Optional cross-check interpreter (`xcheck`, default `/usr/bin/perl`).  Its result is recorded as `agrees_with_xcheck`
-  and never affects a verdict.
+  and never affects a verdict; the other family's stock build is recorded the same way as `agrees_with_xconfig`.
 - Linux, core Perl modules only.
 - `localedef` with the glibc i18n sources (the `locales` package on Debian and Ubuntu; part of glibc on most other
   distributions) for the locale probes: at startup the harness compiles its own locales from `locales/` into
   `RESULTS/locales` and passes that directory as `LOCPATH` to every run, so no probe depends on which locales the
-  system has generated.  A threaded Perl for `threads_01_const_marks.pl`.  Tests whose requirements a build lacks
-  are not run on that build.
+  system has generated.  Tests whose requirements a build lacks are not run on that build.
 
 ## Quick start
 
     ../perls/build-perls.sh                                  # once; 15-30 minutes per build on one core
-    bin/oracle run ../probes/corpus --results results        # run the corpus on the three builds
+    bin/oracle run ../probes/corpus --results results        # run the corpus on the builds
     bin/oracle verdict ../probes/corpus --results results    # print per-test verdicts
     bin/oracle selftest ../probes/corpus --results results   # confirm this machine reproduces ../probes/corpus/expected
     bin/oracle check ../probes/corpus --results results --impl /path/to/implementation
 
 ## What happens to each test
 
-Every test id (`file.pl`, or `file.pl@variant`) is run with this plan:
+Every test id (`file.pl`, or `file.pl@variant`) is run with this plan, in its family -- the threaded one if the test
+requires threads, otherwise the unthreaded one.  The family's runs are recorded under the generic names whichever
+family it is, and `RESULTS/<test>/family` says which:
 
 | Build      | seed0  | random | deterministic |
 |------------|--------|--------|---------------|
@@ -57,6 +62,9 @@ Every test id (`file.pl`, or `file.pl@variant`) is run with this plan:
 | noreuse    | 1 run  | 1 run  | -             |
 | descending | 1 run  | 1 run  | -             |
 | xcheck     | 1 run  | -      | -             |
+| xconfig    | 1 run  | -      | -             |
+
+`xcheck` is the other version (5.38.2); `xconfig` is the other family's stock build.  Neither affects a verdict.
 
 - **Modes.** `seed0` sets `PERL_HASH_SEED=0` (Perl's NO perturbation mode, stable across versions and unaffected by
   unrelated hash activity).  `random` leaves the seed unset (Perl's default).  `deterministic` sets
@@ -110,8 +118,9 @@ channels are written to `results/check-diffs/<test>.<comparison>.<channel>.{expe
 | `perl-nondeterministic` | same as allocator-sensitive                                                                                 | as above; fix the program if it was meant as a test.                                                                                                                             |
 | `skipped`               | none                                                                                                        | -                                                                                                                                                                                |
 
-Stock Perl itself passes `check` (34 PASS, 5 SMOKE, 1 SKIP).  `tools/impl-wrong-seed.sh`, which forces
-`PERL_HASH_SEED=1`, fails exactly the nine hash-order-dependent lane-A tests.
+The unthreaded stock Perl passes `check` with 35 PASS, 5 SMOKE and 2 SKIP (the two tests that require threads, which
+an implementation without them is not asked to run); the threaded stock passes all 37 and smokes the same 5.
+`tools/impl-wrong-seed.sh`, which forces `PERL_HASH_SEED=1`, fails exactly the nine hash-order-dependent lane-A tests.
 
 ## Corpus directives
 
@@ -149,6 +158,7 @@ After adding or changing tests: `bin/oracle bless ../probes/corpus --results res
 | `flags_matrix.pl`                      | lane-A-eligible       |
 | `local_01_tied_elem.pl`                | lane-A-eligible       |
 | `local_02_fresh_sv.pl`                 | lane-A-eligible       |
+| `local_03_shared_elem_move.pl`         | lane-A-eligible       |
 | `locale_01_setlocale_after_cache.pl`   | lane-A-eligible       |
 | `locale_02_copy_across.pl`             | lane-A-eligible       |
 | `locale_03_sub_boundary.pl`            | lane-A-eligible       |
@@ -161,6 +171,7 @@ After adding or changing tests: `bin/oracle bless ../probes/corpus --results res
 | `order_02_modes.pl@noise50`            | lane-A-eligible       |
 | `order_03_insert_warn_modes.pl`        | lane-A-eligible       |
 | `probe_01_face_trace.pl`               | lane-A-eligible       |
+| `threads_01_const_marks.pl`            | lane-A-eligible       |
 | `value_01_stale_search.pl`             | lane-A-eligible       |
 | `value_02_locale_radix.pl`             | lane-A-eligible       |
 | `value_03_handler_reassign_by_path.pl` | lane-A-eligible       |
@@ -168,10 +179,11 @@ After adding or changing tests: `bin/oracle bless ../probes/corpus --results res
 | `gd_01_order.pl@plain`                 | lane-B-only           |
 | `gd_01_order.pl@prime`                 | lane-B-only           |
 | `addr_02_observable.pl`                | perl-nondeterministic |
-| `threads_01_const_marks.pl`            | skipped               |
 
-`threads_01_const_marks.pl` needs ithreads, which the three 5.44.0 builds lack.  Its cross-check output from threaded
-Perl 5.38.2 is stored in `../probes/corpus/expected/threads_01_const_marks.pl/xcheck.seed0.*` for reference.
+`local_03_shared_elem_move.pl` and `threads_01_const_marks.pl` require ithreads and were blessed in the threaded family
+(`expected/<test>/family`).  Every lane-A test of the unthreaded family agrees exactly with the threaded stock build
+(`agrees_with_xconfig=1`); the only disagreements are `gd_01_order.pl@prime` (lane B) and `addr_02_observable.pl`
+(nondeterministic), whose outputs are not functions of the program to begin with.
 
 ## Provisional choices
 
@@ -184,7 +196,7 @@ These are harness decisions made while building it.  Each lives in one place and
   so a program that prints them is classified `perl-nondeterministic`.  Hash traversal masks printed in hex are
   normalized as if they were addresses.
 - **Run counts** are two stock runs per gated mode and one per patched build.
-- **Cross-check (5.38.2)** is informational only.
+- **Cross-checks** (5.38.2, and the other family's stock build) are informational only.
 - **Lane B comparisons** erase address identity, since tokens can't be numbered consistently across reordered lines.
 
 ## Known limitations
@@ -192,7 +204,5 @@ These are harness decisions made while building it.  Each lives in one place and
 - No program generator and no minimizer yet.  The research specification for both is in the design thread.
 - The allocator gate uses two perturbations, reuse and fresh-address order.  A program sensitive only to some other
   allocator property would pass it.
-- `../perls/build-perls.sh --prepare-only` was verified here: the patches apply to a fresh v5.44.0 checkout, and the
-  resulting `sv.c` files are byte-identical to the ones the verified builds compiled.  The compile step of the script
-  was not rerun end to end; those builds were made by the equivalent manual commands.
-- The threads probe ran only on Perl 5.38.2 (threaded).  Not verified on 5.44.0.
+- `../perls/build-perls.sh` has been run end to end on Ubuntu 24.04 (two cores, about three minutes per build); the
+  patches apply to a fresh v5.44.0 checkout in both families.
