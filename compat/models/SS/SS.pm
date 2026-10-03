@@ -208,8 +208,12 @@ sub hv_exists {
 }
 
 # av_delete / hv_delete with G_DISCARD; a tied container routes to the
-# tie's DELETE. A plain array deletion at the top index shrinks the array
-# past any contiguous holes below it.
+# tie's DELETE. A plain array deletion past the fill is a no-op (av.c:1095
+# returns before touching the array); a deletion at the top index shrinks
+# the array past any contiguous holes below it. The past-the-fill case is
+# reached by an ADELETE restore after the array shrank below the saved
+# index; an earlier version extended the array to the index first and then
+# trimmed it back through the holes, which is not what perl does.
 sub av_delete {
     my ($avid, $idx) = @_;
     my $av = $AV{$avid};
@@ -224,6 +228,7 @@ sub av_delete {
         return;
     }
     my $e = $av->{elems};
+    return if $idx > $#$e;
     rc_dec($e->[$idx]) if defined $e->[$idx];
     $e->[$idx] = undef;
     if ($idx == $#$e) { pop @$e; pop @$e while @$e && !defined $e->[-1] }
