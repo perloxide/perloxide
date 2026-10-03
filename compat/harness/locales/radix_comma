@@ -1,0 +1,76 @@
+comment_char %
+escape_char /
+% A locale whose only departure from POSIX is a comma decimal point. The numeric-radix probes and
+% lanes use it so that no test depends on which locales a system happens to have generated. Every
+% category other than LC_NUMERIC is POSIX.
+LC_IDENTIFICATION
+title      "comma-radix test locale"
+source     ""
+address    ""
+contact    ""
+email      ""
+tel        ""
+fax        ""
+language   ""
+territory  ""
+revision   "1.0"
+date       "2026-10-02"
+category   "i18n:2012";LC_IDENTIFICATION
+category   "i18n:2012";LC_CTYPE
+category   "i18n:2012";LC_COLLATE
+category   "i18n:2012";LC_TIME
+category   "i18n:2012";LC_NUMERIC
+category   "i18n:2012";LC_MONETARY
+category   "i18n:2012";LC_MESSAGES
+category   "i18n:2012";LC_PAPER
+category   "i18n:2012";LC_NAME
+category   "i18n:2012";LC_ADDRESS
+category   "i18n:2012";LC_TELEPHONE
+category   "i18n:2012";LC_MEASUREMENT
+END LC_IDENTIFICATION
+
+LC_CTYPE
+copy "POSIX"
+END LC_CTYPE
+
+LC_COLLATE
+copy "POSIX"
+END LC_COLLATE
+
+LC_NUMERIC
+decimal_point   "<U002C>"
+thousands_sep   "<U002E>"
+grouping        3
+END LC_NUMERIC
+
+LC_TIME
+copy "POSIX"
+END LC_TIME
+
+LC_MONETARY
+copy "POSIX"
+END LC_MONETARY
+
+LC_MESSAGES
+copy "POSIX"
+END LC_MESSAGES
+
+LC_PAPER
+copy "POSIX"
+END LC_PAPER
+
+LC_NAME
+copy "POSIX"
+END LC_NAME
+
+LC_ADDRESS
+copy "POSIX"
+END LC_ADDRESS
+
+LC_TELEPHONE
+copy "POSIX"
+END LC_TELEPHONE
+
+LC_MEASUREMENT
+copy "POSIX"
+END LC_MEASUREMENT

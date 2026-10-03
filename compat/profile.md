@@ -42,11 +42,12 @@ where it is stated.
 
 ## Locale
 
-- Numeric-radix lanes use a locale compiled by the harness from its own source (`radix_comma`: `LC_NUMERIC` with
-  `decimal_point ","`, every other category `copy "POSIX"`); ctype lanes use `ctype_utf8` (`LC_CTYPE copy "i18n"`).
-  Both are compiled with the system's `localedef` against the system's own `i18n` sources into `.locales/`, so no lane
-  depends on which locales the system has generated.  The `localedef` (glibc) version and a hash of the sources compiled
-  are recorded in each locale lane's report header.
+- Numeric-radix probes and lanes use a locale the harness compiles from its own source (`radix_comma`: `LC_NUMERIC`
+  with `decimal_point ","`, every other category POSIX); ctype probes use `ctype_utf8` (`LC_CTYPE` from the glibc
+  `i18n` classification, every other category POSIX).  The sources are `harness/locales/`;
+  `harness/lib/Oracle/Locales.pm` compiles them with the system's `localedef` against the system's own `i18n` sources
+  at startup, so no probe depends on which locales the system has generated.  The compiled form is keyed by the
+  sources and the `localedef` version, so a changed glibc recompiles.
 - Cross-version fact: after `setlocale(LC_NUMERIC, <comma locale>)` at file scope with no `use locale`, 5.38.2
   stringifies `3.5` as `3,5` and 5.44.0 as `3.5`.
 

@@ -1,8 +1,8 @@
-# oracle-requires: locale de_DE.UTF-8
+# oracle-requires: locale radix_comma.UTF-8
 # Locale-dependent parse: is a numeric cache made under 'use locale' (comma radix) reused outside it?
 use strict; use warnings; no warnings 'numeric';
 use POSIX qw(setlocale LC_NUMERIC);
-my $got = setlocale(LC_NUMERIC, "de_DE.UTF-8"); print "setlocale: ", ($got // 'undef'), "\n";
+my $got = setlocale(LC_NUMERIC, "radix_comma.UTF-8"); print "setlocale: ", ($got // 'undef'), "\n";
 my $s = "" . "1,5";
 my $inside;
 { use locale; $inside = $s + 0; }
