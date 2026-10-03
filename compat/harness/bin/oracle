@@ -43,14 +43,17 @@ my %FAMILY = (
     plain   => { stock => 'stock',         noreuse => 'noreuse',         descending => 'descending' },
     threads => { stock => 'threads_stock', noreuse => 'threads_noreuse', descending => 'threads_descending' },
 );
+# The seed0 group, the seed ladder, and the random pair of Verdict.pm.
 my @ORACLE_PLAN = (
-    [ 'stock',      'seed0',         2 ],
-    [ 'stock',      'random',        2 ],
-    [ 'stock',      'deterministic', 1 ],
-    [ 'noreuse',    'seed0',         1 ],
-    [ 'noreuse',    'random',        1 ],
-    [ 'descending', 'seed0',         1 ],
-    [ 'descending', 'random',        1 ],
+    [ 'stock',      'seed0',  2 ],
+    [ 'stock',      'seed1',  1 ],
+    [ 'stock',      'seed2',  1 ],
+    [ 'stock',      'seed3',  1 ],
+    [ 'stock',      'random', 2 ],
+    [ 'noreuse',    'seed0',  1 ],
+    [ 'noreuse',    'seed1',  1 ],
+    [ 'descending', 'seed0',  1 ],
+    [ 'descending', 'seed1',  1 ],
 );
 my @CROSS_PLAN = (
     [ 'xcheck',  'seed0', 1 ],
@@ -201,7 +204,7 @@ sub classify_test {
     chomp $family;
     $family = 'plain' unless length $family;
     my %runs;
-    for my $name (qw(stock.seed0.1 stock.seed0.2 noreuse.seed0.1 descending.seed0.1 stock.random.1 stock.random.2 noreuse.random.1 descending.random.1)) {
+    for my $name (@Oracle::Verdict::REQUIRED) {
         my $r = read_record("$dir/$name");
         return ('skipped', { reason => "missing run $name", family => $family }, undef) unless $r;
         $runs{$name} = $r;
@@ -230,9 +233,14 @@ sub cmd_verdict {
     print "\n", join(', ', map { "$_: $count{$_}" } sort keys %count), "\n";
 }
 
-# Expected outputs: the verdict, the family that produced it, exact-normalized seed0 channels from
-# stock run 1, canonical seed0 and random channels, and, when present, the exact-normalized seed0
-# channels of each cross-check build (xcheck, the other version; xconfig, the other family).
+# Expected outputs: the verdict, the family that produced it, and also_lane_b for every test.  For
+# a lane-A test, the exact-normalized seed0 channels from stock run 1 and, when present, the
+# exact-normalized seed0 channels of each cross-check build (xcheck, the other version; xconfig, the
+# other family).  Canonical channels at seed 0 and seed 1 where a comparison uses them: for a lane-B
+# test, and for a lane-A test whose output is independent of hash order (also_lane_b).  An
+# allocator-sensitive or nondeterministic test records only its verdict, since no channel of it is
+# a function of the program.  Nothing recorded here comes from a random-seed run, so blessing the
+# same program twice writes the same files.
 sub cmd_bless {
     my ($corpus, $results, @tests) = @_;
     for my $t (@tests) {
@@ -243,19 +251,23 @@ sub cmd_bless {
         spew("$dir/verdict", "$verdict\n");
         spew("$dir/family", "$detail->{family}\n");
         if ($runs) {
-            my $s = $runs->{'stock.seed0.1'};
-            my @exact = Oracle::Normalize::exact(@{$s}{qw(stdout stderr fd3)});
-            spew("$dir/seed0.$_", shift @exact) for qw(stdout stderr fd3);
-            spew("$dir/seed0.exit", $s->{exit});
             spew("$dir/also_lane_b", "$detail->{also_lane_b}\n");
-            for my $mode (qw(seed0 random)) {
-                my $r = $runs->{"stock.$mode.1"};
-                my @canon = Oracle::Normalize::canonical(@{$r}{qw(stdout stderr fd3)});
-                spew("$dir/canonical.$mode.$_", shift @canon) for qw(stdout stderr fd3);
-                spew("$dir/canonical.$mode.exit", $r->{exit});
+            if ($verdict eq 'lane-A-eligible') {
+                my $s = $runs->{'stock.seed0.1'};
+                my @exact = Oracle::Normalize::exact(@{$s}{qw(stdout stderr fd3)});
+                spew("$dir/seed0.$_", shift @exact) for qw(stdout stderr fd3);
+                spew("$dir/seed0.exit", $s->{exit});
+            }
+            if ($verdict eq 'lane-B-only' || ($verdict eq 'lane-A-eligible' && $detail->{also_lane_b})) {
+                for my $mode (qw(seed0 seed1)) {
+                    my $r = $runs->{"stock.$mode.1"};
+                    my @canon = Oracle::Normalize::canonical(@{$r}{qw(stdout stderr fd3)});
+                    spew("$dir/canonical.$mode.$_", shift @canon) for qw(stdout stderr fd3);
+                    spew("$dir/canonical.$mode.exit", $r->{exit});
+                }
             }
         }
-        for my $cross (qw(xcheck xconfig)) {
+        for my $cross ($verdict eq 'lane-A-eligible' ? qw(xcheck xconfig) : ()) {
             my $x = read_record(test_dir($results, $t->{id}) . "/$cross.seed0.1") or next;
             my @exact = Oracle::Normalize::exact(@{$x}{qw(stdout stderr fd3)});
             spew("$dir/$cross.seed0.$_", shift @exact) for qw(stdout stderr fd3);
@@ -285,16 +297,32 @@ sub cmd_selftest {
         my @problems;
         push @problems, "verdict $verdict, expected $want" if $verdict ne $want;
         push @problems, "family $detail->{family}, expected $want_family" if $detail->{family} ne $want_family;
+        (my $safe = $t->{id}) =~ s/\@/__/g;
         if ($runs && $want eq 'lane-A-eligible') {
             my @exact = Oracle::Normalize::exact(@{ $runs->{'stock.seed0.1'} }{qw(stdout stderr fd3)});
             for my $ch (qw(stdout stderr fd3)) {
                 my $got  = shift @exact;
                 my $want = slurp("$dir/seed0.$ch");
                 next if $got eq $want;
-                (my $safe = $t->{id}) =~ s/\@/__/g;
                 spew("$diffdir/$safe.seed0.$ch.expected", $want);
                 spew("$diffdir/$safe.seed0.$ch.actual",   $got);
                 push @problems, "seed0 $ch differs from expected (see $diffdir/$safe.seed0.$ch.*)";
+            }
+        }
+        if ($runs && -e "$dir/also_lane_b") {
+            my $want_b = slurp("$dir/also_lane_b");
+            chomp $want_b;
+            push @problems, "also_lane_b $detail->{also_lane_b}, expected $want_b" if $detail->{also_lane_b} ne $want_b;
+        }
+
+        # Every canonical channel that bless recorded is reproducible, so each one is checked.
+        if ($runs) {
+            for my $mode (qw(seed0 seed1)) {
+                next unless -e "$dir/canonical.$mode.exit";
+                my $r = $runs->{"stock.$mode.1"};
+                my %c = (exit => $r->{exit});
+                @c{qw(stdout stderr fd3)} = Oracle::Normalize::canonical(@{$r}{qw(stdout stderr fd3)});
+                push @problems, compare_channels("canonical $mode", \%c, $dir, "canonical.$mode", $diffdir, $t->{id});
             }
         }
         $failures++ if @problems;
@@ -339,7 +367,7 @@ sub cmd_check {
         remove_tree($wdir);
         make_path($wdir);
         my %got;
-        for my $mode (qw(seed0 random)) {
+        for my $mode (qw(seed0 seed1)) {
             Oracle::Run::run(
                 perl => $impl, file => $t->{file}, prefix => "$wdir/impl.$mode", mode => $mode,
                 extra_env => { %{ $t->{env} || {} }, ($LOCPATH ? (LOCPATH => $LOCPATH) : ()) }, probe_lib => ($t->{probe} ? "$Bin/../probe-lib" : undef),
@@ -355,8 +383,8 @@ sub cmd_check {
                 @e{qw(stdout stderr fd3)} = Oracle::Normalize::exact(@{ $got{seed0} }{qw(stdout stderr fd3)});
                 push @problems, compare_channels('lane A seed0 exact', \%e, $edir, 'seed0', $diffdir, $t->{id});
             }
-            for my $mode (qw(seed0 random)) {
-                next if $verdict eq 'lane-A-eligible' && !($mode eq 'random' && slurp("$edir/also_lane_b") =~ /^1/);
+            for my $mode (qw(seed0 seed1)) {
+                next if $verdict eq 'lane-A-eligible' && !($mode eq 'seed1' && slurp("$edir/also_lane_b") =~ /^1/);
                 my %c = (exit => $got{$mode}{exit});
                 @c{qw(stdout stderr fd3)} = Oracle::Normalize::canonical(@{ $got{$mode} }{qw(stdout stderr fd3)});
                 push @problems, compare_channels("lane B $mode canonical", \%c, $edir, "canonical.$mode", $diffdir, $t->{id});
@@ -365,10 +393,10 @@ sub cmd_check {
             @notes = @problems;
         }
         elsif ($verdict eq 'allocator-sensitive' || $verdict eq 'perl-nondeterministic') {
-            my $bad = grep { $got{$_}{exit} =~ /^(timeout|signal)/ } qw(seed0 random);
+            my $bad = grep { $got{$_}{exit} =~ /^(timeout|signal)/ } qw(seed0 seed1);
             $status = $bad ? 'FAIL' : 'SMOKE';
-            my ($se, $re) = map { (my $e = $got{$_}{exit}) =~ s/\s+\z//; $e } qw(seed0 random);
-            @notes = ("no output comparison; seed0 $se, random $re");
+            my ($se, $re) = map { (my $e = $got{$_}{exit}) =~ s/\s+\z//; $e } qw(seed0 seed1);
+            @notes = ("no output comparison; seed0 $se, seed1 $re");
         }
         else {
             $status = 'SKIP';
@@ -394,6 +422,10 @@ my $conf = load_config($config);
 $LOCPATH = Oracle::Locales::compile("$results/locales");
 print STDERR "oracle: compiled locales unavailable ($Oracle::Locales::WHY); probes that require one are skipped\n" unless $LOCPATH;
 $conf->{impl} = $impl if defined $impl;
+
+# Runs change into the test's directory before exec, so a relative implementation path must be
+# resolved here.
+$conf->{impl} = File::Spec->rel2abs($conf->{impl}) if defined $conf->{impl} && length $conf->{impl};
 my @tests = discover($corpus, defined $only ? qr/$only/ : undef);
 make_path($results);
 if    ($command eq 'list')     { print "$_->{id}\n" for @tests }

@@ -20,12 +20,14 @@ sub base_env {
     );
 }
 
-# Hash-seed settings for each mode. "random" leaves PERL_HASH_SEED unset, which is perl's default.
+# Hash-seed settings for each mode. A seedN mode pins PERL_HASH_SEED to N; with the seed set, perl
+# perturbs keys deterministically from it (PERL_PERTURB_KEYS defaults to DETERMINISTIC), so every
+# seedN run reproduces one hash order exactly. "random" leaves PERL_HASH_SEED unset, which is perl's
+# default: a fresh seed, and a fresh order, each run.
 sub mode_env {
     my ($mode) = @_;
-    return (PERL_HASH_SEED => '0')        if $mode eq 'seed0';
-    return (PERL_HASH_SEED => '12345678') if $mode eq 'deterministic';
-    return ()                             if $mode eq 'random';
+    return (PERL_HASH_SEED => $1) if $mode =~ /^seed(\d+)\z/;
+    return ()                     if $mode eq 'random';
     die "unknown hash mode '$mode'\n";
 }
 
