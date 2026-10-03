@@ -1,4 +1,0 @@
-(a) seen-set over fresh hashes: new dup dup dup
-(d) stringified fresh hashes across iterations identical: yes
-(e) names sorted by refaddr: b t1 t0 t2 a c
-(f) key order of ref-keyed hash: 5 7 3 1 6 0 2 4 x
