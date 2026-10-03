@@ -230,6 +230,12 @@ sub cmd_bless {
 sub cmd_selftest {
     my ($corpus, $results, @tests) = @_;
     my $failures = 0;
+
+    # A channel that differs from its blessed copy is written out as an expected/actual pair, so the
+    # report names where to look rather than only that they differ.
+    my $diffdir = "$results/selftest-diffs";
+    remove_tree($diffdir);
+    make_path($diffdir);
     for my $t (@tests) {
         my $dir = test_dir("$corpus/expected", $t->{id});
         my $want = slurp("$dir/verdict");
@@ -240,8 +246,13 @@ sub cmd_selftest {
         if ($runs && $want eq 'lane-A-eligible') {
             my @exact = Oracle::Normalize::exact(@{ $runs->{'stock.seed0.1'} }{qw(stdout stderr fd3)});
             for my $ch (qw(stdout stderr fd3)) {
-                my $got = shift @exact;
-                push @problems, "seed0 $ch differs from expected" if $got ne slurp("$dir/seed0.$ch");
+                my $got  = shift @exact;
+                my $want = slurp("$dir/seed0.$ch");
+                next if $got eq $want;
+                (my $safe = $t->{id}) =~ s/\@/__/g;
+                spew("$diffdir/$safe.seed0.$ch.expected", $want);
+                spew("$diffdir/$safe.seed0.$ch.actual",   $got);
+                push @problems, "seed0 $ch differs from expected (see $diffdir/$safe.seed0.$ch.*)";
             }
         }
         $failures++ if @problems;
