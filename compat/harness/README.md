@@ -3,31 +3,31 @@
 `oracle` runs Perl programs through Perl 5.44.0 and two allocator-instrumented builds of it, in three hash modes, and
 classifies each program by what kind of comparison against Perl is meaningful.  The three builds come in two families,
 unthreaded and `-Dusethreads`; a program runs in the unthreaded family unless it requires ithreads, and the other
-family's stock build is its configuration cross-check.  It then checks an implementation under
-test against the stored expected outputs, lane by lane.
+family's stock build is its configuration cross-check.  It then checks an implementation under test against the stored
+expected outputs, lane by lane.
 
 The seed corpus is every probe from the value/type design research that produced this reference, with expected outputs.
 `sources.md` lists the Perl source behind each probe's rule.
 
 ## Layout
 
-| Path                                         | Contents                                                                                                                                       |
-|----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
-| `bin/oracle`                                 | driver: `list`, `run`, `verdict`, `bless`, `selftest`, `check`                                                                                 |
-| `lib/Oracle/Run.pm`                          | runs one program: pinned environment, stdout, stderr, fd 3, exit record, timeout                                                               |
-| `lib/Oracle/Normalize.pm`                    | address bijection (`exact`) and line-order canonicalization (`canonical`)                                                                      |
-| `lib/Oracle/Verdict.pm`                      | the classification rules below                                                                                                                 |
-| `probe-lib/Probe.pm`                         | `__PROBE__($scalar, $label)`: flag projection written to fd 3                                                                                  |
-| `lib/Oracle/Locales.pm`, `locales/`           | compiles the harness's own locales (`radix_comma`: comma radix, else POSIX; `ctype_utf8`: i18n ctype, else POSIX) |
-| `../perls/build-perls.sh`                    | builds the six Perls (two families of three) from the GitHub tag; `--prepare-only` stops before compiling                                      |
-| `../perls/noreuse.patch`                     | `plant_SV` never returns freed SV heads to `PL_sv_root`                                                                                        |
-| `../perls/descending.patch`                  | `S_sv_add_arena` threads each new arena's free list from the highest slot down                                                                 |
-| `../probes/corpus/*.pl`                      | seed corpus                                                                                                                                    |
-| `../probes/corpus/expected/<test>/`          | blessed verdict and normalized outputs per test                                                                                                |
-| `tools/gd_predict.pl`                        | arena-walk predictor for global destruction order (`gd_01_order.pl`)                                                                           |
-| `tools/impl-wrong-seed.sh`                   | a deliberately wrong implementation, for exercising `check`                                                                                    |
-| `tools/sources.tsv`, `tools/make-sources.pl` | citation table and the generator for `sources.md`                                                                                              |
-| `oracle.conf`                                | interpreter paths; each overridable by `ORACLE_` plus its key in upper case (`ORACLE_STOCK`, `ORACLE_THREADS_STOCK`, ...)                      |
+| Path                                         | Contents                                                                                                                  |
+|----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `bin/oracle`                                 | driver: `list`, `run`, `verdict`, `bless`, `selftest`, `check`                                                            |
+| `lib/Oracle/Run.pm`                          | runs one program: pinned environment, stdout, stderr, fd 3, exit record, timeout                                          |
+| `lib/Oracle/Normalize.pm`                    | address bijection (`exact`) and line-order canonicalization (`canonical`)                                                 |
+| `lib/Oracle/Verdict.pm`                      | the classification rules below                                                                                            |
+| `probe-lib/Probe.pm`                         | `__PROBE__($scalar, $label)`: flag projection written to fd 3                                                             |
+| `lib/Oracle/Locales.pm`, `locales/`          | compiles the harness's own locales (`radix_comma`: comma radix, else POSIX; `ctype_utf8`: i18n ctype, else POSIX)         |
+| `../perls/build-perls.sh`                    | builds the six Perls (two families of three) from the GitHub tag; `--prepare-only` stops before compiling                 |
+| `../perls/noreuse.patch`                     | `plant_SV` never returns freed SV heads to `PL_sv_root`                                                                   |
+| `../perls/descending.patch`                  | `S_sv_add_arena` threads each new arena's free list from the highest slot down                                            |
+| `../probes/corpus/*.pl`                      | seed corpus                                                                                                               |
+| `../probes/corpus/expected/<test>/`          | blessed verdict and normalized outputs per test                                                                           |
+| `tools/gd_predict.pl`                        | arena-walk predictor for global destruction order (`gd_01_order.pl`)                                                      |
+| `tools/impl-wrong-seed.sh`                   | a deliberately wrong implementation, for exercising `check`                                                               |
+| `tools/sources.tsv`, `tools/make-sources.pl` | citation table and the generator for `sources.md`                                                                         |
+| `oracle.conf`                                | interpreter paths; each overridable by `ORACLE_` plus its key in upper case (`ORACLE_STOCK`, `ORACLE_THREADS_STOCK`, ...) |
 
 ## Requirements
 
@@ -39,8 +39,8 @@ The seed corpus is every probe from the value/type design research that produced
 - Linux, core Perl modules only.
 - `localedef` with the glibc i18n sources (the `locales` package on Debian and Ubuntu; part of glibc on most other
   distributions) for the locale probes: at startup the harness compiles its own locales from `locales/` into
-  `RESULTS/locales` and passes that directory as `LOCPATH` to every run, so no probe depends on which locales the
-  system has generated.  Tests whose requirements a build lacks are not run on that build.
+  `RESULTS/locales` and passes that directory as `LOCPATH` to every run, so no probe depends on which locales the system
+  has generated.  Tests whose requirements a build lacks are not run on that build.
 
 ## Quick start
 
@@ -53,8 +53,8 @@ The seed corpus is every probe from the value/type design research that produced
 ## What happens to each test
 
 Every test id (`file.pl`, or `file.pl@variant`) is run with this plan, in its family -- the threaded one if the test
-requires threads, otherwise the unthreaded one.  The family's runs are recorded under the generic names whichever
-family it is, and `RESULTS/<test>/family` says which:
+requires threads, otherwise the unthreaded one.  The family's runs are recorded under the generic names whichever family
+it is, and `RESULTS/<test>/family` says which:
 
 | Build      | seed0  | seed1 | seed2 | seed3 | random |
 |------------|--------|-------|-------|-------|--------|
@@ -88,13 +88,13 @@ family it is, and `RESULTS/<test>/family` says which:
 
 Checked in this order:
 
-| Verdict                 | Rule                                                                                                                             | Meaning                                                                                           |
-|-------------------------|----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| `lane-A-eligible`       | exact-normalized outputs identical across stock seed0 run 1, stock seed0 run 2, noreuse seed0, and descending seed0              | output is a function of the program and the pinned hash seed alone                                |
-| `lane-B-only`           | not lane-A-eligible, but canonical outputs are identical across the seed0 group and, separately, across the seed ladder          | the content is stable; only line order depends on the allocator, address values, or the hash seed |
-| `perl-nondeterministic` | stock Perl disagrees with itself canonically, in seed0 or in random mode                                                         | output varies between identical runs (for example, it depends on address bits fed into a hash)    |
-| `allocator-sensitive`   | stock Perl agrees with itself, but a patched allocator changes the canonical output                                              | output depends on SV head reuse or address order                                                  |
-| `skipped`               | a required run is missing (requirements unmet on a build)                                                                        | no verdict                                                                                        |
+| Verdict                 | Rule                                                                                                                    | Meaning                                                                                           |
+|-------------------------|-------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| `lane-A-eligible`       | exact-normalized outputs identical across stock seed0 run 1, stock seed0 run 2, noreuse seed0, and descending seed0     | output is a function of the program and the pinned hash seed alone                                |
+| `lane-B-only`           | not lane-A-eligible, but canonical outputs are identical across the seed0 group and, separately, across the seed ladder | the content is stable; only line order depends on the allocator, address values, or the hash seed |
+| `perl-nondeterministic` | stock Perl disagrees with itself canonically, in seed0 or in random mode                                                | output varies between identical runs (for example, it depends on address bits fed into a hash)    |
+| `allocator-sensitive`   | stock Perl agrees with itself, but a patched allocator changes the canonical output                                     | output depends on SV head reuse or address order                                                  |
+| `skipped`               | a required run is missing (requirements unmet on a build)                                                               | no verdict                                                                                        |
 
 **The gate.** A program is lane-A-eligible if and only if its output is identical across all three builds and across two
 stock runs.  The two patched builds cover the two ways a program can observe the allocator without printing an address:
@@ -111,19 +111,19 @@ program twice writes the same files.
 
 ## What an implementer does with a result
 
-`bin/oracle check ... --impl` runs the implementation at seed 0 and seed 1 and reports per test.  Mismatched
-channels are written to `results/check-diffs/<test>.<comparison>.<channel>.{expected,actual}`.
+`bin/oracle check ... --impl` runs the implementation at seed 0 and seed 1 and reports per test.  Mismatched channels
+are written to `results/check-diffs/<test>.<comparison>.<channel>.{expected,actual}`.
 
-| Verdict                 | Comparison                                                                                                  | A failure means                                                                                                                                                                  |
-|-------------------------|-------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `lane-A-eligible`       | seed0, exact-normalized, every channel and the exit record; if `also_lane_b`, seed1 canonical as well       | a real divergence.  It includes hash iteration order, which requires an hv.c-faithful engine at seed 0.  Read the fd 3 trace first: the first differing PROBE line localizes it. |
-| `lane-B-only`           | seed0 and seed1, canonical                                                                                  | content differs regardless of order: a missing, extra, or changed line.  Order-only differences are not reported.                                                                |
-| `allocator-sensitive`   | none; the run must finish without `timeout` or `signal`                                                     | only crashes and hangs are failures.  The output is not specified by Perl and must not be used as an expected result.                                                            |
-| `perl-nondeterministic` | same as allocator-sensitive                                                                                 | as above; fix the program if it was meant as a test.                                                                                                                             |
-| `skipped`               | none                                                                                                        | -                                                                                                                                                                                |
+| Verdict                 | Comparison                                                                                            | A failure means                                                                                                                                                                  |
+|-------------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `lane-A-eligible`       | seed0, exact-normalized, every channel and the exit record; if `also_lane_b`, seed1 canonical as well | a real divergence.  It includes hash iteration order, which requires an hv.c-faithful engine at seed 0.  Read the fd 3 trace first: the first differing PROBE line localizes it. |
+| `lane-B-only`           | seed0 and seed1, canonical                                                                            | content differs regardless of order: a missing, extra, or changed line.  Order-only differences are not reported.                                                                |
+| `allocator-sensitive`   | none; the run must finish without `timeout` or `signal`                                               | only crashes and hangs are failures.  The output is not specified by Perl and must not be used as an expected result.                                                            |
+| `perl-nondeterministic` | same as allocator-sensitive                                                                           | as above; fix the program if it was meant as a test.                                                                                                                             |
+| `skipped`               | none                                                                                                  | -                                                                                                                                                                                |
 
-The unthreaded stock Perl passes `check` with 35 PASS, 5 SMOKE and 2 SKIP (the two tests that require threads, which
-an implementation without them is not asked to run); the threaded stock passes all 37 and smokes the same 5.
+The unthreaded stock Perl passes `check` with 35 PASS, 5 SMOKE and 2 SKIP (the two tests that require threads, which an
+implementation without them is not asked to run); the threaded stock passes all 37 and smokes the same 5.
 `tools/impl-wrong-seed.sh`, which forces `PERL_HASH_SEED=1`, fails exactly the eight lane-A tests whose seed-1 output
 differs from their seed-0 output.
 
@@ -167,6 +167,7 @@ allocator-sensitive or nondeterministic test records only its verdict.
 | `local_01_tied_elem.pl`                | lane-A-eligible       |
 | `local_02_fresh_sv.pl`                 | lane-A-eligible       |
 | `local_03_shared_elem_move.pl`         | lane-A-eligible       |
+| `local_elem_sv_identity.pl`            | lane-A-eligible       |
 | `locale_01_setlocale_after_cache.pl`   | lane-A-eligible       |
 | `locale_02_copy_across.pl`             | lane-A-eligible       |
 | `locale_03_sub_boundary.pl`            | lane-A-eligible       |
