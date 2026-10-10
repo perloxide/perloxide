@@ -7,6 +7,11 @@
 use strict;
 use warnings;
 use FindBin qw($Bin);
+use Text::Wrap qw(wrap);
+
+# The reference's markdown is wrapped at 120 columns; a continued bullet line is indented two spaces.
+$Text::Wrap::columns = 121;
+$Text::Wrap::unexpand = 0;
 
 my ($tree) = @ARGV;
 die "usage: make-sources.pl PERL5_TREE\n" unless defined $tree && -d $tree;
@@ -27,12 +32,10 @@ while (my $line = <$tsv>) {
         }
         $where = defined $found ? "`$file:$found`" : "`$file` NOT FOUND";
     }
-    push @{ $by_probe{$probe} }, "- $where $note";
+    push @{ $by_probe{$probe} }, wrap("- ", "  ", "$where $note");
 }
 print "# Source citations\n\n";
-print "Line numbers refer to the perl5 repository at tag v5.44.0 and were resolved mechanically by\n";
-print "`tools/make-sources.pl` from `tools/sources.tsv`. \"Probe only\" marks rules established by\n";
-print "running the probe without reading the corresponding source.\n\n";
-for my $probe (@order) {
-    print "## $probe\n\n", join("\n", @{ $by_probe{$probe} }), "\n\n";
-}
+print wrap("", "", "Line numbers refer to the `perl5` repository at tag `v5.44.0` and were resolved mechanically by"
+    . " `tools/make-sources.pl` from `tools/sources.tsv`.  \"Probe only\" marks rules established by running the probe"
+    . " without reading the corresponding source."), "\n\n";
+print join("\n", map { "## $_\n\n" . join("\n", @{ $by_probe{$_} }) . "\n" } @order);
