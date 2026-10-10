@@ -110,14 +110,15 @@ recorded here with its kind (fix, extension, or accepted difference) and
 its reason.  The harness rows marked `DIVERGES-defined` are the
 acceptance tests for these entries.
 
-| Window (`compat/undefined.md`) | PerlOxide behavior | Kind | Reason |
-|---|---|---|---|
-| W1: numeric replacement under an NV-converting outer op | redispatch the interrupted conversion on the current holder kind; no additional warning | fix | perl segfaults |
-| W2: reference replacement under the same | redispatch to reference numification; no flags cached | fix | perl reads the RV through the union |
-| W3: reference holder with an infinite NV in the IV window | the fill proceeds as slot arithmetic independent of holder kind | fix | perl crashes on one referent shape |
-| `undef` replacement under `sprintf "%g"` | terminate after the second warning | fix | perl loops or crashes |
-| `shift @_` under held aliases | `@_` storage is refcounted; the aliases stay valid | fix | perl reads freed memory |
-| `local` on a shared scalar across tasks | binding-`local` is task-local; element `local` on a shared container is a cross-task mutation | extension | perl's `threads::shared` semantics are not a target |
+| Window (`compat/undefined.md`)                            | PerlOxide behavior                                                                            | Kind                | Reason                                                                                                                              |
+|-----------------------------------------------------------|-----------------------------------------------------------------------------------------------|---------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| W1: numeric replacement under an NV-converting outer op   | redispatch the interrupted conversion on the current holder kind; no additional warning       | fix                 | perl segfaults                                                                                                                      |
+| W2: reference replacement under the same                  | redispatch to reference numification; no flags cached                                         | fix                 | perl reads the RV through the union                                                                                                 |
+| W3: reference holder with an infinite NV in the IV window | the fill proceeds as slot arithmetic independent of holder kind                               | fix                 | perl crashes on one referent shape                                                                                                  |
+| `undef` replacement under `sprintf "%g"`                  | terminate after the second warning                                                            | fix                 | perl loops or crashes                                                                                                               |
+| `shift @_` under held aliases                             | `@_` storage is refcounted; the aliases stay valid                                            | fix                 | perl reads freed memory                                                                                                             |
+| `local` on a shared scalar across tasks                   | binding-`local` is task-local; element `local` on a shared container is a cross-task mutation | extension           | perl's `threads::shared` semantics are not a target                                                                                 |
+| element `local` on a shared array that moves under it     | one restore write, at the original index (§3.3.4)                                             | accepted difference | `threads::shared` writes the saved value twice, by index and by SV, an artifact of its proxy layout (`compat/facts.md`, save stack) |
 
 This table is the enumeration §1.1 promises, for the windows found so
 far; deliberate divergences outside those windows (NFC normalization,
