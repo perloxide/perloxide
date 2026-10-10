@@ -20,6 +20,15 @@ order_02_modes.pl	hv.c	^S_hv_auxinit	S_hv_auxinit: aux allocation steps the glob
 order_03_insert_warn_modes.pl	hv.c	if \(iter->xhv_last_rand != iter->xhv_rand\)	Perl_hv_iternext_flags: in NO mode xhv_rand never changes, so the warning cannot fire
 local_01_tied_elem.pl	-	-	probe only; scope.c was not read for this rule
 local_02_fresh_sv.pl	-	-	probe only; scope.c was not read for this rule
+local_elem_sv_identity.pl	scope.c	^Perl_save_aelem_flags	Perl_save_aelem_flags: the SAVEt_AELEM record holds the array, the index and the element's SV, not its value
+local_elem_sv_identity.pl	scope.c	svp = av_fetch\(a0\.any_av, a1\.any_iv, 1\);	Perl_leave_scope, SAVEt_AELEM: the restore re-fetches by the original index with lval set, vivifying the slot in whatever the array has become
+local_elem_sv_identity.pl	av.c	Zero\(\*allocp \+ ary_offset,to_null,SV\*\);	Perl_av_extend_guts: the slots a store past the end skips are NULL, which exists reports as absent
+local_elem_sv_identity.pl	av.c	^Perl_av_shift	Perl_av_shift: returns the first element's SV itself, which pp_shift mortalizes; the SV local installed leaves the array alive
+local_elem_sv_identity.pl	pod/perlsub.pod	skipped elements with C<undef>	perlsub says the skipped elements are filled with undef; they are holes
+local_03_shared_elem_move.pl	dist/threads-shared/shared.xs	pointers to both the shared aggregate and the shared element	a shared element's proxy carries tied-element magic addressing the aggregate by index and shared-scalar magic pointing at the shared SV
+local_03_shared_elem_move.pl	dist/threads-shared/shared.xs	^sharedsv_scalar_mg_set\(pTHX_ SV \*sv, MAGIC \*mg\)$	sharedsv_scalar_mg_set: stores the proxy's value into the shared SV its mg_ptr names, wherever a shift or unshift has moved it
+local_03_shared_elem_move.pl	dist/threads-shared/shared.xs	we have ordered the	sharedsv_elem_mg_STORE's comment: the magic chain is ordered so the scalar magic's store runs first
+local_03_shared_elem_move.pl	dist/threads-shared/shared.xs	^sharedsv_elem_mg_STORE\(pTHX_ SV \*sv, MAGIC \*mg\)$	sharedsv_elem_mg_STORE: stores the value again at mg_len, the original index
 num_01_warn_handler.pl	sv.c	^S_sv_2iuv_common	S_sv_2iuv_common: grok_number runs before not_a_number; flags are installed after it returns
 num_02_stale_cache.pl	sv.c	^S_sv_2iuv_common	S_sv_2iuv_common: the IV-path value comes from the pre-warning parse
 value_03_handler_reassign_by_path.pl	sv.c	^S_sv_2iuv_common	S_sv_2iuv_common: IV path parses (S_sv_setnv, Atof) before the warning
@@ -27,7 +36,7 @@ value_03_handler_reassign_by_path.pl	sv.c	^Perl_sv_2nv_flags	Perl_sv_2nv_flags: 
 value_03_handler_reassign_by_path.pl	sv.c	^S_sv_setnv	S_sv_setnv: Atof(SvPVX) on the current string
 destroy_01_weak.pl	sv.c	^Perl_sv_clean_objs	Perl_sv_clean_objs: DESTRUCT-phase order of the two globals follows arena position
 destroy_02_order.pl	hv.c	^Perl_hfree_next_entry	Perl_hfree_next_entry: hash values are destroyed in raw bucket order
-flags_01_observable.pl	cpan/JSON-PP/lib/JSON/PP.pm	sub _looks_like_number	_looks_like_number: default path tests length("" & $value), a flag-dependent bitwise op
+flags_01_observable.pl	cpan/JSON-PP/lib/JSON/PP.pm	sub _looks_like_number	`_looks_like_number`: default path tests length("" & $value), a flag-dependent bitwise op
 flags_matrix.pl	builtin.c	ST\(0\) = boolSV\(SvPOK\(arg\) && !SvIsBOOL\(arg\)\)	created_as_string: SvPOK && !SvIsBOOL
 flags_matrix.pl	builtin.c	ST\(0\) = boolSV\(SvNIOK\(arg\) && !SvPOK\(arg\)	created_as_number: SvNIOK && !SvPOK && !SvIsBOOL
 flags_matrix.pl	sv_inline.h	^Perl_SvIV\(	Perl_SvIV: returns SvIVX directly when SvIOK_nog (XS sees the cached value)

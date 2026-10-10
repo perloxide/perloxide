@@ -62,6 +62,27 @@ source.
 
 - (probe only) probe only; scope.c was not read for this rule
 
+## local_elem_sv_identity.pl
+
+- `scope.c:1037` Perl_save_aelem_flags: the SAVEt_AELEM record holds the array, the index and the element's SV, not its
+  value
+- `scope.c:1679` Perl_leave_scope, SAVEt_AELEM: the restore re-fetches by the original index with lval set, vivifying
+  the slot in whatever the array has become
+- `av.c:217` Perl_av_extend_guts: the slots a store past the end skips are NULL, which exists reports as absent
+- `av.c:934` Perl_av_shift: returns the first element's SV itself, which pp_shift mortalizes; the SV local installed
+  leaves the array alive
+- `pod/perlsub.pod:1109` perlsub says the skipped elements are filled with undef; they are holes
+
+## local_03_shared_elem_move.pl
+
+- `dist/threads-shared/shared.xs:101` a shared element's proxy carries tied-element magic addressing the aggregate by
+  index and shared-scalar magic pointing at the shared SV
+- `dist/threads-shared/shared.xs:946` sharedsv_scalar_mg_set: stores the proxy's value into the shared SV its mg_ptr
+  names, wherever a shift or unshift has moved it
+- `dist/threads-shared/shared.xs:1076` sharedsv_elem_mg_STORE's comment: the magic chain is ordered so the scalar
+  magic's store runs first
+- `dist/threads-shared/shared.xs:1069` sharedsv_elem_mg_STORE: stores the value again at mg_len, the original index
+
 ## num_01_warn_handler.pl
 
 - `sv.c:2123` S_sv_2iuv_common: grok_number runs before not_a_number; flags are installed after it returns
