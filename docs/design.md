@@ -4122,8 +4122,8 @@ finish DESTROY (the COMMIT CAS — a remove-$self-then-inspect
     success:      rebless loop already done → clear class_id →
                   commit logical weak death: CommittedDead makes
                   every HeapWeak upgrade fail, so Perl-visible
-                  weak values behave as plain undef — no
-                  backreference list exists to walk (§2.4.8) →
+                  weak values behave as plain undef; the only
+                  list walked is the set-magic holders' (§2.4.8) →
                   release hold → payload drops (shallow; edges
                   already extracted — §2.4.9).  There is no
                   interval where only the hold remains yet
@@ -4162,8 +4162,8 @@ finish DESTROY (the COMMIT CAS — a remove-$self-then-inspect
                   selecting by the observed k (retry loop against
                   weak upgrades; class_id stays zero throughout):
          k == 2:  → (CommittedDead, 0, no HOLD); every HeapWeak
-                  upgrade fails from here — logical weak death,
-                  no backreference list to walk
+                  upgrade fails from here — logical weak death;
+                  set-magic holders run their STORE (§2.4.8)
          k > 2:   → (Live, k-2, no HOLD) — alive, unblessed;
                   weak references remain upgradeable because the
                   referent remains Live; no further DESTROY can
@@ -4738,6 +4738,39 @@ Container-verified semantics, pinned as the contract:
 
 `FullScalar` carries no weakref bookkeeping — control-block nulling
 is automatic.
+
+**Set magic on a weak holder, and the one backreference list
+[DECISION].**  Everything above is answered at read time from the
+referent's state, so no list of holders is kept and `weaken`, weak
+drop and the referent's death are all O(1) in the number of weak
+references; perl's `sv_del_backref` is linear in that number, and
+quadratic over a referent's lifetime when its holders die in an order
+its head-and-tail check does not catch (sv.c comments it as such).
+One observable needs the holders enumerated at death: perl's
+`sv_kill_backrefs` clears each weak referrer and then runs
+`SvSETMAGIC(referrer)`, so a *tied* holder runs its `STORE(undef)` at
+the moment the referent dies, holders in weaken order, and a `STORE`
+that dies propagates out of the operation that killed the referent
+and leaves the later holders uncleared (`compat/facts.md`,
+finalization; FZ rows `tiedweak.T`, `tiedweak.TX`).  No read-time
+check can produce that store, because nothing is reading.  So a weak
+holder that has set magic is registered on its referent — the
+referent carries a backreference list exactly as perl's does, but
+holding only such holders — at two points: `weaken` on a holder that
+already has set magic, and the attachment of set magic (`tie`, or
+any magic with a set hook) to a cell that already carries a weak
+handle, since perl's construction ties first and weakens second.  At
+death the list is walked after `curse` and only when `curse`
+committed (resurrection leaves it untouched, as it leaves every weak
+reference), each entry's handle tombstoned and its set magic run;
+the FZ unwind rule applies to a dying hook.  The holder's drop
+removes it from the list.  An ordinary holder never enters a list,
+so the quadratic case cannot arise for it.  This is an internals
+choice, not a divergence: every pull-observable predicate on a dead
+weak reference is unchanged, and the eager store is reproduced where
+perl makes it observable.  The implementation as first written had
+only the read-time scheme; the registration is owed.
+
 
 #### 2.4.9 Mechanical iterative teardown
 
