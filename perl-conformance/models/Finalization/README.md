@@ -6,15 +6,15 @@ resurrection epochs and rebless), `sv_kill_backrefs`, `sv_setsv_flags` / `sv_set
 `leave_adjust_stacks`), `pp_entersub`, `pp_nextstate`, and `sv_clean_objs`. Harness glue (the IR walker, trace emitter)
 is `FZ::Harness::*`, CamelCase, in the same file pending the split into `FZ/Harness.pm`.
 
-`generators/fz_gen.pl` emits 114 scenarios as perl programs and as IR: five destructor variants (plain, `$_[0]` copied
+`generators/fz_gen.pl` emits 115 scenarios as perl programs and as IR: five destructor variants (plain, `$_[0]` copied
 to a global, weak copy, rebless, dies) x death triggers (scope exit with and without a trailing statement, `undef`,
 assignment, `.=`, `delete`, `@a = ()`, `die` inside `eval`, global destruction) x constructs (plain statement, one- and
 two-statement `if` bodies, `while`, postfix `while`, `do`-`while`, C-style `for` with and without a step, call argument,
-void/list/scalar returns, `grep` block, `local`, `eval`), plus tied weak holders and global-destruction rows compared as
-sets.
+void/list/scalar returns, `grep` block, `local`, `eval`), plus tied weak holders (two, two with a dying `STORE`, five
+with one removed before the kill) and global-destruction rows compared as sets.
 
-    ORACLE=/path/to/perl TAG=<tag> perl generators/fz_gen.pl   # scenarios=114 ok=... bad=...
+    ORACLE=/path/to/perl TAG=<tag> perl generators/fz_gen.pl   # scenarios=115 ok=... bad=...
 
-Recorded: 114/114 on 5.38.2 and 5.44.0, traces identical (`reports/`). Section text: `section.md`.  Coverage is the
+Recorded: 115/115 on 5.38.2 and 5.44.0, traces identical (`reports/`). Section text: `section.md`.  Coverage is the
 generator's scenario set; the program-level oracle is `suites/finalization`.  Open: the key has not been audited against
 the context and tmps stacks (`status.md`).

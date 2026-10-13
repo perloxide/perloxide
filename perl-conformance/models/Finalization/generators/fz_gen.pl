@@ -48,7 +48,7 @@ sub emit_op { my $o=shift; my ($t,@a)=@$o;
   die "op $t" }
 my $prelude = <<'P';
 use strict; use warnings; no warnings 'once'; use Scalar::Util qw(weaken); $| = 1;
-our @WEAK; our $keep; our $wk; our $G; our ($h, $w, $t, $ta, $tb);
+our @WEAK; our $keep; our $wk; our $G; our ($h, $w, $t, $ta, $tb, $tc, $td, $te);
 sub FZ::Harness::WeakFlags { join "", map { defined($$_) ? 1 : 0 } @WEAK }
 package O; sub new { my ($c,$id)=@_; bless {id=>$id}, $c } sub DESTROY { print "D$_[0]{id}:", ref($_[0]), "[", main::FZ::Harness::WeakFlags(), "]\n" }
 package K; our @ISA=('O'); sub DESTROY { $_[0]->O::DESTROY; $main::keep = $_[0] }
@@ -106,6 +106,11 @@ $S->("vh.void",   [ ['stmt',['expr',['call','vh',[]]]], ['stmt',['mark',1]] ]);
 $S->("vh.list",   [ ['stmt',['listctx',['call','vh',[]]]], ['stmt',['mark',1]] ]);
 for my $tc (qw(T TX)) {
   $S->("tiedweak.$tc", [ ["stmt",["our","WEAK"]], ["stmt",["tie","ta",$tc]], ["stmt",["tie","tb",$tc]], ["block", [ ["stmt",["myasg","x",["new","a","O"]]], ["stmt",["assign","ta",["var","x"]]], ["stmt",["weaken","ta","x"]], ["stmt",["assign","tb",["var","x"]]], ["stmt",["weaken","tb","x"]], ["stmt",["expr",["call","push_weak",[]]]], ["stmt",["mark",1]], ["eval", [ ["stmt",["undef","x"]] ]], ["stmt",["mark",2]] ]], ["stmt",["mark",3]] ]);
+}
+# the backref array is unordered: removing a holder that is neither first nor last moves the last holder into its
+# place, so after `undef $tb` the kill clears ta, te, tc, td
+{ my @h = map { "t$_" } 'a'..'e';
+  $S->("tiedweak.order", [ ["stmt",["our","WEAK"]], (map { ["stmt",["tie",$_,"T"]] } @h), ["block", [ ["stmt",["myasg","x",["new","a","O"]]], (map { (["stmt",["assign",$_,["var","x"]]], ["stmt",["weaken",$_,"x"]]) } @h), ["stmt",["expr",["call","push_weak",[]]]], ["stmt",["undef","tb"]], ["stmt",["mark",1]], ["eval", [ ["stmt",["undef","x"]] ]], ["stmt",["mark",2]] ]], ["stmt",["mark",3]] ]);
 }
 # global destruction: objects left in file-scope lexicals and globals
 $S->("global.lex", [ ["stmt",["myasg","p",["new","a","O"]]], ["stmt",["myasg","q",["new","b","O"]]], ["stmt",["mark",1]] ]);
