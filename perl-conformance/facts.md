@@ -104,6 +104,22 @@ Entries:
 Section: `models/FZ/section.md`.  Model: `models/FZ/FZ.pm` (114 scenarios, both Perls).  Probes:
 `probes/research/value-model/` (04-06, 16, 19, 21), `probes/corpus/destroy_*`, `probes/corpus/gd_*`.
 
+Entries (the transition function is the section text; these are the weak-reference facts a reader looks for by name):
+
+- Weak references to a dying object are cleared after its `DESTROY` returns, not before: inside the destructor every
+  weak reference to the object is still defined.  `Perl_sv_clear` runs `S_curse` first and `Perl_sv_kill_backrefs` after
+  it.  Probe: `probes/corpus/destroy_01_weak.pl`; model rows `undef.*`, `assign.*`, `cat.*` in
+  `models/FZ/reports/traces.*.txt` (the `[1]` after each `D` is the weak holder, defined).
+- If `DESTROY` resurrects the object (stores `$_[0]` somewhere), its weak references are not cleared: `S_curse` returns
+  false when the count is still positive and `sv_clear` stops before the kill, so the weak references keep pointing at
+  the live object and the next death runs `DESTROY` again.  Model rows `undef.K`, `assign.K`, `cat.K` (class `K` copies
+  `$_[0]` into a global; the second `Da:K[1]` is the weak holder still defined at the next death).
+- The clearing is a store with set magic: for each weak referrer, in weaken order, `SvRV_set(referrer, 0)`, `SvROK_off`,
+  `SvWEAKREF_off`, then `SvSETMAGIC`.  A tied holder therefore runs its `STORE(undef)` at the moment the referent dies,
+  and a `STORE` that dies propagates out of the operation that killed the object, leaving the later referrers uncleared.
+  This is the only way the moment of clearing is observable from Perl; without set magic a weak reference is observed
+  only when read.  `Perl_sv_kill_backrefs` (sv.c 6987-6990).  Model rows `tiedweak.T`, `tiedweak.TX`.
+
 ## The hash engine
 
 Section: `models/HV/section.md`.  Model: `models/HV/HV.pm` (bucket-level and program-level lanes, both Perls).  Probes:
