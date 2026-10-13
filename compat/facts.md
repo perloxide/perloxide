@@ -119,6 +119,13 @@ Entries (the transition function is the section text; these are the weak-referen
   and a `STORE` that dies propagates out of the operation that killed the object, leaving the later referrers uncleared.
   This is the only way the moment of clearing is observable from Perl; without set magic a weak reference is observed
   only when read.  `Perl_sv_kill_backrefs` (sv.c 6987-6990).  Model rows `tiedweak.T`, `tiedweak.TX`.
+- The clearing is visible in progress: a tied holder's `STORE(undef)` runs before the later holders are cleared, so from
+  inside it a later weak reference to the same dying object is still defined and `isweak`; after the kill it is undef.
+  The destructor has already run and committed (`S_curse` before the kill), and nothing rechecks the count after the
+  kill: every way of reaching the object through that later holder from inside the `STORE`, a kept or transient strong
+  copy, a new weak reference, a rebless, is a crash or a leaked freed SV, and undefining the later holder there croaks
+  `panic: del_backref` (undefined window, `undefined.md`).  Probe:
+  `probes/research/value-model/25_kill_backrefs_reentry.pl` (identical on 5.38.2 and 5.44.0).
 
 ## The hash engine
 
