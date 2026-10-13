@@ -110,15 +110,14 @@ recorded here with its kind (fix, extension, or accepted difference) and
 its reason.  The harness rows marked `DIVERGES-defined` are the
 acceptance tests for these entries.
 
-| Window (`compat/undefined.md`)                            | PerlOxide behavior                                                                            | Kind                | Reason                                                                                                                              |
-|-----------------------------------------------------------|-----------------------------------------------------------------------------------------------|---------------------|-------------------------------------------------------------------------------------------------------------------------------------|
-| W1: numeric replacement under an NV-converting outer op   | redispatch the interrupted conversion on the current holder kind; no additional warning       | fix                 | perl segfaults                                                                                                                      |
-| W2: reference replacement under the same                  | redispatch to reference numification; no flags cached                                         | fix                 | perl reads the RV through the union                                                                                                 |
-| W3: reference holder with an infinite NV in the IV window | the fill proceeds as slot arithmetic independent of holder kind                               | fix                 | perl crashes on one referent shape                                                                                                  |
-| `undef` replacement under `sprintf "%g"`                  | terminate after the second warning                                                            | fix                 | perl loops or crashes                                                                                                               |
-| `shift @_` under held aliases                             | `@_` storage is refcounted; the aliases stay valid                                            | fix                 | perl reads freed memory                                                                                                             |
-| `local` on a shared scalar across tasks                   | binding-`local` is task-local; element `local` on a shared container is a cross-task mutation | extension           | perl's `threads::shared` semantics are not a target                                                                                 |
-| element `local` on a shared array that moves under it     | one restore write, at the original index (§3.3.4)                                             | accepted difference | `threads::shared` writes the saved value twice, by index and by SV, an artifact of its proxy layout (`compat/facts.md`, save stack) |
+| Window (`compat/undefined.md`)                            | PerlOxide behavior                                                                                          | Kind      | Reason                                                                                                             |
+|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|-----------|--------------------------------------------------------------------------------------------------------------------|
+| W1: numeric replacement under an NV-converting outer op   | redispatch the interrupted conversion on the current holder kind; no additional warning                     | fix       | perl segfaults                                                                                                     |
+| W2: reference replacement under the same                  | redispatch to reference numification; no flags cached                                                       | fix       | perl reads the RV through the union                                                                                |
+| W3: reference holder with an infinite NV in the IV window | the fill proceeds as slot arithmetic independent of holder kind                                             | fix       | perl crashes on one referent shape                                                                                 |
+| `undef` replacement under `sprintf "%g"`                  | terminate after the second warning                                                                          | fix       | perl loops or crashes                                                                                              |
+| `shift @_` under held aliases                             | `@_` storage is refcounted; the aliases stay valid                                                          | fix       | perl reads freed memory                                                                                            |
+| `local` on a variable shared between native tasks         | binding-`local` is task-local (the overlay); element `local` on a shared container is a cross-task mutation | extension | native tasks have no Perl counterpart; the `ithreads` surface reproduces `threads::shared` instead (§3.3.4, §23.1) |
 
 This table is the enumeration §1.1 promises, for the windows found so
 far; deliberate divergences outside those windows (NFC normalization,
@@ -5828,16 +5827,33 @@ unwind machinery is task-local either way and follows perl's contract verbatim:
 pop-before-execute, cleanups pushed before fallible magic, no rollback,
 exceptions surfaced after the remaining records run.
 
-One thing perl does here is not reproduced.  `threads::shared` restores a
-localized element through a proxy that encodes its target twice, by index and
-by shared SV, and writes the saved value through both; if the array moved under
-the `local`, the two writes land on two elements (`local $a[1] = 99; shift @a`
-on `(10, 20, 30)` leaves `(20, 20)`; the compatibility reference records this
-at `compat/probes/research/value-model/24_local_shared_elem.pl` and in
-`compat/facts.md`).  That is an artifact of the proxy layout, not a semantics,
-and this design's save record has one address and one restore write: under a
-concurrent structural change it does what same-task perl does, restoring at the
-original index and leaving the moved SV alone.
+Everything above is the design for PerlOxide's native tasks, which have
+no Perl counterpart: the per-task overlay for binding sites is an
+extension (§1.1.1), and element `local` on a container shared between
+tasks is the literal rebinding.  The `ithreads` surface is a
+compatibility surface and follows §23.1: `threads::shared` behavior is
+reproduced as the compatibility reference records it (`compat/facts.md`,
+save stack; `compat/probes/corpus/local_03_shared_elem_move.pl` and
+`threads_02_shared_local.pl`), and it differs from the native rule in
+four ways.  `local` on a shared variable, scalar or element, overwrites
+the shared cell in place, so every thread sees the localized value
+while the scope lasts; `mg_localize` copies the shared-scalar magic onto
+the fresh proxy, and the overlay does not apply.  The save record for a
+shared element carries two addresses, the shared cell and the index, and
+the restore writes the saved value through both in that order, so that
+`local $a[1] = 99; shift @a` on `(10, 20, 30)` leaves `(20, 20)`
+whichever thread did the shift, where one address would leave
+`(99, 20)`.  An absent shared element or key is never recorded as
+absent, because `threads::shared::tie` has `EXISTS` but no `DELETE` and
+`pp_aelem`/`pp_helem` consult `EXISTS` only when both exist, so the
+unwind stores the saved `undef` at the index and the slot or key exists
+afterward.  And two threads localizing the same shared element each
+write back their own saved value when their scope ends, in whatever
+order the scopes end: there is no save stack across threads.  Where the
+outcome depends on scheduling — restores racing with a structural
+change without a handshake — perl's own result is
+`perl-nondeterministic` and nothing is specified.
+
 
 ---
 
