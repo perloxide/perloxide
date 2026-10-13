@@ -1,0 +1,5 @@
+before drop
+DESTROY
+STORE(undef): later defined=1 weak=1
+after drop: later defined=0 weak=0
+end
