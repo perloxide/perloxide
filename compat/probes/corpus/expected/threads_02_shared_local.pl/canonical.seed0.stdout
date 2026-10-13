@@ -1,0 +1,40 @@
+
+
+
+
+
+
+A. child localizes an element; main shifts while the local is active
+B. main localizes; the child shifts during it
+C. both threads localize the same element; the inner (main) scope ends first
+D. child localizes; main unshifts and pushes
+E. child localizes an absent element; main shifts
+F. child localizes a shared scalar
+G. child localizes a present and an absent key of a shared hash; main deletes the present one
+child after its scope                            (0, 20, 20, 30, 40)
+child after its scope                            (10, 20, 30)
+child after its scope                            (20, 20)
+child after its scope                            (20, 30, undef, undef, 50, undef)
+child after its scope                            (S)
+child after its scope: k, new, exists new        (1, undef, yes)
+child after local $a[1] = 99                     (10, 99, 30)
+child after local $a[5] = 50                     (10, 20, 30, undef, undef, 50)
+child after main local and exit                  (10, 99, 30)
+child after main shifted                         (99, 30)
+child shifted during the main local              (99, 30)
+main  $$r, \$a[1] taken before the shift         20
+main  after its scope                            (10, 99, 30)
+main  after its scope                            (20, 20)
+main  after shift                                (20, 30, undef, undef, 50)
+main  after shift                                (99, 30)
+main  after the child scope                      (10, 20, 30)
+main  after the child scope                      (20, 20)
+main  after the child scope                      (S)
+main  after the child scope: k, exists new       (1, yes)
+main  after unshift 0, push 40                   (0, 10, 99, 30, 40)
+main  during the child local                     (10, 99, 30)
+main  during the child local                     (L)
+main  during the child local: k, new             (2, 3)
+main  exists after                               0:yes 1:yes 2:no 3:no 4:yes 5:yes
+main  inside its local                           (10, 7, 30)
+main  inside, after the child shift              (99, 30)

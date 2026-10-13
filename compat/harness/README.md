@@ -181,6 +181,7 @@ allocator-sensitive or nondeterministic test records only its verdict.
 | `order_03_insert_warn_modes.pl`        | lane-A-eligible       |
 | `probe_01_face_trace.pl`               | lane-A-eligible       |
 | `threads_01_const_marks.pl`            | lane-A-eligible       |
+| `threads_02_shared_local.pl`           | lane-A-eligible       |
 | `value_01_stale_search.pl`             | lane-A-eligible       |
 | `value_02_locale_radix.pl`             | lane-A-eligible       |
 | `value_03_handler_reassign_by_path.pl` | lane-A-eligible       |
@@ -189,10 +190,10 @@ allocator-sensitive or nondeterministic test records only its verdict.
 | `gd_01_order.pl@prime`                 | lane-B-only           |
 | `addr_02_observable.pl`                | perl-nondeterministic |
 
-`local_03_shared_elem_move.pl` and `threads_01_const_marks.pl` require ithreads and were blessed in the threaded family
-(`expected/<test>/family`).  Every lane-A test of the unthreaded family agrees exactly with the threaded stock build
-(`agrees_with_xconfig=1`); the only disagreements are `gd_01_order.pl@prime` (lane B) and `addr_02_observable.pl`
-(nondeterministic), whose outputs are not functions of the program to begin with.
+`local_03_shared_elem_move.pl`, `threads_01_const_marks.pl` and `threads_02_shared_local.pl` require ithreads and were
+blessed in the threaded family (`expected/<test>/family`).  Every lane-A test of the unthreaded family agrees exactly
+with the threaded stock build (`agrees_with_xconfig=1`); the only disagreements are `gd_01_order.pl@prime` (lane B) and
+`addr_02_observable.pl` (nondeterministic), whose outputs are not functions of the program to begin with.
 
 ## Provisional choices
 

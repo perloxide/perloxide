@@ -203,3 +203,17 @@ source.
 ## probe_01_face_trace.pl
 
 - `builtin.c:432` created_as_number as reported on fd 3
+
+## threads_02_shared_local.pl
+
+- `mg.c:484` Perl_mg_localize: the shared-scalar magic is copied onto the fresh proxy, so the localized value is stored
+  into the same shared cell every thread reads
+- `dist/threads-shared/shared.xs:946` sharedsv_scalar_mg_set: the restore's first write, into the shared SV the saved
+  proxy points at, whichever thread moved it
+- `dist/threads-shared/shared.xs:1069` sharedsv_elem_mg_STORE: the restore's second write, at the original index
+- `inline.h:1227` Perl_sv_can_existdelete: a tie class must have both EXISTS and DELETE for an absent element to be
+  recorded as absent
+- `dist/threads-shared/shared.xs:1509` threads::shared::tie has EXISTS but no DELETE method, so a localized absent
+  element is treated as present and restored by STORE
+- `pp_hot.c:4627` pp_multideref, and pp_aelem below it with the same block: without SvCANEXISTDELETE the element is
+  preeminent and save_aelem records the fresh proxy's undef

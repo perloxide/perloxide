@@ -79,6 +79,25 @@ Entries:
   thread is involved.  `sharedsv_scalar_mg_set`, `sharedsv_elem_mg_STORE` and the magic ordering noted above it
   (dist/threads-shared/shared.xs).  Probes: `probes/corpus/local_03_shared_elem_move.pl` (threaded family) and
   `probes/research/value-model/24_local_shared_elem.pl`, which has the mechanism.
+- `local` on a `threads::shared` variable, scalar or element, overwrites the shared cell in place: every other thread
+  reads the localized value for as long as the scope lasts, and the saved value comes back when it ends.  `mg_localize`
+  copies the shared-scalar magic onto the fresh proxy, so its entry `STORE` lands in the same shared cell.  Probe:
+  `probes/corpus/threads_02_shared_local.pl` (A, F), with the threads handed off by condition variable so the
+  interleaving is fixed.
+- The two-address restore is the same whichever thread moved the array: a `shift`, `unshift` or `push` by another thread
+  while the local is active leaves the same `(20, 20)` and `(0, 20, 20, 30, 40)` that one thread produces, seen by both
+  threads.  The same probe (A, B, D).
+- Two threads localizing the same shared element each write back their own saved value when their scope ends, in
+  whatever order the scopes end: child `99` over `20`, main `7` over `99`, main exits and `99` returns, child exits and
+  `20` returns.  There is no save stack across threads, only each thread's own.  The same probe (C).
+- An absent element or key of a shared aggregate is never deleted on unwind, because it is never recorded as absent:
+  `pp_aelem` and `pp_helem` consult `EXISTS` only when the tie class also has a `DELETE` method (`SvCANEXISTDELETE`,
+  inline.h 1227), and `threads::shared::tie` has `EXISTS` but no `DELETE` (deletion goes through the element magic's
+  clear), so the element counts as preeminent, `save_aelem`/`save_helem` record the fresh proxy's `undef`, and the
+  restore `STORE`s that `undef` at the index.  `{ local $a[5] = 50 }` leaves a shared array of three six long with
+  `$a[5]` existing and undef; `{ local $h{new} = 3 }` leaves `new` existing and undef; a present key deleted by the
+  other thread during the local is restored by the same `STORE`.  The same probe (E, G);
+  `probes/research/value-flags/p4.pl` for the single-thread hash form.
 
 ## Finalization and temporary lifetime
 
