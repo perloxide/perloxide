@@ -68,8 +68,12 @@ Entries:
   installed SV wherever it went).  `Perl_av_fetch` on a magical array (av.c 271), `PERL_MAGIC_tiedelem`.
 - A held proxy `FETCH`es once: `Perl_magic_getpack` sets `MGf_GSKIP` on every tied-element `FETCH` (mg.c 2240) and only
   a set through the proxy clears it (mg.c 287), so a second read returns the cached value, after a `shift` too, and a
-  fresh `$a[1]` is a new proxy that `FETCH`es again.  The tied rows read their captured reference once, after the scope.
-  Probe: `probes/research/value-model/26_weaken_tied_elem.pl` (C).
+  fresh `$a[1]` is a new proxy that `FETCH`es again.  A write through the proxy `STORE`s at the index and re-arms the
+  `FETCH`.  `local $a[1]` saves and restores through proxies of its own, so a held proxy is not invalidated by the
+  restore: first read before the `local`, it reports the pre-`local` value inside the scope and after it; first read
+  inside the scope, it keeps reporting the localized value after the scope ends.  The tied rows read their captured
+  reference once, after the scope.  Probes: `probes/research/value-model/27_tied_elem_proxy_cache.pl`,
+  `26_weaken_tied_elem.pl` (C).
 - `weaken` on a tied element acts on the proxy's own slot and runs no set magic: `weaken $a[0]` has no lasting effect
   (the proxy dies with the statement and the tie's slot stays strong), and a proxy held through `\$a[0]`, read once so
   its slot is filled, then weakened, is a weak holder whose set magic is the tie's `STORE`: when the referent dies the

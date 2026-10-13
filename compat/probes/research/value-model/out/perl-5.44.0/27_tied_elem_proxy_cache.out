@@ -1,0 +1,85 @@
+
+1. weaken on a tied element, bare and as ${\$a[0]}
+    STORE[0]=ref
+  (the STORE above is the assignment)
+  after weaken $a[0]:      tie slot strong
+  after weaken ${\$a[0]}: tie slot strong
+
+2. read before the shift, read after
+    STORE[0]=10
+    STORE[1]=20
+    STORE[2]=30
+    FETCH[1]
+    SHIFT
+  via r: 20
+
+3. not read before the shift
+    STORE[0]=10
+    STORE[1]=20
+    STORE[2]=30
+    SHIFT
+    FETCH[1]
+  via r: 30
+
+4. read before, written after the shift
+    STORE[0]=10
+    STORE[1]=20
+    STORE[2]=30
+    FETCH[1]
+    SHIFT
+    STORE[1]=99
+    FETCH[0]
+    FETCH[1]
+    FETCH[1]
+  via r: 99; array: 20 99
+
+5. a copy of the reference
+    STORE[0]=10
+    STORE[1]=20
+    STORE[2]=30
+    FETCH[1]
+    SHIFT
+  via r2: 20
+
+6. local, proxy read before
+    STORE[0]=10
+    STORE[1]=20
+    STORE[2]=30
+    FETCH[1]
+    FETCH[1]
+    STORE[1]=undef
+    STORE[1]=99
+    FETCH[1]
+  inside via r: 20; fresh: 99
+    STORE[1]=20
+    FETCH[1]
+  after via r: 20; fresh: 20
+
+7. local, proxy first read inside
+    STORE[0]=10
+    STORE[1]=20
+    STORE[2]=30
+    FETCH[1]
+    STORE[1]=undef
+    STORE[1]=99
+    FETCH[1]
+    FETCH[1]
+  inside via r: 99; fresh: 99
+    STORE[1]=20
+    FETCH[1]
+  after via r: 99; fresh: 20
+
+8. local with a shift inside, proxy read before
+    STORE[0]=10
+    STORE[1]=20
+    STORE[2]=30
+    FETCH[1]
+    FETCH[1]
+    STORE[1]=undef
+    STORE[1]=99
+    SHIFT
+    STORE[1]=20
+    FETCH[1]
+    FETCH[0]
+    FETCH[1]
+  after via r: 20; fresh: 20; array: 99 20
