@@ -53,8 +53,13 @@ sub sv_setsv_flags { my ($name,$val)=@_; my $v = $VAR{$name} //= {val=>undef};
   if ($old && FZ::Harness::IsRef($old)) { if ($oldweak) { sv_del_backref($old->{ref},$name) } else { SvREFCNT_dec($old->{ref}) } }   # SvREFCNT_dec(old_rv) after the copy
   if ($v->{tied}) { FZ::Harness::Trace("S$name(" . (defined $v->{val} ? 'def' : 'undef') . ")") } }
 sub sv_set_undef { my $name=shift; my $v=$VAR{$name}; my $old=$v->{val}; $v->{val}=undef;
-  if ($old && FZ::Harness::IsRef($old)) { if ($v->{weak}) { $v->{weak}=0; sv_del_backref($old->{ref},$name) } else { SvREFCNT_dec($old->{ref}) } } }   # sv_set_undef
-sub sv_del_backref { my ($id,$name)=@_; my $o=$OBJ{$id}; @{$o->{backrefs}} = grep { $_ ne $name } @{$o->{backrefs}||[]} }
+  if ($old && FZ::Harness::IsRef($old)) { if ($v->{weak}) { $v->{weak}=0; sv_del_backref($old->{ref},$name) } else { SvREFCNT_dec($old->{ref}) } }
+  if ($v->{tied}) { FZ::Harness::Trace("S$name(undef)") } }                                   # pp_undef: sv_set_undef, then SvSETMAGIC
+# The backref array is unordered (sv.c, sv_del_backref): the first entry is removed by advancing the array start and
+# the last by shortening it, and any other entry is replaced by the last one, so the order the kill walks is the weaken
+# order permuted by every removal from the middle.
+sub sv_del_backref { my ($id,$name)=@_; my $o=$OBJ{$id}; my $r=$o->{backrefs}||[]; my ($i)=grep { $r->[$_] eq $name } 0..$#$r;
+  return unless defined $i; if ($i == 0) { shift @$r } elsif ($i == $#$r) { pop @$r } else { $r->[$i] = pop @$r } }
 sub sv_rvweaken { my $name=shift; my $v=$VAR{$name}; return unless $v->{val} && FZ::Harness::IsRef($v->{val}) && !$v->{weak};
   $v->{weak}=1; my $id=$v->{val}{ref}; push @{$OBJ{$id}{backrefs}}, $name; SvREFCNT_dec($id) }   # Perl_sv_rvweaken: Perl_sv_add_backref then SvREFCNT_dec
 sub sv_force_normal_flags { my $name=shift; my $v=$VAR{$name}; my $old=$v->{val};

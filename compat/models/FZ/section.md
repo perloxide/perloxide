@@ -88,12 +88,15 @@ object`. References created and dropped inside a destructor never reach zero-wit
 ## 5. Killing weak references — semantic execution
 
 After a successful curse, and before the body is freed, `Perl_hv_kill_backrefs` / `Perl_sv_kill_backrefs` walk the
-backref list in weaken order and, for each referrer, clear the pointer (`SvRV_set(referrer, 0)`, `SvROK_off`,
-`SvWEAKREF_off`) and call `SvSETMAGIC(referrer)`. The set-magic is real execution: a magical referrer runs its `STORE`,
-and a `STORE` that dies propagates out of the operation that killed the object (`undef $x`), leaving later referrers
-uncleared.  Inside `DESTROY` every weak reference is still defined; after `sv_clear` they are not. Global destruction's
-first pass clears weak references without set-magic and, depending on arena order, may do so before the referent's own
-destructor runs.
+backref array and, for each referrer, clear the pointer (`SvRV_set(referrer, 0)`, `SvROK_off`, `SvWEAKREF_off`) and call
+`SvSETMAGIC(referrer)`.  The array is appended to by `weaken` and is unordered on removal (`Perl_sv_del_backref`): the
+first entry is removed by advancing the array start, the last by shortening it, and any other entry is replaced by the
+last one, so the walk order is the weaken order permuted by every removal from the middle (five holders with the second
+undefined are cleared first, fifth, third, fourth; row `tiedweak.order`).  The set-magic is real execution: a magical
+referrer runs its `STORE`, and a `STORE` that dies propagates out of the operation that killed the object (`undef $x`),
+leaving later referrers uncleared.  Inside `DESTROY` every weak reference is still defined; after `sv_clear` they are
+not.  Global destruction's first pass clears weak references without set-magic and, depending on arena order, may do so
+before the referent's own destructor runs.
 
 ## 6. Unwinding
 
@@ -113,15 +116,16 @@ allocation history, not of the program — and is out of scope: the harness comp
 
 ## 8. Verification
 
-`fz_gen.pl` generates 114 scenarios: five destructor variants (plain, `$_[0]` copied into a global, weak copy, rebless
+`fz_gen.pl` generates 115 scenarios: five destructor variants (plain, `$_[0]` copied into a global, weak copy, rebless
 into a second class, dies) × the death triggers (scope exit with and without a trailing statement, `undef`, assignment,
 `.=`, `delete`, `@a = ()`, `die` inside `eval`, global destruction) × the constructs (plain statement, `if` with one-
 and two-statement bodies, `while`, postfix `while`, `do`-`while`, C-style `for` with and without a step and with a
-two-statement body, call argument, void/list/scalar returns, `grep` block, `local`, `eval`), plus two tied weak holders
-whose `STORE` records the call and, in one variant, dies on the first `undef`, and global-destruction rows. Each
-construction is a distinct SV in the model, so a destructor that stores `$_[0]` into a global re-enters `curse` on the
-object it displaces while the outer `curse` is open (the `grep` row shows three `DESTROY` calls before the next
-statement and a fourth, fatal, in global destruction). After `curse` succeeds the object is un-objected (`SvOBJECT_off`
-in `sv_clear`) before its backrefs are killed, so an exception from a referrer's `STORE` leaves an unfreed but
-no-longer-blessed scalar that global destruction does not curse again. Result: **114 of 114 match on both
-interpreters**, whose traces are identical to each other; the two global-destruction rows are compared as sets.
+two-statement body, call argument, void/list/scalar returns, `grep` block, `local`, `eval`), plus tied weak holders
+whose `STORE` records the call (two holders; two holders where the first dies on `undef`; five holders with the second
+removed before the kill, showing the backref array's removal order), and global-destruction rows. Each construction is a
+distinct SV in the model, so a destructor that stores `$_[0]` into a global re-enters `curse` on the object it displaces
+while the outer `curse` is open (the `grep` row shows three `DESTROY` calls before the next statement and a fourth,
+fatal, in global destruction). After `curse` succeeds the object is un-objected (`SvOBJECT_off` in `sv_clear`) before
+its backrefs are killed, so an exception from a referrer's `STORE` leaves an unfreed but no-longer-blessed scalar that
+global destruction does not curse again. Result: **115 of 115 match on both interpreters**, whose traces are identical
+to each other; the two global-destruction rows are compared as sets.

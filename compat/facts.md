@@ -114,11 +114,15 @@ Entries (the transition function is the section text; these are the weak-referen
   false when the count is still positive and `sv_clear` stops before the kill, so the weak references keep pointing at
   the live object and the next death runs `DESTROY` again.  Model rows `undef.K`, `assign.K`, `cat.K` (class `K` copies
   `$_[0]` into a global; the second `Da:K[1]` is the weak holder still defined at the next death).
-- The clearing is a store with set magic: for each weak referrer, in weaken order, `SvRV_set(referrer, 0)`, `SvROK_off`,
-  `SvWEAKREF_off`, then `SvSETMAGIC`.  A tied holder therefore runs its `STORE(undef)` at the moment the referent dies,
-  and a `STORE` that dies propagates out of the operation that killed the object, leaving the later referrers uncleared.
-  This is the only way the moment of clearing is observable from Perl; without set magic a weak reference is observed
-  only when read.  `Perl_sv_kill_backrefs` (sv.c 6987-6990).  Model rows `tiedweak.T`, `tiedweak.TX`.
+- The clearing is a store with set magic: for each weak referrer, in backref-array order, `SvRV_set(referrer, 0)`,
+  `SvROK_off`, `SvWEAKREF_off`, then `SvSETMAGIC`.  The array order is weaken order permuted by removals: `weaken`
+  appends, and a holder that dies or is overwritten is removed by advancing the array start if it is first, shortening
+  the array if it is last, and otherwise moving the last entry into its place (`Perl_sv_del_backref`; five holders with
+  the second undefined are cleared first, fifth, third, fourth; FZ row `tiedweak.order`).  A tied holder therefore runs
+  its `STORE(undef)` at the moment the referent dies, and a `STORE` that dies propagates out of the operation that
+  killed the object, leaving the later referrers uncleared.  This is the only way the moment of clearing is observable
+  from Perl; without set magic a weak reference is observed only when read.  `Perl_sv_kill_backrefs` (sv.c 6987-6990).
+  Model rows `tiedweak.T`, `tiedweak.TX`.
 - The clearing is visible in progress: a tied holder's `STORE(undef)` runs before the later holders are cleared, so from
   inside it a later weak reference to the same dying object is still defined and `isweak`; after the kill it is undef.
   The destructor has already run and committed (`S_curse` before the kill), and nothing rechecks the count after the

@@ -681,6 +681,24 @@ m2
 m3
 m-end
 END
+### tiedweak.order
+Sta(def)
+Stb(def)
+Stc(def)
+Std(def)
+Ste(def)
+Stb(undef)
+m1
+Da:O[]
+Sta(undef)
+Ste(undef)
+Stc(undef)
+Std(undef)
+E:
+m2
+m3
+m-end
+END
 ### undef.K
 m1
 Da:K[1]
