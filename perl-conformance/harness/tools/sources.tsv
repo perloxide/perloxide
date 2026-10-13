@@ -79,3 +79,9 @@ threads_01_const_marks.pl	op.h	define cSVOPx_sv\(v\)  \(cSVOPx\(v\)->op_sv \\	cS
 threads_01_const_marks.pl	sv.c	CvROOT\(dsv\) = OpREFCNT_inc\(CvROOT\(dsv\)\);	sv_dup: a cloned CV shares the parent's op tree by refcount
 threads_01_const_marks.pl	sv.c	PL_main_root\t= OpREFCNT_inc	perl_clone: the main op tree is shared, not copied
 probe_01_face_trace.pl	builtin.c	ST\(0\) = boolSV\(SvNIOK\(arg\) && !SvPOK\(arg\)	created_as_number as reported on fd 3
+threads_02_shared_local.pl	mg.c	^Perl_mg_localize	Perl_mg_localize: the shared-scalar magic is copied onto the fresh proxy, so the localized value is stored into the same shared cell every thread reads
+threads_02_shared_local.pl	dist/threads-shared/shared.xs	^sharedsv_scalar_mg_set\(pTHX_ SV \*sv, MAGIC \*mg\)$	sharedsv_scalar_mg_set: the restore's first write, into the shared SV the saved proxy points at, whichever thread moved it
+threads_02_shared_local.pl	dist/threads-shared/shared.xs	^sharedsv_elem_mg_STORE\(pTHX_ SV \*sv, MAGIC \*mg\)$	sharedsv_elem_mg_STORE: the restore's second write, at the original index
+threads_02_shared_local.pl	inline.h	^Perl_sv_can_existdelete	Perl_sv_can_existdelete: a tie class must have both EXISTS and DELETE for an absent element to be recorded as absent
+threads_02_shared_local.pl	dist/threads-shared/shared.xs	^EXISTS\(SV \*obj, SV \*index\)	threads::shared::tie has EXISTS but no DELETE method, so a localized absent element is treated as present and restored by STORE
+threads_02_shared_local.pl	pp_hot.c	Try to preserve the existence of a tied array	pp_multideref, and pp_aelem below it with the same block: without SvCANEXISTDELETE the element is preeminent and save_aelem records the fresh proxy's undef
