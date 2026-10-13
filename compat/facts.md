@@ -66,6 +66,14 @@ Entries:
   `FETCH(1)` and `STORE(1)`, so after a structural move it reads whatever is at index 1 (the `E=` column of the tied
   rows: the reference captured inside the scope reads the restored value after it, where the plain rows' reads the
   installed SV wherever it went).  `Perl_av_fetch` on a magical array (av.c 271), `PERL_MAGIC_tiedelem`.
+- A held proxy `FETCH`es once: `Perl_magic_getpack` sets `MGf_GSKIP` on every tied-element `FETCH` (mg.c 2240) and only
+  a set through the proxy clears it (mg.c 287), so a second read returns the cached value, after a `shift` too, and a
+  fresh `$a[1]` is a new proxy that `FETCH`es again.  The tied rows read their captured reference once, after the scope.
+  Probe: `probes/research/value-model/26_weaken_tied_elem.pl` (C).
+- `weaken` on a tied element acts on the proxy's own slot and runs no set magic: `weaken $a[0]` has no lasting effect
+  (the proxy dies with the statement and the tie's slot stays strong), and a proxy held through `\$a[0]`, read once so
+  its slot is filled, then weakened, is a weak holder whose set magic is the tie's `STORE`: when the referent dies the
+  kill clears the proxy and runs `STORE(0, undef)`.  Same probe (A, B).
 - An absent element localized on a tied array is deleted on unwind by `DELETE(idx)` with no `STORE`, and the tie's
   structural methods see only what was stored: a bare `local $a[5]` on a tied array of three stores nothing, so the tie
   never grows (`tied/aeA/bare/unshift1`: `7, 10, 20, 30`), while the assigned form stores `50` at 5 and a later `shift`
