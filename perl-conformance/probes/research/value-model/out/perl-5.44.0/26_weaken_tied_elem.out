@@ -1,0 +1,27 @@
+A. weaken $a[0] on the temporary proxy
+  STORE[0] ref
+  FETCH[0]
+  isweak($a[0])=0
+  undef $t:
+  DESTROY
+  FETCH[0]
+  defined $a[0]=0 (the proxy's weakening died with the statement)
+  STORE[0] undef
+B. a held proxy, primed, then weakened: the kill runs the tie's STORE
+  STORE[0] ref
+  FETCH[0]
+  undef $t:
+  DESTROY
+  STORE[0] undef
+  end of B
+C. a held proxy reads its cached value; a fresh $a[0] is a new proxy
+  STORE[0] ref
+  FETCH[0]
+  isweak($$r)=1 after a second read (no FETCH: cached)
+  FETCH[0]
+  isweak($a[0])=0 for a fresh proxy
+  undef $t:
+  DESTROY
+  STORE[0] undef
+  end of C
+end
