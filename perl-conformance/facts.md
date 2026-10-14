@@ -66,6 +66,12 @@ Entries:
   `FETCH(1)` and `STORE(1)`, so after a structural move it reads whatever is at index 1 (the `E=` column of the tied
   rows: the reference captured inside the scope reads the restored value after it, where the plain rows' reads the
   installed SV wherever it went).  `Perl_av_fetch` on a magical array (av.c 271), `PERL_MAGIC_tiedelem`.
+- So `local` on a tied element is save-and-restore of a value, not substitution of an SV: the tie has one slot per
+  index, the SV `local` installs is one more proxy for it (its set magic runs on installation, the `STORE` of undef
+  before the `STORE` of the value), and a write through a reference taken before the `local` lands in that slot,
+  overwriting the localized value for every reader, until the restore overwrites it in turn.  On a plain array the same
+  write lands in the parked SV and is what the restore brings back.  Model rows `tied/aeP/*/preref` (trace `S:1:77`
+  inside the scope, `S:1:20` at exit, final `20`) against `plain/aeP/*/preref` (final `77`).
 - A held proxy `FETCH`es once: `Perl_magic_getpack` sets `MGf_GSKIP` on every tied-element `FETCH` (mg.c 2240) and only
   a set through the proxy clears it (mg.c 287), so a second read returns the cached value, after a `shift` too, and a
   fresh `$a[1]` is a new proxy that `FETCH`es again.  A write through the proxy `STORE`s at the index and re-arms the
