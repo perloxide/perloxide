@@ -18,6 +18,22 @@ Throughout the document, "Perl" means Perl 5 unless otherwise qualified.
 "Raku" is mentioned only where architectural boundary decisions are
 needed.
 
+**Conventions for four words.**  "Thread" means an operating-system thread, what Rust's `std::thread` makes.  "Task"
+means a Tokio task.  "Task/thread" means either carrier, and is used wherever a sentence holds for both — the unit that
+owns a destruction lease, holds destruction privilege, blocks and is woken (§2.4.4).  "Ithread" means a Perl-level
+interpreter thread, the object `threads->create` returns on the ithreads compatibility surface; an ithread runs on some
+task/thread and is not itself a carrier.  Module and function names keep Perl's spelling (`threads`,
+`threads::shared`, `threads->tid`).  Inside `compat/`, which describes Perl alone, "thread" is necessarily an ithread.
+Coined terms are collected in the glossary (§25).
+
+**What the pieces are for.**  PerlOxide is one interpreter built from crates that are deliverables in their own right
+(§22.1): `perloxide-core` is a value, string and container library a native Rust application can use with no
+interpreter present, which is why the heap has a domainless mode and why the standalone-API constraints recur through
+§2; `perloxide-parser`, on `perloxide-core`, parses Perl for tools — within what parsing without execution can promise,
+since `BEGIN`, `use` and prototypes change how later source parses (§4.1); `perloxide-regex` is a Perl-compatible regex
+engine for Rust programs.  The interpreter, `perloxide`, is their composition, not the only product, and each
+standalone commitment is something the later sections are answerable to.
+
 The use of the name "PerlOxide" has been approved by The Perl and Raku
 Foundation under their trademark policy.  "Perl" is a trademark of
 The Perl Foundation.
@@ -2214,7 +2230,7 @@ in-place morph is not forbidden but inexpressible.
 
 **Both non-default engines are feature-gated, off by default
 [DECISION]** — the optional dependency is the feature
-(`indexmap`, `imbl`) — so a bare `perl-core` build carries
+(`indexmap`, `imbl`) — so a bare `perloxide-core` build carries
 exactly the default engine and the binary crate turns the others
 on; with a feature off, its constructor and variants simply do
 not exist, a compile-time absence.
@@ -2484,7 +2500,7 @@ holder alike.  The holder's legality is the readonly rule:
 adopted content is never mutated while held, so `Vec`'s buffer,
 `Bytes`' view pointer, and `Arc`'s inner slice are stable for the
 `Adopted`'s life.  The `Bytes` arm and the dependency it drags
-sit behind a `perl-core` feature named `bytes`; the parser's own
+sit behind a `perloxide-core` feature named `bytes`; the parser's own
 direct dependency carries no weight in this crate's surface.  The
 offset/length sentinel `SPAN` (`0xFF_FFFF` in both fields) marks
 a whole-object handle — the overwhelming case, minted by adoption
@@ -2561,7 +2577,7 @@ narrows per handle, as the immortal envelopes do.  Views carry no
 character count; `SPAN` handles read the struct's cache, and
 sub-views derive on demand.
 
-**The API is mechanism; policy lives above.**  `perl-core` does
+**The API is mechanism; policy lives above.**  `perloxide-core` does
 not decide whether pinning a backing matters — it cannot see the
 facts that answer it (how long the backing lives, how many
 siblings share it, what the caller does next), and §2.7.7's
@@ -2895,7 +2911,7 @@ Their promoted forms are two immortal singletons
   itself (through a ref or `foreach` alias) dies read-only.
 - `builtin::is_bool` answers from the variant, trivially.
 
-The singleton contract is pinned by perl-core tests requiring no
+The singleton contract is pinned by perloxide-core tests requiring no
 runtime: `Arc::ptr_eq` across separate upgrades of `True` (and of
 `False`); the two singletons distinct; upgrades yield `Const`;
 pre-materialized values as above; mutation attempts yield the
@@ -2974,7 +2990,7 @@ Container-verified contract (perl 5.38, all under `-w`):
   remain interpreter logic.
 
 - The diagnostics architecture, crate-wide [DECISION]: perl's
-  81-category warning tree is `perl-core` vocabulary — a
+  81-category warning tree is `perloxide-core` vocabulary — a
   `WarningCategory` enum extracted from 5.44.0's
   `regen/warnings.pl` joined with `%warnings::Offsets`, its
   discriminants perl's own bit numbers so pragma bit vectors
@@ -3364,7 +3380,7 @@ ordering on unprojected values, and so cannot be the `Ord` impl.
 
 The warned and tainted tag bits are
 ignored by equality and hashing.  This section supersedes any notion
-of "internal representation equality" — string equality in perl-core
+of "internal representation equality" — string equality in perloxide-core
 *is* Perl-level string equality.
 
 #### 2.3.6 Layout law:
@@ -3614,7 +3630,7 @@ construction.
 
 **Aliasing is a standalone-library capability**, not an ops-layer
 one.  Correct aliasing — `foreach` and `@_` semantics, `\$a[0]` —
-must work from `perl-core` alone; the verbs are public on `Slot`.
+must work from `perloxide-core` alone; the verbs are public on `Slot`.
 
 **The slot→cell edge is monotonic.**  Un-promoting would invalidate
 every outstanding reference, so a slot that names a cell names it
@@ -4343,13 +4359,13 @@ split; the slab backend keeps it as typed operations.)
 allocation-related portion of what Perl calls an interpreter, and
 nothing more: the heap arenas, the lifecycle phase machine, and the
 finalization queue — the unit of teardown enumeration, and the only
-part of an interpreter `perl-core` knows.  The rest of an
+part of an interpreter `perloxide-core` knows.  The rest of an
 interpreter — symbol tables, the module registry, globals — belongs
 to the runtime, which owns a `Domain` rather than being one.  Core
 therefore never learns what a stash is: a node carries a
 `class_id`, core enqueues its finalization, and resolving that id
 to a class and running `DESTROY` is the runtime's work (§2.4.5).
-The split is what lets `perl-core` stand alone: a consumer with no
+The split is what lets `perloxide-core` stand alone: a consumer with no
 interpreter still allocates, still tears down, and never meets a
 symbol table.
 
@@ -5070,8 +5086,8 @@ is explicit, clearing is impossible.
 - `Tainted` is monotonic: constructors produce clean values, the only
   public combinator is OR (`tainted_by` raises, never lowers), and
   the clean-from-tainted constructor is private to the taint module.
-  Its two sanctioned consumers (§2.6.2) reach it through perl-core
-  APIs: the regex engine hands match extents to a perl-core
+  Its two sanctioned consumers (§2.6.2) reach it through perloxide-core
+  APIs: the regex engine hands match extents to a perloxide-core
   capture-materialization function (which untaints, hint-conditional
   on `use locale`), and `Hash` key canonicalization untaints
   in-crate.  Laundering is not a reviewed-against bug class; it is
@@ -5107,8 +5123,8 @@ is explicit, clearing is impossible.
   merges the two functions into one symbol (the strongest possible
   equivalence).  In unoptimized builds the post-applied `tainted_by`
   costs ~2.3× instructions (no calls); the standing project
-  configuration is `[profile.dev.package.perl-core] opt-level = 3`
-  (temporarily lowered when debugging perl-core itself under a
+  configuration is `[profile.dev.package.perloxide-core] opt-level = 3`
+  (temporarily lowered when debugging perloxide-core itself under a
   debugger), at which the identity holds.  Sinks (`eval`, `system`,
   filesystem ops) are not `taint_match!` territory: they read
   operand taint through the plain accessor before acting.
@@ -5132,7 +5148,7 @@ wording against the 5.42 reference documentation.
 
 ### 2.7 The Rust API Surface
 
-**`perl-core` is a library in its own right [DECISION].**  Its types
+**`perloxide-core` is a library in its own right [DECISION].**  Its types
 are meant to be used directly from Rust, by callers who never
 instantiate the interpreter — not solely as building blocks the ops
 layer assembles.  Much of that ops layer will be thin calls into
@@ -5474,7 +5490,7 @@ unified under one name.
 
 #### 2.7.6 Warnings:
 
-`perl-core` can supply exactly one thing about a warning: **that this
+`perloxide-core` can supply exactly one thing about a warning: **that this
 operation on this content is warn-worthy, now**.  It cannot format
 the message, which needs the operation name and source location; it
 cannot decide whether the category is enabled, since `use warnings`
@@ -6176,14 +6192,14 @@ significant accidental complexity.
 
 #### 5.4.2 Dependencies:
 
-`perl-parser` depends on the `bytes` crate.  The source layer uses
+`perloxide-parser` depends on the `bytes` crate.  The source layer uses
 `Bytes` for zero-copy reference-counted slices of the source buffer.
 Line slicing — including partial lines at frame bounds — and the
 suspended lines of frames below the top are all `Bytes` handles into the
 same underlying allocation — no copying.
-`perl-regex` remains dependency-free, operating on `&[u8]` and
-`&str` slices; the conversion from `Bytes` to `&[u8]` is free
-(`Bytes` derefs to `&[u8]`).
+`perloxide-regex` keeps its dependencies to a minimum, and `perloxide-core`
+is expected to be one of them (§11.2): a `PString` carries the byte
+sequence and the UTF-8 flag that together are the engine's subject.
 
 #### 5.4.3 `LexerLine` — the lexer's working unit:
 
@@ -9493,7 +9509,7 @@ a need of this project.
 
 ### 11.2 Design as a Standalone Crate
 
-The `perl-regex` crate should be designed as a **general-purpose Rust
+The `perloxide-regex` crate should be designed as a **general-purpose Rust
 library** that happens to also serve the Perl implementation.  It
 should be independently publishable on crates.io and useful to any
 Rust program that needs regex features beyond what the `regex` crate
@@ -9505,8 +9521,12 @@ provides.
    to Rust — `Regex::new()`, `.find()`, `.captures()`, iterators over
    matches.  The Perl interpreter integration is a thin layer on top.
 
-2. **No Perl runtime dependency.**  The core crate must not depend on
-   the Perl interpreter, value model, or heap.  Embedded code blocks
+2. **No interpreter dependency, and few others.**  The engine must not
+   depend on the interpreter, the compiler, or the runtime heap, and its
+   dependencies are kept to a minimum.  `perloxide-core` is expected to
+   be one of them, because a `PString` is exactly the byte sequence and
+   UTF-8 flag the engine matches against; the dependency list is settled
+   when the crate is implemented, not before.  Embedded code blocks
    (`(?{ ... })`) are supported through a generic callback trait, not
    a hard dependency on the Perl compiler.
 
@@ -9515,16 +9535,17 @@ provides.
    makes it the go-to crate for any Rust project that needs PCRE-level
    functionality.
 
-4. **UTF-8 and byte-mode support.**  The engine should operate on both
-   `&str` (UTF-8) and `&[u8]` (arbitrary bytes), matching Perl's own
-   dual-mode string handling.
+4. **UTF-8 and byte-mode support.**  The engine operates in both of
+   Perl's string modes — UTF-8 and arbitrary bytes, the two states of
+   `PString`'s flag — matching Perl's own dual-mode string handling.
+   How `&str` and `&[u8]` callers enter is part of the API design.
 
 ### 11.3 Public API
 
 The API should be familiar to users of the `regex` crate:
 
 ```rust
-use perl_regex::Regex;
+use perloxide_regex::Regex;
 
 // Compile a pattern
 let re = Regex::new(r"(\w+)\s+\1")?;  // backreference
@@ -9550,7 +9571,7 @@ for m in re.find_iter(text) {
 Advanced features use the same API:
 
 ```rust
-use perl_regex::Regex;
+use perloxide_regex::Regex;
 
 // Lookahead
 let re = Regex::new(r"\w+(?=\s*=)")?;
@@ -9567,7 +9588,7 @@ assert_eq!(&caps["year"], "2025");
 let re = Regex::new(r"(*MARK:first)\w+|(*MARK:second)\d+")?;
 
 // Byte-mode matching
-use perl_regex::bytes::Regex as BytesRegex;
+use perloxide_regex::bytes::Regex as BytesRegex;
 let re = BytesRegex::new(r"[\x00-\x1f]")?;
 assert!(re.is_match(b"\x0a\x0d"));
 ```
@@ -9653,7 +9674,7 @@ Match
 ### 11.6 Crate Structure
 
 ```text
-perl-regex/
+regex/
     src/
         lib.rs           # public API: Regex, Captures, Match, etc.
         parse.rs         # regex parser (pattern string → AST)
@@ -12072,7 +12093,7 @@ extern fn sum_positive(items: &[i64]) -> i64 {
     items.iter().filter(|x| *x > 0).sum()
 }
 
-# Standalone — regex lowers to perl-regex crate calls, no runtime needed
+# Standalone — regex lowers to perloxide-regex crate calls, no runtime needed
 extern fn has_digits(s: &str) -> bool {
     s =~ /\d+/
 }
@@ -12102,7 +12123,7 @@ uses:
 - Rust standard library methods on typed values
 - Rust-style closures (not `sub` closures)
 - `match`, `if`/`else`, loops on typed values
-- Regex via `=~` (lowers to `perl-regex` crate calls)
+- Regex via `=~` (lowers to `perloxide-regex` crate calls)
 - `f"..."` format strings (lower to concatenation)
 - `?` on `Result` (lowers to `Result::Err` propagation)
 
@@ -12221,11 +12242,11 @@ pub fn create_user(name: &str, age: i64) -> User {
 #### 14.14.3 Mixed typed/untyped code calls the runtime:
 
 Code that mixes `let`/`fn` with `my`/`sub` generates Rust code that
-depends on the `perl-runtime` crate for the untyped portions:
+depends on the `perloxide-runtime` crate for the untyped portions:
 
 ```rust
 // Generated Rust — mixed code
-use perl_runtime::{Interpreter, Value};
+use perloxide_runtime::{Interpreter, Value};
 
 pub fn process_data(interp: &mut Interpreter, data: &[i64]) -> String {
     // Typed portion — direct Rust
@@ -12251,13 +12272,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-perl-runtime = "0.1"     # only if mixed code uses untyped features
-perl-regex = "0.1"       # only if =~ is used
+perloxide-runtime = "0.1"     # only if mixed code uses untyped features
+perloxide-regex = "0.1"       # only if =~ is used
 tokio = { version = "1", features = ["full"] }  # only if async is used
 ```
 
 Dependencies are included only when needed.  A fully-typed library
-with only `extern fn` functions has no `perl-runtime` dependency at
+with only `extern fn` functions has no `perloxide-runtime` dependency at
 all — it's a pure Rust crate, publishable on crates.io.
 
 #### 14.14.5 Sync/async monomorphization in generated code:
@@ -13746,7 +13767,7 @@ record: build state belongs to git and the test suite (§0).
 
 **This is the foundation everything else stands on.**
 
-Build the `perl-core` crate first.  Every other crate depends on it,
+Build the `perloxide-core` crate first.  Every other crate depends on it,
 and design mistakes here are the most expensive to fix later.  The
 internal ordering follows the dependency structure of §2:
 
@@ -13864,7 +13885,7 @@ fn reference_identity() {
 
 ### 21.2 Lexer, parser, and AST
 
-Build the lexer and parser together in the `perl-parser` crate.
+Build the lexer and parser together in the `perloxide-parser` crate.
 The lexer produces consistent, unambiguous tokens; the parser
 resolves semantic ambiguity through its control flow and calls
 specialized lexer methods for context-sensitive scanning.  Build
@@ -13883,7 +13904,7 @@ thoroughly.
 
 ### 21.3 Minimal interpreter via AST walking
 
-Build a quick-and-dirty AST-walking interpreter in `perl-runtime` —
+Build a quick-and-dirty AST-walking interpreter in `perloxide-runtime` —
 just enough to run `print`, basic arithmetic, string operations,
 conditionals, and loops.  This is throwaway scaffolding to get rapid
 feedback from the test suite.
@@ -13897,7 +13918,7 @@ This unblocks virtually all real Perl code.
 
 ### 21.5 Lowering and IR
 
-Build the HIR lowering and IR code generation in `perl-compiler`.
+Build the HIR lowering and IR code generation in `perloxide-compiler`.
 Migrate the interpreter from AST walking to IR execution.  The AST
 walker can remain as a fallback during transition.
 
@@ -13939,7 +13960,7 @@ and AOT Rust codegen can proceed independently once the IR is stable.
 
 ### 21.12 REPL
 
-Build the REPL module in `perl-runtime` (behind the `repl` feature
+Build the REPL module in `perloxide-runtime` (behind the `repl` feature
 flag) on `reedline` once the interpreter can execute basic code
 (after Step 3 or 4).  Start with simple expression evaluation and
 `dd()` output, then add introspection commands, tab completion, and
@@ -13951,76 +13972,67 @@ syntax highlighting incrementally.
 
 ### 22.1 Crate Architecture
 
-The workspace consists of five library crates and one binary, with
-three independent leaf crates that have no cross-dependencies:
+The workspace is the `perloxide` repository: five library crates in short top-level directories, and the interpreter
+binary as the root package [DECISION].  **Directory `x` holds the package `perloxide-x`**: the published names carry the
+project prefix, since the bare `perl-*` names collide on crates.io and the prefix is the brand, and the directories drop
+it, since the repository already supplies it.  The root package is `perloxide` itself, which holds the bare name and is
+what `cargo install perloxide` installs.
 
 ```text
-                    ┌───────────┐
-                    │   perl    │  (bin: fn main())
-                    └─────┬─────┘
-                          │
-                  ┌───────▼────────┐
-                  │  perl-runtime  │  (lib: interpreter,
-                  │                │   builtins, CLI/REPL)
-                  └┬────┬─────────┘
-                   │    │
-        ┌──────────▼┐   │   ┌────────────┐
-        │perl-regex │   │   │perl-compiler│
-        │           │   │   │(lib: HIR,   │
-        │(lib:      │   │   │ IR, lower,  │
-        │ standalone│   │   │ optimize)   │
-        │ regex     │   │   └──┬──────┬───┘
-        │ engine)   │   │      │      │
-        └───────────┘   │  ┌───▼──┐ ┌─▼──────────┐
-                        │  │perl- │ │perl-parser  │
-                        │  │core  │ │(lib: lexer  │
-                        │  │(lib: │ │ + parser    │
-                        │  │values│ │ + AST)      │
-                        │  │etc.) │ │             │
-                        │  └──────┘ └─────────────┘
-                        │      ▲         ▲
-                        └──────┴─────────┘
+perloxide (root package: the binary)
+  └─ perloxide-runtime
+       ├─ perloxide-compiler
+       │    ├─ perloxide-parser ── optional ──▶ perloxide-regex
+       │    │    └─ perloxide-core
+       │    └─ perloxide-core
+       ├─ perloxide-core
+       └─ perloxide-regex
 ```
 
-| Crate           | Type | Dependencies                                              | Contents                                                                                                                           |
-|-----------------|------|-----------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| `perl-core`     | lib  | `hashbrown`, `parking_lot`; opt-in `indexmap`, `imbl`     | Strings, values, scalars, flags, typed value trait, extension API                                                                  |
-| `perl-parser`   | lib  | `bytes`, `memchr`, `unicode-xid`, `unicode-normalization` | Lexer + Pratt parser + AST.  Uses raw Rust types for literals — independently useful for linters, formatters, syntax highlighters  |
-| `perl-regex`    | lib  | none                                                      | Standalone Perl-compatible regex engine.  Pure Rust API on `&str`/`&[u8]` — independently publishable (see §11)                    |
-| `perl-compiler` | lib  | `perl-core`, `perl-parser`                                | HIR, IR, lowering, optimization passes, `Executor` trait.  Future home for JIT (Cranelift) and AOT (Rust source emission) backends |
-| `perl-runtime`  | lib  | `perl-compiler`, `perl-core`, `perl-regex`                | Interpreter loop, `Executor` impl, call frames, symbol tables, builtins, magic, concurrency, bytecode save/load, CLI, REPL, debug  |
-| `perl`          | bin  | `perl-runtime`                                            | Thin entry point: parses `std::env::args`, calls `perl_runtime::run`, exits                                                        |
+| Directory  | Package              | Type | Dependencies                                                                                            | Contents                                                                                                                           |
+|------------|----------------------|------|---------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `core`     | `perloxide-core`     | lib  | `hashbrown`, `parking_lot`; opt-in `indexmap`, `imbl`                                                   | Strings, values, scalars, flags, typed value trait, extension API                                                                  |
+| `parser`   | `perloxide-parser`   | lib  | `perloxide-core`, `bytes`, `memchr`, `unicode-xid`, `unicode-normalization`; optional `perloxide-regex` | Lexer + Pratt parser + AST.  Literals are `PString`, constants native values — useful for linters, formatters, syntax highlighters |
+| `regex`    | `perloxide-regex`    | lib  | minimal; `perloxide-core` expected                                                                      | Standalone Perl-compatible regex engine.  Rust-native API in both string modes — independently publishable (see §11)               |
+| `compiler` | `perloxide-compiler` | lib  | `perloxide-core`, `perloxide-parser`                                                                    | HIR, IR, lowering, optimization passes, `Executor` trait.  Future home for JIT (Cranelift) and AOT (Rust source emission) backends |
+| `runtime`  | `perloxide-runtime`  | lib  | `perloxide-compiler`, `perloxide-core`, `perloxide-regex`                                               | Interpreter loop, `Executor` impl, call frames, symbol tables, builtins, magic, concurrency, bytecode save/load, CLI, REPL, debug  |
+| `.` (root) | `perloxide`          | bin  | `perloxide-runtime`                                                                                     | Thin entry point: parses `std::env::args`, calls `perloxide_runtime::run`, exits                                                   |
 
 #### 22.1.1 Design rationale:
 
-Three leaf crates (`perl-core`, `perl-parser`, `perl-regex`) have no
-cross-dependencies.  Each is independently useful as a library:
-`perl-parser` for tools that need to parse Perl without executing it,
-`perl-regex` for Rust programs that want Perl-compatible regex, and
-`perl-core` for extensions that need the value types.  `perl-core`
-carries its own `CowBuffer` (§2.2.3) for copy-on-write byte
-buffers, with `hashbrown` for the default hash engine
-(§2.2.13), `indexmap` for the insertion-ordered mode (§2.2.11,
-§2.2.13), feature-gated `imbl` for the immutable engine
-(§2.2.13), and `parking_lot` for cell locks (§2.3.1).  `perl-parser`
-depends on `bytes` (source slicing), `memchr` (SIMD-optimized
-scanning and delimiter lookup), `unicode-xid` (Unicode identifier
-validation), and `unicode-normalization` (NFC normalization).
-`perl-regex` remains dependency-free, operating on `&[u8]` and `&str`
-slices.
+Each library crate is a deliverable in its own right (§0): `perloxide-core` for a native Rust application that wants
+Perl's values, strings and containers with no interpreter present; `perloxide-parser`, with `perloxide-core`, for tools
+that parse Perl without executing it; `perloxide-regex` for Rust programs that want Perl-compatible regex.  The
+interpreter is the composition of all of them.
 
-`perl-compiler` contains the compilation pipeline: AST → HIR → IR →
-optimize.  It depends on `perl-parser` (for AST input) and
-`perl-core` (for value types referenced during lowering).  It does
-*not* depend on `perl-runtime` — this layering is deliberate.
+`perloxide-core` carries its own `CowBuffer` (§2.2.3) for copy-on-write byte buffers, with `hashbrown` for the default
+hash engine (§2.2.13), `indexmap` for the insertion-ordered mode (§2.2.11, §2.2.13), feature-gated `imbl` for the
+immutable engine (§2.2.13), and `parking_lot` for cell locks (§2.3.1).
 
-`perl-runtime` depends on `perl-compiler` and implements the
-`Executor` trait that the compiler uses for `BEGIN`/`use`/`eval
-STRING` execution.  The mutual recursion between compiler and
-interpreter is broken cleanly by dependency inversion:
+**`perloxide-parser` depends on `perloxide-core` [DECISION].**  Perl strings can hold surrogates and code points past
+U+10FFFF that Rust's `str` rejects, so a parser API on `String` is wrong at the boundary, not merely inconvenient;
+literals come out as `PString` and constants as native values, which also saves every consumer a conversion.  The
+parser's own dependencies are `bytes` (zero-copy source slices, §5.4.2, which `PString` is to replace), `memchr`
+(SIMD-optimized scanning and delimiter lookup), `unicode-xid` (Unicode identifier validation), and
+`unicode-normalization` (NFC normalization).  **`perloxide-regex` is an optional
+dependency of the parser, behind a feature [DECISION]**, because Perl makes the regex compiler part of parsing: pattern
+syntax errors are compile-time errors, and `(?{ code })` blocks are Perl code the regex compiler hands back to the
+parser.  With the feature, patterns are compiled at parse time, their errors surface where Perl surfaces them, and code
+blocks are parsed; without it, patterns stay opaque `PString` bodies with their flags, the lexer still finds delimiters
+and interpolated variables, and anything needing pattern syntax is reported as unavailable rather than guessed.
+The engine's own dependencies are settled when it is implemented; they are kept to a minimum, and `perloxide-core` is
+expected to be among them, since `PString` is the byte sequence and UTF-8 flag the engine matches against (§11.2).
+
+`perloxide-compiler` contains the compilation pipeline: AST → HIR → IR → optimize.  It depends on `perloxide-parser`
+(for AST input) and `perloxide-core` (for value types referenced during lowering).  It does *not* depend on
+`perloxide-runtime` — this layering is deliberate.
+
+`perloxide-runtime` depends on `perloxide-compiler` and implements the `Executor` trait that the compiler uses for
+`BEGIN`/`use`/`eval STRING` execution.  The mutual recursion between compiler and interpreter is broken cleanly by
+dependency inversion:
 
 ```rust
-/// Defined in perl-compiler.  The compiler doesn't know about the
+/// Defined in perloxide-compiler.  The compiler doesn't know about the
 /// interpreter — only that something can execute compiled IR.
 trait Executor {
     fn execute(
@@ -14030,41 +14042,36 @@ trait Executor {
 }
 ```
 
-The compiler calls `executor.execute(begin_block)` when it hits a
-`BEGIN`.  The runtime implements `Executor` and passes itself to the
-compiler.  No circular dependency — just an inversion-of-control
-callback.
+The compiler calls `executor.execute(begin_block)` when it hits a `BEGIN`.  The runtime implements `Executor` and
+passes itself to the compiler.  No circular dependency — just an inversion-of-control callback.
 
-This layering has a concrete benefit: a future AOT tool that emits
-Rust source code (§14.14) can depend on `perl-compiler` without
-pulling in the interpreter:
+This layering has a concrete benefit: a future AOT tool that emits Rust source code (§14.14) can depend on
+`perloxide-compiler` without pulling in the interpreter:
 
 ```text
-perl-aot (future bin)
-  └─ perl-compiler
-       ├─ perl-core
-       └─ perl-parser
+perloxide-aot (future bin)
+  └─ perloxide-compiler
+       ├─ perloxide-core
+       └─ perloxide-parser
 ```
 
-No interpreter, no builtins, no Tokio runtime — just parse Perl,
-compile to IR, emit Rust source.
+No interpreter, no builtins, no Tokio runtime — just parse Perl, compile to IR, emit Rust source.
 
-**Bytecode serialization** lives in `perl-runtime`, not
-`perl-compiler`.  The IR types are defined in `perl-compiler`, but
-the bytecode format is optimized for fast loading into the
-interpreter loop — it's a runtime concern.  The flow:
+**Bytecode serialization** lives in `perloxide-runtime`, not `perloxide-compiler`.  The IR types are defined in
+`perloxide-compiler`, but the bytecode format is optimized for fast loading into the interpreter loop — it's a runtime
+concern.  The flow:
 
-- First run: `perl-compiler` produces IR → `perl-runtime` executes
-  it and optionally saves bytecode to a `.plc` file.
-- Subsequent runs: `perl-runtime` finds the `.plc`, checks the
-  timestamp, loads bytecode directly, skips compilation.
+- First run: `perloxide-compiler` produces IR → `perloxide-runtime` executes it and optionally saves bytecode to a
+  `.plc` file.
+- Subsequent runs: `perloxide-runtime` finds the `.plc`, checks the timestamp, loads bytecode directly, skips
+  compilation.
 
 Same pattern as Python's `.pyc` files.
 
-#### 22.1.2 Internal module structure of `perl-compiler`:
+#### 22.1.2 Internal module structure of `perloxide-compiler`:
 
 ```text
-perl-compiler/
+compiler/
     src/
         lib.rs
         hir/             # HIR types and lowering from AST
@@ -14073,10 +14080,10 @@ perl-compiler/
         executor.rs      # Executor trait definition
 ```
 
-#### 22.1.3 Internal module structure of `perl-runtime`:
+#### 22.1.3 Internal module structure of `perloxide-runtime`:
 
 ```text
-perl-runtime/
+runtime/
     src/
         lib.rs
         interp/          # Interpreter loop, call frames
@@ -14091,10 +14098,10 @@ perl-runtime/
         debug/           # DAP server, profiling (behind feature flag)
 ```
 
-#### 22.1.4 Internal module structure of `perl-parser`:
+#### 22.1.4 Internal module structure of `perloxide-parser`:
 
 ```text
-perl-parser/
+parser/
     src/
         lib.rs           # Public API: "give me source, get an AST"
         source.rs        # source layer (impl Lexer), LexerLine, CRLF
@@ -14115,14 +14122,12 @@ perl-parser/
             symbol_tests.rs
 ```
 
-The lexer and parser are `pub(crate)` internals.  The lexer produces
-consistent unambiguous tokens; the parser resolves semantic ambiguity
-through its control flow and calls specialized lexer methods for
-context-sensitive scanning (see §5.2).  The parser syncs pragma and
-feature state to the lexer at pragma change points.  The crate
-boundary is at the AST level — downstream crates see only the AST.
+The lexer and parser are `pub(crate)` internals.  The lexer produces consistent unambiguous tokens; the parser resolves
+semantic ambiguity through its control flow and calls specialized lexer methods for context-sensitive scanning (see
+§5.2).  The parser syncs pragma and feature state to the lexer at pragma change points.  The crate boundary is at the
+AST level — downstream crates see only the AST.
 
-#### 22.1.5 Feature flags on `perl-runtime`:
+#### 22.1.5 Feature flags on `perloxide-runtime`:
 
 ```toml
 [features]
@@ -14131,42 +14136,50 @@ repl = ["dep:reedline"]
 debug = ["dep:dap"]
 ```
 
-The REPL and debug server have their own dependencies that most
-users don't need.  Feature flags keep them out of the default build
-without requiring separate crates.  A future JIT backend would
-follow the same pattern on `perl-compiler`:
+The REPL and debug server have their own dependencies that most users don't need.  Feature flags keep them out of the
+default build without requiring separate crates.  A future JIT backend would follow the same pattern on
+`perloxide-compiler`:
 
 ```toml
-# perl-compiler Cargo.toml
+# compiler/Cargo.toml
 [features]
 default = []
 jit = ["dep:cranelift-codegen", "dep:cranelift-frontend"]
 ```
 
-**The binary crate (`perl`) is minimal** — all logic lives in
-`perl-runtime` as testable library code.  This makes the runtime
-embeddable: a Rust application can depend on `perl-runtime` and
-invoke Perl without going through the CLI.
+**The root package `perloxide` is the binary and nothing else [DECISION]** — all logic lives in `perloxide-runtime` as
+testable library code, and a Rust application that embeds the interpreter depends on `perloxide-runtime` directly, as
+one that wants only values depends on `perloxide-core`; a façade crate re-exporting the members would have no job, and
+tying a library's dependency graph to the CLI's would work against the standalone-crate goal in exactly the case it
+exists for.  The root package's `Cargo.toml` carries an `include` list (`src/**`, `Cargo.toml`, `README.md`, `LICENSE`)
+so that publishing sends the source and nothing else: `docs/`, `compat/` and the benchmarks live only in the
+repository, which is where the design document is read and reviewed.  The name the binary installs as is open; §22's
+diagram says `perl`, and installing a `perl` into `~/.cargo/bin` shadows the system perl for most Rust users.
 
-**The project name is PerlOxide.**  The workspace and repository use
-`perl-*` crate names (`perl-core`, `perl-parser`, `perl-regex`,
-`perl-compiler`, `perl-runtime`, `perl`).  The GitHub organization
-is `perloxide` (https://github.com/perloxide/perloxide).  Crate
-directories sit at the top level of the repository, not under a
-`crates/` subdirectory.
+**The project name is PerlOxide.**  The GitHub organization is `perloxide` (https://github.com/perloxide/perloxide).
+Crate directories sit at the top level of the repository, not under a `crates/` subdirectory; the rename from
+`perl-core` and `perl-parser` was made retroactive by rewriting history, so each directory's history is whole.
 
 ### 22.2 Supporting Files
 
 ```text
 docs/
     design.md            # This document
-    compat-log.md        # Tracking compatibility decisions and divergences
+    ideas.md             # Candidates not yet ruled on
+    benchmarking.md      # Measurements the design cites
 
-tests/
-    upstream/            # Symlink or copy of Perl 5 t/ directory
-    unit/                # Rust unit tests
-    integration/         # End-to-end Perl source tests
+compat/                  # The Perl-only compatibility reference (its README.md is the index):
+    facts.md             #   what perl does, each entry naming its probe or model row
+    undefined.md         #   windows where perl has no defined behavior
+    probes/              #   one program per fact: corpus/ (harness-run, blessed per build) and research/
+    models/              #   executable transcriptions of perl's own algorithms, checked cell by cell
+    suites/              #   scenario suites with blessed outputs
+    harness/             #   the oracle: six 5.44.0 builds in two families, verdict lanes, bless/check
+    perls/               #   how the oracle's perl builds are made
+    measurements/        #   costs on a particular machine, not facts about perl
 ```
+
+Unit tests live beside the code in each crate; the end-to-end and upstream corpora are §20's.
 
 ---
 
@@ -14214,7 +14227,7 @@ Three items were previously listed here as deferred, wrongly:
 - **Unicode.**  Matching perl's Unicode behavior is in scope, not
   an incremental nicety.  Substantial machinery already exists in
   both crates: the encoding-knowledge lattice and storage classes
-  in `perl-core`, and NFC normalization, `\N{...}` name lookup,
+  in `perloxide-core`, and NFC normalization, `\N{...}` name lookup,
   XID identifier classification, and UTF-16 source handling in
   the parser.  The last of those is deliberately as crude as
   perl's: BOM or heuristic detection followed by transcoding the
@@ -14243,7 +14256,7 @@ choice between compatible designs; none may hold one up:
   compromised for it (§1.3).
 
 - **AOT compilation to binary executables.**  Plausible in the
-  long run — `perl-core` is built to stand alone as a crate —
+  long run — `perloxide-core` is built to stand alone as a crate —
   and wanted, but off the table while compatibility is the
   focus.
 
@@ -14329,7 +14342,7 @@ The key architectural decisions in this design:
    division), `{` (block vs hash, via post-hoc reclassification),
    and `<<` (heredoc vs shift-left).
 
-5. **Standalone regex crate** (`perl-regex`) designed as an
+5. **Standalone regex crate** (`perloxide-regex`) designed as an
    independently publishable Rust library with a clean API, filling
    a gap in the Rust ecosystem.  Embedded code blocks use a generic
    `RegexCodeHost` trait with no Perl runtime dependency.
@@ -14349,17 +14362,17 @@ The key architectural decisions in this design:
 7. **Value model first in implementation order**, because everything
    depends on it — not lexer first.
 
-8. **Five libraries plus one binary** — three independent leaf crates
-   (`perl-core`, `perl-parser`, `perl-regex`) with no
-   cross-dependencies.  `perl-core` depends on `bytes` for zero-copy
-   reference-counted buffers; `perl-parser` depends on `bytes`,
-   `memchr`, `unicode-xid`, and `unicode-normalization`; `perl-regex`
-   is dependency-free.  A `perl-compiler` library (HIR, IR, lowering,
-   optimization, `Executor` trait), a `perl-runtime` library
-   (interpreter, builtins, bytecode save/load), and a thin `perl`
+8. **Five libraries plus one binary** — `perloxide-core` at the leaf
+   (`hashbrown`, `parking_lot`; opt-in `indexmap`, `imbl`);
+   `perloxide-parser` on `perloxide-core` plus `bytes`, `memchr`,
+   `unicode-xid`, and `unicode-normalization`, with `perloxide-regex`
+   optional; `perloxide-regex` with minimal dependencies, `perloxide-core`
+   expected among them.  A `perloxide-compiler` library (HIR, IR, lowering,
+   optimization, `Executor` trait), a `perloxide-runtime` library
+   (interpreter, builtins, bytecode save/load), and the thin root
    binary.  The compiler–interpreter mutual recursion
    (`BEGIN`/`use`/`eval STRING`) is broken by dependency inversion:
-   `perl-compiler` defines the `Executor` trait, `perl-runtime`
+   `perloxide-compiler` defines the `Executor` trait, `perloxide-runtime`
    implements it.  Cargo workspace enforces dependency boundaries at
    the build system level.
 
@@ -14382,3 +14395,43 @@ The key architectural decisions in this design:
 11. **Backward compatibility with standard Perl 5** via a CPAN module
     using the pluggable keyword API.  The `$`-aliased subset works
     on unmodified Perl 5.12+, creating a zero-lock-in adoption path.
+
+---
+
+## 25. Glossary
+
+Coined terms, each with the section that defines it.  Ordinary words with a fixed reading in this document — thread,
+task, task/thread, ithread — are in §0.
+
+- **Admission bit (`WEAK_CLOSED`)** — the high bit of `strong_gate`; while set, no weak upgrade from outside the
+  executor can succeed, whatever the count (§2.4.4).
+- **Control block** — the two 32-bit words at the head of every slab slot, `strong_gate` and `weak_life` (§2.4.3).
+- **Destruction lease** — the per-node exclusion that serializes the executors of one node's successive destruction
+  episodes, held through the completion epilogue (§2.4.4).
+- **Destruction stack** — the nodes a task/thread is currently destroying, outermost episode first; the scope of its
+  privilege (§2.4.4).
+- **Domain** — the allocation-related portion of an interpreter: heap arenas, the lifecycle phase machine, and the
+  finalization queue; the unit of teardown enumeration (§2.4.5).
+- **Episode** — one run of a node's destruction, from the `ALIVE → DESTROYING` claim to `finish_destroy_locked`; a
+  resurrected node can have several (§2.4.4).
+- **Executor** — the task/thread that holds a node's destruction lease and runs its episode (§2.4.4).
+- **Finalization ticket** — the obligation to run a node's destructor, created by the `ALIVE → DESTROYING` claim and
+  owned by exactly one party at every instant (§2.4.5).
+- **Hybrid registry** — the referent-side list of exactly those weak holders that carry set magic (§2.4.8).
+- **`HeapArc` / `HeapWeak`** — the private slab-backed reference-counted handle and its weak form (§2.4.2).
+- **Lane A / lane B** — the oracle harness's verdict lanes: a lane-A test's exact output is a function of the program
+  and the pinned hash seed alone, identical across the stock, no-reuse and descending builds; a lane-B test's content
+  is stable but its line order depends on the allocator, address values, or the hash seed, so it is compared
+  canonically (`compat/harness/README.md`).
+- **Lifecycle** — `ALIVE`, `DESTROYING`, `DEAD`, the two bits in `weak_life` (§2.4.4).
+- **Privilege** — an executor's right to create strong references to a node from nothing, scoped to its destruction
+  stack (§2.4.4).
+- **Promotion** — moving a compact value into a stably addressed cell because something takes its identity (§2.2,
+  §2.2.7).
+- **Proxy cell** — the cell through which a tied container's element is reached when identity is taken, carrying the
+  container, the key, a cached value slot and the element magic (§2.5).
+- **Referent** — a promoted scalar: a shared, stably addressed, reference-counted identity (§2.2).
+- **Resurrection window** — everything `curse` runs, up to its single count read; closed and unreopenable past it
+  (§2.4.4).
+- **Tombstone** — a slot whose node is `DEAD` but whose control block is still retained by weak references or pins
+  (§2.4.2, §2.4.3).
