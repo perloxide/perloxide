@@ -3,7 +3,7 @@
 //! The public API is: give source bytes, get an AST.
 //!
 //! ```
-//! use perl_parser::parse;
+//! use perloxide_parser::parse;
 //!
 //! let program = parse(b"my $x = 42; print $x;").unwrap();
 //! assert_eq!(program.statements.len(), 2);

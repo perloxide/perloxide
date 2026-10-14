@@ -3597,7 +3597,7 @@ impl PString {
     }
 
     /// Clear the taint bit.  Non-public: reachable only through the two sanctioned laundering paths (§2.6.2) — capture
-    /// materialization and hash-key canonicalization, both inside perl-core.
+    /// materialization and hash-key canonicalization, both inside perloxide-core.
     pub(crate) fn untaint_for_sanctioned_path(&mut self) {
         self.rebuild_tag(|u, _t| (u, false));
     }
