@@ -79,7 +79,7 @@ have been settled by looking at the generated code, which was available
 throughout and took one command:
 
 ```
-cargo rustc -p perl-core --release -- --emit=asm
+cargo rustc -p perloxide-core --release -- --emit=asm
 rustc -O --edition=2024 --emit=asm bench.rs -o bench.s     # standalone
 ```
 

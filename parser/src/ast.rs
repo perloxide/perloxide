@@ -1,7 +1,7 @@
 //! Abstract Syntax Tree — syntax-oriented, not execution-oriented (§7).
 //!
 //! The AST preserves syntactic distinctions that matter for diagnostics, lowering, and tooling.  It is the public
-//! output of `perl-parser`.
+//! output of `perloxide-parser`.
 
 use crate::keyword::Keyword;
 use crate::span::Span;

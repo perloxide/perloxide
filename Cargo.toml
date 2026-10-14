@@ -1,11 +1,11 @@
 [workspace]
+# Directory `x` holds the package `perloxide-x`; the root package `perloxide` is the interpreter binary.
 members = [
-#    "perl",
-#    "perl-compiler",
-    "perl-core",
-    "perl-parser",
-#    "perl-regex",
-#    "perl-runtime",
+#    "compiler",
+    "core",
+    "parser",
+#    "regex",
+#    "runtime",
 ]
 resolver = "2"
 
