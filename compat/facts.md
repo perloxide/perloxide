@@ -148,6 +148,12 @@ Entries (the transition function is the section text; these are the weak-referen
   copy, a new weak reference, a rebless, is a crash or a leaked freed SV, and undefining the later holder there croaks
   `panic: del_backref` (undefined window, `undefined.md`).  Probe:
   `probes/research/value-model/25_kill_backrefs_reentry.pl` (identical on 5.38.2 and 5.44.0).
+- Under ithreads a weak reference to a `threads::shared` object is per thread: each thread reaches the shared referent
+  through its own proxy SV, the weak reference is to that proxy, and it is cleared when the thread's last strong
+  reference dies even though the referent lives on in another thread.  The referent dies, and `DESTROY` runs, in
+  whichever thread drops the last proxy.  So a thread cannot hold only a weak reference to a shared object, and no
+  thread can resurrect a shared object from another thread's `DESTROY`: its weak references are undef before that
+  `DESTROY` can begin.  Probe: `probes/corpus/threads_03_shared_weak.pl` (lane A, threaded family).
 
 ## The hash engine
 
