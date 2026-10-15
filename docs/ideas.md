@@ -177,8 +177,8 @@ localization runs `STORE(undef)` before `SvSetMagicSV` fetches A, a tied `local 
 | `$old=\$x; { local $x; $$old = 99; }` | `… STORE(99) …`, final external value 99                        |
 | `{ local $x; tied($x) }`              | same tie object, new `refaddr(\$x)`                             |
 
-**Design's position.**  §3.3's per-task overlay stores the localized state as a `Value`, covers special variables and
-package scalars, and has no `localize` hook on magic.
+**Design's position.**  §3.3's per-task/thread overlay stores the localized state as a `Value`, covers special variables
+and package scalars, and has no `localize` hook on magic.
 
 **Ruling.**  `local` as slot rebinding: save the old *cell*, install a fresh one, `localize` on the magic vtable with
 the container/value split, unconditional set-magic on the old cell at exit; element forms with the present/absent save
@@ -229,9 +229,9 @@ other magical lvalues) — and `local` operates on a `Place`.  The hash/array as
 - Readonly lives in `FullScalar` in code and in `rc_state` in §2.4.3; §2.3.2's ledger should say so where `set_readonly`
   promotes to `Full`.
 - §13.11's linearizability unit ("one primitive op") should explicitly exclude ops that ran user code: between a
-  callback and the store that follows it, another task may write the cell, and the callback's result lands over the
-  newer value.  Harmless for tied cells (the payload is not authoritative) and visible for get-magic write-through and
-  set-magic that mirrors state elsewhere.  Accepted, and should be stated.
+  callback and the store that follows it, another task/thread may write the cell, and the callback's result lands over
+  the newer value.  Harmless for tied cells (the payload is not authoritative) and visible for get-magic write-through
+  and set-magic that mirrors state elsewhere.  Accepted, and should be stated.
 - Opus 4.8's question, ruled explicitly: drop-point or statement-boundary `DESTROY` equivalence, with the page-bitmap
   drain point named.
 
@@ -361,12 +361,12 @@ of a wrong guess is one conversion.  Literal-ness in the *value* rather than in 
 who have no op tree: a key built from `&'static str` through `from_static` triggers shaping exactly as a program literal
 does.  An explicit hint on the API can be layered on top for callers with a fixed schema and dynamic keys.
 
-**The registry.**  Global, shared across tasks, append-only: shapes are immortal transition nodes, each holding a key
-list and a small child map keyed by the next literal key.  Reads are lock-free (a shape pointer and an immutable key
-list); transitions are rare and may lock.  Shapes are keyed by *sorted key set*, not insertion sequence: adding `age` to
-`{name}` transitions to `{age, name}` and inserts the slot at its sorted position (a memmove of a few hundred bytes at
-most, once per transition).  Records built incrementally in varying order — `$r{age} = $age if defined $age` — then
-share one shape per distinct populated field set, which for real records is a small number.  Memory is bounded by
+**The registry.**  Global, shared across tasks/threads, append-only: shapes are immortal transition nodes, each holding
+a key list and a small child map keyed by the next literal key.  Reads are lock-free (a shape pointer and an immutable
+key list); transitions are rare and may lock.  Shapes are keyed by *sorted key set*, not insertion sequence: adding
+`age` to `{name}` transitions to `{age, name}` and inserts the slot at its sorted position (a memmove of a few hundred
+bytes at most, once per transition).  Records built incrementally in varying order — `$r{age} = $age if defined $age` —
+then share one shape per distinct populated field set, which for real records is a small number.  Memory is bounded by
 distinct literal-key sets in the program; program text that manufactures new literals at runtime (`eval STRING` in a
 loop) grows the registry accordingly, which is that program's problem.  No key-count cap: a 250-entry literal lookup
 table is a fine record; only a sanity limit on chain depth, stated as a deopt.
@@ -406,18 +406,19 @@ lookup — need the ops layer and are the reason this waits.
 
 ## 4. Value-layer candidates
 
-### 4.1 A tier bit so the task-local majority pays no atomics
+### 4.1 A tier bit so the task/thread-local majority pays no atomics
 
 Every promoted read takes a `parking_lot` read lock and every `HeapArc` clone is an atomic RMW, even in a program that
 never spawns.  A `SHARED` bit in `rc_state` with the invariant "a shared object never points at a local one", maintained
 by a one-way traversal when a reference is published into shared reachability (assignment into a shared container,
 capture by a spawned closure, `:shared`), lets local-tier count operations be plain load/add/store and local-tier reads
 skip the lock.  Biased counts are exact, so `DESTROY` timing is unaffected (deferred counting would not be; the two are
-often conflated).  Local means *task*-local: a Tokio task may resume on another worker, and the scheduler's handoff
-supplies the happens-before, so the invariant is written in task terms.  Cost: the `share()` traversal, a `!Send` token
-discipline for local-tier operations, and bits in `rc_state` — which is why it is best decided before the slab `HeapArc`
-fixes the node layout.  Sources: Fable 5.1's tier bit, Grok 4.6's `share()` walk, Opus 5's "sharing is acquired, not
-declared".
+often conflated).  Local means *task/thread*-local; for a Tokio task that is the task itself, not the worker thread it
+happens to be on — a task may resume on another worker, and the scheduler's handoff supplies the happens-before — so
+the invariant is written against the task/thread, never against OS-thread identity.  Cost: the `share()` traversal, a
+`!Send` token discipline for local-tier operations, and bits in `rc_state` — which is why it is best decided before the
+slab `HeapArc` fixes the node layout.  Sources: Fable 5.1's tier bit, Grok 4.6's `share()` walk, Opus 5's "sharing is
+acquired, not declared".
 
 ### 4.2 Make the cardinal invariant mechanical
 
@@ -454,7 +455,8 @@ Source: ChatGPT 6 Astra.
 
 ### 4.6 Smaller items
 
-- Per-thread locale objects (`strtod_l`-style) so `use locale` radix behavior in numification is task-safe (Kimi K3).
+- Per-task/thread locale objects (`strtod_l`-style) so `use locale` radix behavior in numification is task/thread-safe
+  (Kimi K3).
 - An explicit compatibility-profile section: Perl version, IV/NV widths, Unicode database version, hash-order stance,
   `Devel::Peek` non-goals (Terra, Sol, Astra).
 - Mortal/`FREETMPS` timing as an equivalence surface, with `sv_unref_flags` mortalizing the referent in `$a = $a->[1]`
