@@ -13,10 +13,10 @@ Throughout the document, "Perl" means Perl 5 unless otherwise qualified.  "Raku"
 boundary decisions are needed.
 
 **Conventions for four words.**  "Thread" means an operating-system thread, what Rust's `std::thread` makes.  "Task"
-means a Tokio task.  "Task/thread" means either carrier, and is used wherever a sentence holds for both — the unit that
+means a Tokio task.  "Task/thread" means either one, and is used wherever a sentence holds for both — the unit that
 owns a destruction lease, holds destruction privilege, blocks and is woken (§2.4.4).  "Ithread" means a Perl-level
 interpreter thread, the object `threads->create` returns on the ithreads compatibility surface; an ithread runs on some
-task/thread and is not itself a carrier.  Module and function names keep Perl's spelling (`threads`, `threads::shared`,
+task/thread and is not itself one.  Module and function names keep Perl's spelling (`threads`, `threads::shared`,
 `threads->tid`).  Inside `compat/`, which describes Perl alone, "thread" is necessarily an ithread.  Coined terms are
 collected in the glossary (§25).
 
@@ -94,14 +94,14 @@ Where `compat/undefined.md` records that perl crashes, reads freed memory, or ha
 behavior is a decision, recorded here with its kind (fix, extension, or accepted difference) and its reason.  The
 harness rows marked `DIVERGES-defined` are the acceptance tests for these entries.
 
-| Window (`compat/undefined.md`)                            | PerlOxide behavior                                                                                          | Kind      | Reason                                                                                                             |
-|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|-----------|--------------------------------------------------------------------------------------------------------------------|
-| W1: numeric replacement under an NV-converting outer op   | redispatch the interrupted conversion on the current holder kind; no additional warning                     | fix       | perl segfaults                                                                                                     |
-| W2: reference replacement under the same                  | redispatch to reference numification; no flags cached                                                       | fix       | perl reads the RV through the union                                                                                |
-| W3: reference holder with an infinite NV in the IV window | the fill proceeds as slot arithmetic independent of holder kind                                             | fix       | perl crashes on one referent shape                                                                                 |
-| `undef` replacement under `sprintf "%g"`                  | terminate after the second warning                                                                          | fix       | perl loops or crashes                                                                                              |
-| `shift @_` under held aliases                             | `@_` storage is refcounted; the aliases stay valid                                                          | fix       | perl reads freed memory                                                                                            |
-| `local` on a variable shared between native tasks         | binding-`local` is task-local (the overlay); element `local` on a shared container is a cross-task mutation | extension | native tasks have no Perl counterpart; the `ithreads` surface reproduces `threads::shared` instead (§3.3.4, §23.1) |
+| Window (`compat/undefined.md`)                            | PerlOxide behavior                                                                                                        | Kind      | Reason                                                                                                                     |
+|-----------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|-----------|----------------------------------------------------------------------------------------------------------------------------|
+| W1: numeric replacement under an NV-converting outer op   | redispatch the interrupted conversion on the current holder kind; no additional warning                                   | fix       | perl segfaults                                                                                                             |
+| W2: reference replacement under the same                  | redispatch to reference numification; no flags cached                                                                     | fix       | perl reads the RV through the union                                                                                        |
+| W3: reference holder with an infinite NV in the IV window | the fill proceeds as slot arithmetic independent of holder kind                                                           | fix       | perl crashes on one referent shape                                                                                         |
+| `undef` replacement under `sprintf "%g"`                  | terminate after the second warning                                                                                        | fix       | perl loops or crashes                                                                                                      |
+| `shift @_` under held aliases                             | `@_` storage is refcounted; the aliases stay valid                                                                        | fix       | perl reads freed memory                                                                                                    |
+| `local` on a variable shared between native tasks/threads | binding-`local` is task/thread-local (the overlay); element `local` on a shared container is a cross-task/thread mutation | extension | native tasks/threads have no Perl counterpart; the `ithreads` surface reproduces `threads::shared` instead (§3.3.4, §23.1) |
 
 This table is the enumeration §1.1 promises, for the windows found so far; deliberate divergences outside those windows
 (NFC normalization, §5.8.2) stay recorded where they are designed.
@@ -954,7 +954,7 @@ A compact value is promoted to the aliasing form (`AliasMut`/`AliasConst`) when 
 - **Magic, blessing, tie.**  These attach state to an identity.  Weakening does not: a weak holder needs no address
   (§2.4.8).
 - **`:shared`.**  The flag has nowhere to live on a compact value and nothing to mean there (§2.2.14): sharing a scalar
-  is two threads naming one storage, which is identity.
+  is two tasks/threads naming one storage, which is identity.
 - **First numification warning** on an unshared non-numeric string — see §2.3.4; warn-once suppression rides the cached
   numeric face, never a tag bit (§2.2.3), so a compact value with no face cache promotes to record it.
 
@@ -1539,8 +1539,8 @@ where an element of a shared array reports shared without being marked itself.
 For a promoted scalar the bit rides the control block, which sits beside the payload rather than inside it, so the
 sixteen-byte `Scalar` is untouched.  A bare `Value` is a different matter: **`Value` is unshared by definition
 [DECISION]**.  The envelope has no room, but the deeper reason is that a `Value` in a pad slot has no identity — there
-is nothing for two threads to *name* — so `shared` is not an unset bit but an inapplicable question.  Sharing a scalar
-therefore requires identity, which is to say a cell.
+is nothing for two tasks/threads to *name* — so `shared` is not an unset bit but an inapplicable question.  Sharing a
+scalar therefore requires identity, which is to say a cell.
 
 **Applying `:shared` therefore upgrades the value to a `Scalar` that can hold the flag [DECISION]**, exactly as taking a
 reference does, and it joins the §2.2.8 trigger list on the same grounds: the attribute asks for something only an
@@ -1806,11 +1806,11 @@ struct FullScalar {
 }
 ```
 
-`Scalar` is 16 bytes (§2.2.9): the `Full` variant is a single pointer that threads through the payload's spare niche
-encodings (measured; §2.3.6).  Upgrade from `Plain` to `Full` happens **in place under the write lock** — the `Arc`
-address never changes, preserving every outstanding reference.  This is the same invariant perl's `sv_upgrade` maintains
-by swapping bodies behind a stable head; the mechanism differs (variant rewrite vs. body pointer), the identity
-guarantee is identical.
+`Scalar` is 16 bytes (§2.2.9): the `Full` variant is a single pointer that threads through the payload's spare
+niche encodings (measured; §2.3.6).  Upgrade from `Plain` to `Full` happens **in place under the write lock** — the
+`Arc` address never changes, preserving every outstanding reference.  This is the same invariant perl's `sv_upgrade`
+maintains by swapping bodies behind a stable head; the mechanism differs (variant rewrite vs. body pointer), the
+identity guarantee is identical.
 
 Cost ledger for a promoted scalar (64-bit, parking_lot):
 
@@ -1872,7 +1872,7 @@ single value).  Their promoted forms are two immortal singletons (`static LazyLo
 
 The singleton contract is pinned by perloxide-core tests requiring no runtime: `Arc::ptr_eq` across separate upgrades of
 `True` (and of `False`); the two singletons distinct; upgrades yield `Const`; pre-materialized values as above; mutation
-attempts yield the readonly error, never a panic; cross-thread upgrades still `ptr_eq` (guarding `LazyLock`
+attempts yield the readonly error, never a panic; cross-task/thread upgrades still `ptr_eq` (guarding `LazyLock`
 initialization races).
 
 #### 2.3.4 Numification warnings:
@@ -2000,15 +2000,16 @@ Packed array pages carry one value-flag record bit per element in the trailing b
 pages, public-`I` for float pages. That is the whole stdout-observable state of a packed element (§6); the full three
 bits per element are a build option for `B`-level fidelity.
 
-**Constants and tasks.** Perl's compiled constants are mutable flag cells (`compat/facts.md`, value flags: constants).
-Here, a literal reached through an alias or reference site (`f("10")`, `for ("10")`, `\"10"`) is a READONLY cell per
-task, so value flags left on it persist across calls of the same code in that task; rvalue literal sites are immediates.
-A constant sub's value is one cell per task shared by every site that inlines it, and compile-time folding of an
-expression over it (`ZZ + 0`) leaves value flags on the compiling task's cell before runtime — which is why a range `$lo
-.. ZZ` can be numeric on its first execution.  Task creation copies the parent's materialized literal cells, as the
-ithreads clone does.  Shared-tier reads never write value flags.  Because the nine partner-typed operators read a
-literal partner's public flags, per-task constant cells are what keep one task's string arithmetic through `0 + $x` from
-changing another task's `Data::Dumper` output for an unrelated value.
+**Constants and tasks/threads.** Perl's compiled constants are mutable flag cells (`compat/facts.md`, value flags:
+constants).  Here, a literal reached through an alias or reference site (`f("10")`, `for ("10")`, `\"10"`) is a READONLY
+cell per task/thread, so value flags left on it persist across calls of the same code in that task/thread; rvalue
+literal sites are immediates.  A constant sub's value is one cell per task/thread shared by every site that inlines it,
+and compile-time folding of an expression over it (`ZZ + 0`) leaves value flags on the compiling task/thread's cell
+before runtime — which is why a range `$lo .. ZZ` can be numeric on its first execution.  Task/thread creation copies
+the parent's materialized literal cells, as the ithreads clone does.  Shared-tier reads never write value flags.
+Because the nine partner-typed operators read a literal partner's public flags, per-task/thread constant cells are what
+keep one task/thread's string arithmetic through `0 + $x` from changing another task/thread's `Data::Dumper` output for
+an unrelated value.
 
 **What this design does not reproduce.** The private cache flags themselves, as seen by `B::svref_2object->FLAGS` or
 `Devel::Peek`, are reproduced by projection from the value-flag record (the projection is validated by the flag lane),
@@ -2804,8 +2805,8 @@ after releasing its locks and before yielding its result** — zero Perl-visible
 and the destructor.  The extract-under-lock / drop-outside-lock discipline (§13.11) makes this deadlock-free: values are
 extracted under the write lock, the lock is released, and only then dropped.
 
-A context-free release — host Rust code dropping the last real handle on a thread with no interpreter — is an event perl
-cannot express (`SvREFCNT_dec` takes `pTHX`), so its semantics are ours to define, not a divergence.  The path is
+A context-free release — host Rust code dropping the last real handle on a task/thread with no interpreter — is an event
+perl cannot express (`SvREFCNT_dec` takes `pTHX`), so its semantics are ours to define, not a divergence.  The path is
 **allocation-free** and queues *pages*, not slots: a rare finalization event must not impose a pointer-sized permanent
 tax on every allocation.
 
@@ -2829,8 +2830,8 @@ continue.  A producer that sets its bit after that final load observes `Idle` at
 page itself.  **The handoff's four operations are `SeqCst`** — the bit publication, the producer's state observation,
 the `Draining → Idle` transition, and the final recheck: with Release/Acquire on two *different* atomics, the
 store-buffer interleaving is legal in which the producer observes `Draining` (declining to queue) while the drainer's
-final load misses the independently published bit — both threads reading stale.  `SeqCst` restores the single total
-order that excludes it; finalization is rare enough that the fence cost is immaterial, and a dirty/generation RMW
+final load misses the independently published bit — both tasks/threads reading stale.  `SeqCst` restores the single
+total order that excludes it; finalization is rare enough that the fence cost is immaterial, and a dirty/generation RMW
 handshake on the state word (a producer observing `Draining` still RMWs; the drainer idles only if no generation moved)
 is the recorded faster alternative.  **The no-lost-work obligation** — every set bit is eventually extracted by exactly
 one drainer, under every interleaving including specifically the producer-sees-`Draining` race — is a named Loom proof
@@ -2938,22 +2939,22 @@ The two timing rules are distinct and both binding — boundary polling never su
   timing).
 - **Context-free last release**: publish and wake; an eligible interpreter boundary polls and drains.
 
-**Draining is single-consumer per domain, and the consumer is owner-recursive**: any thread may publish and wake, but
-one drain-owner token (owner thread plus depth) executes finalizers at a time.  Owner-recursion is a fidelity
+**Draining is single-consumer per domain, and the consumer is owner-recursive**: any task/thread may publish and wake,
+but one drain-owner token (owner task/thread plus depth) executes finalizers at a time.  Owner-recursion is a fidelity
 requirement, not a convenience — container-verified: when one `DESTROY` releases another object's last real reference,
 the nested `DESTROY` runs *inside* the outer destructor, at the releasing statement, before the outer destructor's next
 statement.  So a release performed by running Perl finalizer code drains synchronously exactly like any
 interpreter-context release, recursing under the same owner; deferring nested finalizers until the outer callback
 returned would be an observable divergence.  Eligible-context rules for a *new* owner (same domain, valid Perl execution
-context) are part of this design; thread selection and the wake mechanism are §13 scheduling.  The embedding API exposes
-explicit `poll_finalizers` / `drain_finalizers` so a host with no live interpreter threads cannot strand pending objects
-unknowingly — with the contract explicit: `Drop` guarantees *publication*, not callback completion; both polling calls
-may run arbitrary Perl code and may recurse; a host with no active interpreter either polls or accepts retention; domain
-tombstoning suppresses all later Perl callbacks; callback thread selection is unspecified until §13; and no ordering is
-guaranteed between external and interpreter-originated finalizations.  After the domain is tombstoned the drop path
-short-circuits: a last release never queues Perl finalization again and performs only mechanical count/payload cleanup —
-at level 0 surviving cycles may remain intact indefinitely; at level 1+ the graph edges are already cleared (the
-race-free protocol is the domain phase machine, §2.4.6).
+context) are part of this design; task/thread selection and the wake mechanism are §13 scheduling.  The embedding API
+exposes explicit `poll_finalizers` / `drain_finalizers` so a host with no live interpreter tasks/threads cannot strand
+pending objects unknowingly — with the contract explicit: `Drop` guarantees *publication*, not callback completion; both
+polling calls may run arbitrary Perl code and may recurse; a host with no active interpreter either polls or accepts
+retention; domain tombstoning suppresses all later Perl callbacks; callback task/thread selection is unspecified until
+§13; and no ordering is guaranteed between external and interpreter-originated finalizations.  After the domain is
+tombstoned the drop path short-circuits: a last release never queues Perl finalization again and performs only
+mechanical count/payload cleanup — at level 0 surviving cycles may remain intact indefinitely; at level 1+ the graph
+edges are already cleared (the race-free protocol is the domain phase machine, §2.4.6).
 
 Wake signaling is advisory; the queue is authoritative.  The empty→nonempty publication notifies, a parked drainer
 re-checks the pending-page list under the scheduler's synchronization (wake-generation counter or equivalent) so the
@@ -3058,7 +3059,7 @@ The passes mirror `sv_clean_objs` (source-verified structure):
    finite pass sequence amounts to a complete fixed point for *every* recursively created object is a ledgered fidelity
    item (§2.4.11) — `sv_clean_objs` is not written as a fixed-point loop, and our implementation must match its actual
    coverage, not an idealization.
-6. **External-producer synchronization.**  Host threads are finalization producers even while Perl mutators are
+6. **External-producer synchronization.**  Host tasks/threads are finalization producers even while Perl mutators are
    quiesced, so phase transitions use a producer-publication protocol whose critical section brackets the *entire*
    obligation-creating transition — bracketing only the push would let shutdown observe zero producers between a node's
    pending CAS and its publication, stranding an unpublished ticket.  Normative sequences:
@@ -3174,16 +3175,16 @@ The implementation as first written had only the read-time scheme; the registry 
 Rust drop glue recurses through deep ownership chains; a 100k-element linked structure dying at `RUN` phase overflows
 the stack (measured: SIGABRT, uncatchable — worse than a panic).  Perl frees million-deep chains because `sv_clear`
 defers nested frees to an explicit list.  So do we: graph-bearing teardown drains **extracted child `Value`s** through a
-runtime-owned, reusable, thread-local worklist (`Vec<Value>`), iteratively, never executing Perl.  This worklist is
+runtime-owned, reusable, task/thread-local worklist (`Vec<Value>`), iteratively, never executing Perl.  This worklist is
 deliberately *not* the intrusive finalization list: its items are envelope-sized values, not slots (they have no link
 word to chain through), it needs no interpreter context, and its exception and reentrancy rules differ.  One mechanism
-per queue; a mechanical drain triggered while finalizers run appends to the current thread's release context and cannot
-interact with the finalization chain.
+per queue; a mechanical drain triggered while finalizers run appends to the current task/thread's release context and
+cannot interact with the finalization chain.
 
-The shape is a **per-thread release context** — a draining flag plus the pending `Vec<Value>` — with one hard
+The shape is a **per-task/thread release context** — a draining flag plus the pending `Vec<Value>` — with one hard
 discipline: the worklist is never held borrowed or locked while a value is being dropped, because that drop may
-recursively enqueue more work.  Append and pop acquire; the drop itself runs unheld.  (A thread-local
-`parking_lot::Mutex` satisfies this without `RefCell`'s panic-on-reentrant-borrow hazard; being thread-local, it is
+recursively enqueue more work.  Append and pop acquire; the drop itself runs unheld.  (A task/thread-local
+`parking_lot::Mutex` satisfies this without `RefCell`'s panic-on-reentrant-borrow hazard; being task/thread-local, it is
 uncontended.)  Release during Rust TLS teardown — another TLS destructor dropping a `HeapArc` after the context is gone
 — is a contained open item (§2.4.11).  This fix is independent of the slab work and permanent — it lands on the
 std-`Arc` façade and never migrates.
@@ -3216,16 +3217,16 @@ published ticket; lazy class array installation racing concurrent `bless`; the i
 object's last drop; slot enumeration racing an unblessed payload's context-free drop (the most important addition); the
 final weak release and pin release racing page enumeration; slot reuse after them; page reassignment after domain
 teardown; fatal checked resurrection retaining its ownership obligations; owner-recursive nested finalization;
-drain-owner acquisition by competing threads; wake notification racing park; physical-phase publication and reuse; and
-reduced-width count boundary tests; plus differential tests against `std::sync::Arc` — scoped to the ordinary unblessed
-core (clone, downgrade, upgrade, releases, `ptr_eq`, payload dropped exactly once, control block released exactly once);
-the lifecycle protocol, Perl weak-copy semantics, the set-magic registry, tombstoning, and global destruction get
-state-machine oracle tests instead — on randomized operation histories, aggressive slot-reuse stress (one-slot pages),
-and destructor accounting (constructed once, dropped once, released once, never touched after).  Sanitizer passes need
-nightly and run outside the session container.  No-panic mapping: fallible `try_new_in` returning `AllocError`; refcount
-overflow follows the §2.4.3 policy once ruled (`Clone` cannot return `Err`, so a checked build aborts); finalizer
-publication from `HeapArc::drop` is allocation-free, while mechanical release uses a reusable worklist that may grow —
-allocation-free release needs a separately specified preallocation strategy if ever required.
+drain-owner acquisition by competing tasks/threads; wake notification racing park; physical-phase publication and reuse;
+and reduced-width count boundary tests; plus differential tests against `std::sync::Arc` — scoped to the ordinary
+unblessed core (clone, downgrade, upgrade, releases, `ptr_eq`, payload dropped exactly once, control block released
+exactly once); the lifecycle protocol, Perl weak-copy semantics, the set-magic registry, tombstoning, and global
+destruction get state-machine oracle tests instead — on randomized operation histories, aggressive slot-reuse stress
+(one-slot pages), and destructor accounting (constructed once, dropped once, released once, never touched after).
+Sanitizer passes need nightly and run outside the session container.  No-panic mapping: fallible `try_new_in` returning
+`AllocError`; refcount overflow follows the §2.4.3 policy once ruled (`Clone` cannot return `Err`, so a checked build
+aborts); finalizer publication from `HeapArc::drop` is allocation-free, while mechanical release uses a reusable
+worklist that may grow — allocation-free release needs a separately specified preallocation strategy if ever required.
 
 The physical phases ride the control words (§2.4.3): `Free → Constructing` (initialize both words and `T`) `→ Occupied`
 (Release-published — an enumerator's Acquire load observes complete initialization) `→ PayloadDropped` (only after `T`
@@ -3236,7 +3237,7 @@ come from the page allocation bitmap; the pin plus an `Occupied` check is author
 store the protocol permits, and bumps the debug serial — reuse begins from a provably clean slate.
 
 The first slab migration is `Array` (the simplest graph-bearing node), validating layout, pinning, reuse, finalization
-queueing, and cross-thread races before `Scalar` — the most semantically loaded type — moves.
+queueing, and cross-task/thread races before `Scalar` — the most semantically loaded type — moves.
 
 #### 2.4.11 The extension-mode ledger and open items
 
@@ -3257,11 +3258,11 @@ fixed-point coverage for recursively created objects (probe matrix); the measure
 indirection against an inline word; the wordless-lock endgame (lock bits in the control block with address-keyed parking
 — count/lock contention coupling is the risk); final weak-release ordering against page reassignment; the `DESTROY`
 exception-reporting matrix (`G_KEEPERR` interaction with active exceptions, by phase); the dynamic environment (`$_`,
-`$@`, caller) installed for channel-drained `DESTROY` and for the sweep (§13); drain-thread selection and wake mechanism
-(§13); cross-thread last-drop of an object whose class lives in another interpreter (§13; perl's ithreads cannot reach
-this state); ticket posture under exceptional shutdown, and the full fatal-cleanup specification (whether cleanup
-continues for other objects, whether remaining tickets drain or abandon, domain poisoning, host-API surfacing, and the
-disposition of the drain-owner token and producer barrier — the discharge rules for the units a checked-mode
+`$@`, caller) installed for channel-drained `DESTROY` and for the sweep (§13); drain-task/thread selection and wake
+mechanism (§13); cross-task/thread last-drop of an object whose class lives in another interpreter (§13; perl's ithreads
+cannot reach this state); ticket posture under exceptional shutdown, and the full fatal-cleanup specification (whether
+cleanup continues for other objects, whether remaining tickets drain or abandon, domain poisoning, host-API surfacing,
+and the disposition of the drain-owner token and producer barrier — the discharge rules for the units a checked-mode
 resurrection's exceptional state owns); the exact rebless-loop algorithm (class capture before callback, revisiting
 previously processed classes, unblessing mid-loop, repeated reblessing, method-lookup failure, stash tombstoning during
 `DESTROY` — source- and probe-driven); the nested-`DESTROY` dynamic context under owner-recursive draining ($@ per
@@ -3273,7 +3274,7 @@ admission or lifecycle bits — tested near boundaries with a reduced-width mode
 cells (per-ithread proxies or per-(ithread, cell) counts — §2.4.8); the policy for perl's memory-corruption crashes (a
 defined, memory-safe result per window, recorded in `compat/undefined.md`, or termination); debug-serial semantics
 (never an ownership proof, never a stable Perl identity); the release-context posture during Rust TLS teardown (leaked
-per-thread context, domain fallback worklist, or a handle-holding restriction); the per-page blessed bitmap as a
+per-task/thread context, domain fallback worklist, or a handle-holding restriction); the per-page blessed bitmap as a
 measured sweep optimization (the lazy class arrays already bound the sweep's scan to pages that ever blessed);
 exit-status semantics of a fatal sweep resurrection.
 
@@ -3298,8 +3299,8 @@ trait Magic: Send + Sync {
 }
 ```
 
-The `Send + Sync` bound is required: magic callbacks are code references on the shared heap and may execute on any task
-(§13.2).
+The `Send + Sync` bound is required: magic callbacks are code references on the shared heap and may execute on any
+task/thread (§13.2).
 
 Tied variables specifically dispatch to Perl-level `FETCH`/`STORE`/etc.  methods through a `TieMagic` implementation.
 Per the cardinal invariant (§13.11), magic callbacks never execute while any internal lock is held.
@@ -3769,8 +3770,8 @@ trait would inherit that work rather than justify it.
 > architecture; where they conflict, §2 is normative — in particular, §2.4.1's arena enumeration supersedes the
 > self-contained-`Arc` framing below, and the mortal stack holds `Value`s.  §2.4.5 now rules what a `Domain` is — the
 > allocation-related portion of an interpreter, owned by the runtime rather than equal to it — so `SharedRuntime` folds
-> into the runtime's interpreter type and this section's use of `Interpreter` for the *per-task* execution context is
-> the naming this rewrite must correct.
+> into the runtime's interpreter type and this section's use of `Interpreter` for the *per-task/thread* execution
+> context is the naming this rewrite must correct.
 
 ### 3.1 Shared Runtime State
 
@@ -3789,19 +3790,19 @@ struct SharedRuntime {
 
 Magic-bearing values (tied, overloaded, with `DESTROY`) use the same `Arc<RwLock<T>>` representation as any other value.
 Magic is metadata on the value — "when accessed, call this code ref."  The code ref is compiled IR plus captured values,
-all reference-counted.  Whatever task accesses the value runs the magic callback on its own execution context.
+all reference-counted.  Whatever task/thread accesses the value runs the magic callback on its own execution context.
 
-Each interpreter task owns only execution context, not data:
+Each interpreter task/thread owns only execution context, not data:
 
 ```rust
 struct Interpreter {
     runtime: Arc<SharedRuntime>,    // shared across all interpreters
-    call_stack: Vec<CallFrame>,     // per-task execution context
-    mortal_stack: Vec<Value>,       // per-task temporaries
+    call_stack: Vec<CallFrame>,     // per-task/thread execution context
+    mortal_stack: Vec<Value>,       // per-task/thread temporaries
     special_vars: SpecialVars,      // $@, $_, $/, $!, etc.
-    compiler: Compiler,             // per-task (for eval STRING)
+    compiler: Compiler,             // per-task/thread (for eval STRING)
 
-    // Dynamic scope (local) uses per-variable task-local storage — see §3.3
+    // Dynamic scope (local) uses per-variable task/thread-local storage — see §3.3
 }
 ```
 
@@ -3814,30 +3815,30 @@ Perl has a concept of "mortal" SVs — temporaries whose refcount is decremented
 scope.  This is essential for expression evaluation.
 
 With `Arc`-based values, "mortal" means the interpreter holds a temporary `Arc` clone that is dropped at scope exit.
-The mortal stack is a per-task `Vec<Value>` — at scope exit, each entry is dropped, decrementing its `Arc` refcount.  If
-the refcount reaches zero, the value is freed.  This mirrors `SAVETMPS` / `FREETMPS` from Perl 5.
+The mortal stack is a per-task/thread `Vec<Value>` — at scope exit, each entry is dropped, decrementing its `Arc`
+refcount.  If the refcount reaches zero, the value is freed.  This mirrors `SAVETMPS` / `FREETMPS` from Perl 5.
 
-### 3.3 Dynamic Scope (`local`) via Task-Local Storage
+### 3.3 Dynamic Scope (`local`) via Task/Thread-Local Storage
 
 `local` creates dynamically scoped bindings — "for the duration of this scope and everything called from it, this global
-variable has this value."  Since each interpreter is a Tokio task (not necessarily an OS thread), each task's dynamic
-scope is independent: task A's `local $/` does not affect task B's view of `$/`, even if both tasks happen to be running
-on the same OS thread.
+variable has this value."  Since each interpreter is a Tokio task or an OS thread, each task/thread's dynamic scope is
+independent: task/thread A's `local $/` does not affect task/thread B's view of `$/`, even if two tasks happen to be
+running on the same OS thread.
 
-The implementation uses **per-variable task-local save stacks** rather than a single per-interpreter save stack:
+The implementation uses **per-variable task/thread-local save stacks** rather than a single per-interpreter save stack:
 
 ```rust
 enum SavedState {
-    WasInactive,           // task-local was None before this local
-    WasActive(Value),      // task-local had this value before this local
+    WasInactive,           // task/thread-local was None before this local
+    WasActive(Value),      // task/thread-local had this value before this local
 }
 
 struct LocalStack {
     current: Value,            // current local value — fast read
-    saved: Vec<SavedState>,    // previous task-local states for nested local
+    saved: Vec<SavedState>,    // previous task/thread-local states for nested local
 }
 
-// Task-local, one per localizable global
+// Task/thread-local, one per localizable global
 // (uses tokio::task_local! on Tokio tasks, thread_local! on raw OS threads):
 tokio::task_local! {
     static LOCAL_RECORD_SEP: Cell<Option<Box<LocalStack>>>;
@@ -3861,27 +3862,28 @@ instruction.
 fn get_record_sep(&self) -> Value {
     LOCAL_RECORD_SEP.with(|cell| {
         match cell.get() {
-            Some(ref stack) => stack.current.clone(),     // task-local hit
+            Some(ref stack) => stack.current.clone(),     // task/thread-local hit
             None => self.heap.globals.record_sep.load(),  // shared global
         }
     })
 }
 ```
 
-Two operations: null pointer check, then either read `current` from the task-local cell or load the shared global.
+Two operations: null pointer check, then either read `current` from the task/thread-local cell or load the shared
+global.
 
 #### 3.3.2 `local $/ = undef` lifecycle:
 
-The save stack records the previous task-local state, not the global value.  When the task-local cell returns to `None`,
-reads fall through to the shared global — whatever it currently holds at that moment.
+The save stack records the previous task/thread-local state, not the global value.  When the task/thread-local cell
+returns to `None`, reads fall through to the shared global — whatever it currently holds at that moment.
 
 ```text
-Initial:   task-local = None
+Initial:   task/thread-local = None
 
 local $/ = undef;
-  task-local was None → allocate Box<LocalStack>
+  task/thread-local was None → allocate Box<LocalStack>
   saved = [WasInactive], current = undef
-  task-local = Some(box)
+  task/thread-local = Some(box)
 
   nested: local $/ = ",";
     push WasActive(undef) onto saved
@@ -3891,45 +3893,45 @@ local $/ = undef;
     pop WasActive(undef) → current = undef
 
 outer scope exit:
-  pop WasInactive → task-local = None, Box deallocated
+  pop WasInactive → task/thread-local = None, Box deallocated
   reads now fall through to the shared global
 ```
 
-When the stack empties, the `Box` is deallocated and the task-local cell returns to `None`.  There is zero persistent
-overhead for globals that are not currently `local`-ized.
+When the stack empties, the `Box` is deallocated and the task/thread-local cell returns to `None`.  There is zero
+persistent overhead for globals that are not currently `local`-ized.
 
-**User package globals** (`local $Foo::bar`) allocate their task-local cell lazily — the first `local` on a given
+**User package globals** (`local $Foo::bar`) allocate their task/thread-local cell lazily — the first `local` on a given
 package global creates it.  Most package globals are never `local`-ized.
 
-#### 3.3.3 Multi-task behavior — concurrent mutation is visible:
+#### 3.3.3 Multi-task/thread behavior — concurrent mutation is visible:
 
-The save stack never caches the shared global value, only previous task-local states.  This means if another task
-mutates the shared global while this task has `local` active, the mutation becomes visible when the `local` goes out of
-scope:
+The save stack never caches the shared global value, only previous task/thread-local states.  This means if another
+task/thread mutates the shared global while this task/thread has `local` active, the mutation becomes visible when the
+`local` goes out of scope:
 
 ```text
 Shared global: $/ = "\n"
 
-Task A:                           Task B:
+Task/Thread A:                           Task/Thread B:
   reads $/ → "\n" (shared)
   local $/ = undef;
-  task-local: Some(current=undef,
+  task/thread-local: Some(current=undef,
                    saved=[WasInactive])
-  reads $/ → undef (task-local)
-                                   $/ = ",";     # mutates shared global via RwLock
-  reads $/ → undef (task-local)   # A unaffected — still seeing task-local
-  scope exit → task-local = None
-  reads $/ → ","                   # falls through to shared global
-                                   # sees B's mutation — correct behavior
+  reads $/ → undef (task/thread-local)
+                                         $/ = ",";     # mutates shared global via RwLock
+  reads $/ → undef (task/thread-local)   # A unaffected — still seeing task/thread-local
+  scope exit → task/thread-local = None
+  reads $/ → ","                         # falls through to shared global
+                                         # sees B's mutation — correct behavior
 ```
 
-This is the correct semantics: `local` creates a task-local shadow, and when the shadow is removed, the current global
-state — including any concurrent mutations — becomes visible.  There is no stale cached copy of the old global value
-sitting in a save stack.
+This is the correct semantics: `local` creates a task/thread-local shadow, and when the shadow is removed, the current
+global state — including any concurrent mutations — becomes visible.  There is no stale cached copy of the old global
+value sitting in a save stack.
 
-Task A's `local` only affects task A's cells.  Task B sees the shared global throughout.  No locking is needed because
-each task only writes to its own task-local cells.  Direct writes to the shared global (`$/ = ","` without `local`) use
-the per-value `RwLock` from §13.5.
+Task/thread A's `local` only affects task/thread A's cells.  Task/thread B sees the shared global throughout.  No
+locking is needed because each task/thread only writes to its own task/thread-local cells.  Direct writes to the shared
+global (`$/ = ","` without `local`) use the per-value `RwLock` from §13.5.
 
 #### 3.3.4 Why the overlay is sound for bindings and not for elements:
 
@@ -3938,31 +3940,32 @@ The facts that license this design are the save-stack area of the compatibility 
 through the container with a vivifying lookup, deletes absent elements on unwind, and lets tied containers observe every
 step.
 
-This design implements `local` on a *binding* site (package scalar, glob slot) as a per-task overlay entry keyed by the
-site, consulted at symbol resolution: the shared cell is never touched, other tasks see it unchanged, and unwinding pops
-the overlay. This is observationally equivalent to perl's rebinding precisely because perl itself never mutates the
-saved SV and restores by site identity. Element sites cannot use the overlay: the container is a shared value, the save
-record is keyed by container-plus-index/key with a vivifying re-fetch, delete-on-unwind changes container shape, and
-tied containers observe every step. Element `local` is therefore implemented literally — the shared container's slot is
-rebound exactly as `Perl_save_aelem_flags`/`Perl_save_helem_flags` and their `Perl_leave_scope` cases prescribe — and a
-`local` element on a container shared across tasks is a cross-task visible mutation, matching perl. The unwind machinery
-is task-local either way and follows perl's contract verbatim: pop-before-execute, cleanups pushed before fallible
-magic, no rollback, exceptions surfaced after the remaining records run.
+This design implements `local` on a *binding* site (package scalar, glob slot) as a per-task/thread overlay entry keyed
+by the site, consulted at symbol resolution: the shared cell is never touched, other tasks/threads see it unchanged, and
+unwinding pops the overlay. This is observationally equivalent to perl's rebinding precisely because perl itself never
+mutates the saved SV and restores by site identity. Element sites cannot use the overlay: the container is a shared
+value, the save record is keyed by container-plus-index/key with a vivifying re-fetch, delete-on-unwind changes
+container shape, and tied containers observe every step. Element `local` is therefore implemented literally — the shared
+container's slot is rebound exactly as `Perl_save_aelem_flags`/`Perl_save_helem_flags` and their `Perl_leave_scope`
+cases prescribe — and a `local` element on a container shared across tasks/threads is a cross-task/thread visible
+mutation, matching perl. The unwind machinery is task/thread-local either way and follows perl's contract verbatim:
+pop-before-execute, cleanups pushed before fallible magic, no rollback, exceptions surfaced after the remaining records
+run.
 
-Everything above is the design for PerlOxide's native tasks, which have no Perl counterpart: the per-task overlay for
-binding sites is an extension (§1.1.1), and element `local` on a container shared between tasks is the literal
-rebinding.  The `ithreads` surface is a compatibility surface and follows §23.1: `threads::shared` behavior is
-reproduced as the compatibility reference records it (`compat/facts.md`, save stack;
+Everything above is the design for PerlOxide's native tasks/threads, which have no Perl counterpart: the per-task/thread
+overlay for binding sites is an extension (§1.1.1), and element `local` on a container shared between tasks/threads is
+the literal rebinding.  The `ithreads` surface is a compatibility surface and follows §23.1: `threads::shared` behavior
+is reproduced as the compatibility reference records it (`compat/facts.md`, save stack;
 `compat/probes/corpus/local_03_shared_elem_move.pl` and `threads_02_shared_local.pl`), and it differs from the native
 rule in four ways.  `local` on a shared variable, scalar or element, overwrites the shared cell in place, so every
-thread sees the localized value while the scope lasts; `mg_localize` copies the shared-scalar magic onto the fresh
+ithread sees the localized value while the scope lasts; `mg_localize` copies the shared-scalar magic onto the fresh
 proxy, and the overlay does not apply.  The save record for a shared element carries two addresses, the shared cell and
 the index, and the restore writes the saved value through both in that order, so that `local $a[1] = 99; shift @a` on
-`(10, 20, 30)` leaves `(20, 20)` whichever thread did the shift, where one address would leave `(99, 20)`.  An absent
+`(10, 20, 30)` leaves `(20, 20)` whichever ithread did the shift, where one address would leave `(99, 20)`.  An absent
 shared element or key is never recorded as absent, because `threads::shared::tie` has `EXISTS` but no `DELETE` and
 `pp_aelem`/`pp_helem` consult `EXISTS` only when both exist, so the unwind stores the saved `undef` at the index and the
-slot or key exists afterward.  And two threads localizing the same shared element each write back their own saved value
-when their scope ends, in whatever order the scopes end: there is no save stack across threads.  Where the outcome
+slot or key exists afterward.  And two ithreads localizing the same shared element each write back their own saved value
+when their scope ends, in whatever order the scopes end: there is no save stack across ithreads.  Where the outcome
 depends on scheduling — restores racing with a structural change without a handshake — perl's own result is
 `perl-nondeterministic` and nothing is specified.
 
@@ -6532,7 +6535,7 @@ This is where the compatibility/modern mode split takes effect.  In "modern" mod
 
 - Reject or warn on `local` for variables that should be lexical.
 - Enforce `strict`-like semantics by default.
-- Lower `tie` operations to a restricted, thread-safe variant.
+- Lower `tie` operations to a restricted, task/thread-safe variant.
 - Treat shared state differently for concurrency.
 
 The key insight is that the **syntax remains the same** across modes; the **semantic interpretation** diverges.  This is
@@ -6676,7 +6679,7 @@ struct Interpreter {
     special_vars: SpecialVars,
     compiler: Compiler,       // always available for eval STRING
 
-    // Dynamic scope (local) uses per-variable task-local storage — see §3.3
+    // Dynamic scope (local) uses per-variable task/thread-local storage — see §3.3
 }
 ```
 
@@ -6976,23 +6979,23 @@ These hints are lexically scoped — they take effect for the enclosing block an
 ### 13.1 The Problem
 
 Perl 5 is intrinsically single-threaded.  Its `ithreads` model works by cloning the entire interpreter state for each
-thread — safe but enormously expensive.  Sharing data requires `threads::shared`, which copies values into a separate
+ithread — safe but enormously expensive.  Sharing data requires `threads::shared`, which copies values into a separate
 shared structure with lock-protected access.
 
-Most alternative implementations inherit this assumption: "Perl values are inherently task-local."  But analyzing what
-is *actually* tied to a specific interpreter reveals that most values have no reason to be task-local.
+Most alternative implementations inherit this assumption: "Perl values are inherently interpreter-local."  But analyzing
+what is *actually* tied to a specific interpreter reveals that most values have no reason to be interpreter-local.
 
 ### 13.2 What Is Actually Interpreter-Local
 
-Analyzing what is truly tied to a specific interpreter thread reveals that *values* are almost never the bottleneck —
-*execution context* is.
+Analyzing what is truly tied to a specific interpreter reveals that *values* are almost never the bottleneck
+— *execution context* is.
 
 #### 13.2.1 Per-execution-context (not per-value):
 
-- **Call stack and mortal stack** — each thread needs its own call stack and temporary value stack.  These are execution
-  context.
-- **Dynamic scope (`local`)** — per-variable task-local save stacks (§3.3).  Each task has its own overlay on localized
-  globals.
+- **Call stack and mortal stack** — each task/thread needs its own call stack and temporary value stack.  These are
+  execution context.
+- **Dynamic scope (`local`)** — per-variable task/thread-local save stacks (§3.3).  Each task/thread has its own overlay
+  on localized globals.
 - **The compiler** — `eval STRING` needs a compiler, which has its own lexer/parser state.
 
 #### 13.2.2 Per-OS-thread or per-process (not per-interpreter):
@@ -7016,22 +7019,22 @@ Analyzing what is truly tied to a specific interpreter thread reveals that *valu
 - **Code references and closures** — compiled IR (shareable) plus captured values (on the shared heap).
 - **Tied variables** — the `tie` magic is a code reference (FETCH, STORE, etc.) attached as metadata on the value.  The
   code ref is compiled IR + captured values, both on the shared heap.  When the magic fires, it runs on whatever
-  interpreter thread accesses the value.
+  task/thread accesses the value.
 - **Overloaded objects** — operator implementations are code references, same as `tie`.  Shareable.
-- **`DESTROY`** — a code reference called when refcount drops to zero.  Runs on whatever thread drops the last
+- **`DESTROY`** — a code reference called when refcount drops to zero.  Runs on whatever task/thread drops the last
   reference.
 - **`%SIG` handlers** — code references.  Shareable.
 
 The key insight is that magic callbacks are code references, and code references are data.  They don't need a *specific*
-interpreter — they need *an* interpreter's execution context to run on, and any thread that has one will do.
+interpreter — they need *an* interpreter's execution context to run on, and any task/thread that has one will do.
 
 ### 13.3 One Shared Heap
 
 All values — including magic-bearing values — live on a single shared heap (§3.1) with atomic reference counting.  There
 is no per-interpreter data heap.  No value migration between heaps.
 
-This means sharing data across threads is the default, not a special operation.  Every value is `Arc`-refcounted and
-accessible from any task:
+This means sharing data across tasks/threads is the default, not a special operation.  Every value is `Arc`-refcounted
+and accessible from any task/thread:
 
 ```perl
 # All of these are on the shared heap from the moment they're created
@@ -7043,31 +7046,31 @@ spawn {
     # All accessible — same shared heap, atomic refcount
     print "Host: $config{host}\n";
     for my $n (@data) { process($n) }
-    my $v = $cache{key};    # tie magic fires on THIS thread's interpreter
+    my $v = $cache{key};    # tie magic fires on THIS task/thread's interpreter
 };
 ```
 
-The only things created per-task are execution contexts:
+The only things created per-task/thread are execution contexts:
 
 ```rust
 struct Interpreter {
     runtime: Arc<SharedRuntime>,    // shared with all other interpreters
-    call_stack: Vec<CallFrame>,     // per-task execution context
-    mortal_stack: Vec<Value>,       // per-task temporaries
+    call_stack: Vec<CallFrame>,     // per-task/thread execution context
+    mortal_stack: Vec<Value>,       // per-task/thread temporaries
     special_vars: SpecialVars,      // $@, $_, $/, $!, etc.
-    compiler: Compiler,             // per-task (for eval STRING)
+    compiler: Compiler,             // per-task/thread (for eval STRING)
 
-    // Dynamic scope (local) uses per-variable task-local storage — see §3.3
+    // Dynamic scope (local) uses per-variable task/thread-local storage — see §3.3
 }
 ```
 
 Spawning a thread or async task creates a new `Interpreter` with a fresh execution context pointing to the same
 `SharedRuntime`.  No data is cloned.  No serialization.
 
-### 13.4 Closures and Threads
+### 13.4 Closures and Tasks/Threads
 
 A closure is compiled IR (read-only, `Arc<Code>`) plus captured values (also `Arc`-refcounted).  Since both components
-are shared by construction, all closures are inherently shareable across threads.
+are shared by construction, all closures are inherently shareable across tasks/threads.
 
 This is a fundamental departure from Perl 5, where a closure captures a "lexical pad" — an AV allocated in the
 per-interpreter arena, making every closure interpreter-local.
@@ -7081,14 +7084,14 @@ my $count = 0;             # Arc-refcounted
 
 spawn {
     # captures are shared heap values — closure is Send
-    print "Thread $name starting, count=$count\n";
+    print "Task $name starting, count=$count\n";
 };
 
 tie my %cache, 'LRU::Cache';
 
 spawn {
     # %cache is on the shared heap too — tie magic is just metadata
-    # FETCH runs on the spawned thread's interpreter context
+    # FETCH runs on the spawned task/thread's interpreter context
     print $cache{key};     # works
 };
 ```
@@ -7111,14 +7114,14 @@ spawn move || {
 Shared mutable state needs synchronization.  Rather than a global interpreter lock (GIL) or per-heap locks,
 synchronization is per-value:
 
-- **Immutable shared values** (the common case) — no synchronization needed.  Multiple threads read freely via atomic
-  refcount.
+- **Immutable shared values** (the common case) — no synchronization needed.  Multiple tasks/threads read freely via
+  atomic refcount.
 - **Mutable shared values** — protected by a per-value `RwLock`.  Readers proceed in parallel; writers acquire exclusive
   access.
 - **Typed values** — use explicit `Arc<RwLock<T>>` or `Arc<Mutex<T>>` as in Rust.
 
 For `my` variables that are shared and need mutation, the runtime can automatically attach a `RwLock` when a value is
-first accessed from multiple threads.  This is transparent to the Perl programmer:
+first accessed from multiple tasks/threads.  This is transparent to the Perl programmer:
 
 ```perl
 my @results;
@@ -7132,7 +7135,7 @@ for my $i (1..10) {
 }
 ```
 
-The `RwLock` is only allocated when contention is detected (the value is accessed from more than one thread).
+The `RwLock` is only allocated when contention is detected (the value is accessed from more than one task/thread).
 Single-threaded access has zero synchronization overhead.
 
 ### 13.6 Automatic Parallelism via Rayon
@@ -7153,7 +7156,7 @@ The programmer writes exactly the code they always wrote.  The runtime decides w
 
 - **Workload size** — small lists run sequentially (Rayon overhead isn't worth it for a 10-element array).
 - **Available cores** — if only one core is free, run sequentially.
-- **Safety** — the callback must be safe to call from multiple threads simultaneously.
+- **Safety** — the callback must be safe to call from multiple tasks/threads simultaneously.
 
 #### 13.6.1 Safety analysis for parallelization:
 
@@ -7196,7 +7199,7 @@ an implementation where the architecture makes parallelism natural.
 The implementation runs on Tokio, providing two complementary async models that correspond naturally to the `my`/`sub`
 vs `let`/`fn` split.
 
-#### 13.7.1 Implicit async for Perl code (Go-style green threads).
+#### 13.7.1 Implicit async for Perl code (Go-style green threads)
 
 Each interpreter is a lightweight execution context — call stack, mortal stack, special variables — running as a Tokio
 task.  When Perl code hits a blocking operation (IO, sleep, network, system call), the interpreter yields to Tokio
@@ -7332,7 +7335,7 @@ wrap it in `spawn`:
 
 ```perl
 # Lazy — fetch_page returns a future, nothing happens yet
-let f = fetch_page(url);            # just creates the future
+let f = fetch_page(url);             # just creates the future
 let page = f.await;                  # NOW it executes
 
 # Eager — spawn starts a background task immediately
@@ -7343,7 +7346,7 @@ let page = handle.await;             # collect the result
 # Composition — lazy futures enable join_all and select!
 let all_pages = join_all(
     urls.map(|u| fetch_page(u))      # creates futures, doesn't start them
-).await;                              # NOW they all execute concurrently
+).await;                             # NOW they all execute concurrently
 ```
 
 When a `sub` calls an `async fn`, the interpreter implicitly awaits the result — it creates the future and immediately
@@ -7432,7 +7435,8 @@ async fn run_op(&mut self, op: &IrOp) -> Result<()> {
 ```
 
 Each `spawn` creates a new Tokio task with its own `Interpreter` (fresh execution context, shared heap).  Tokio's
-work-stealing scheduler distributes tasks across OS threads.  The programmer never manages threads directly.
+work-stealing scheduler distributes tasks across OS threads.  The programmer never manages Tokio worker threads
+directly.
 
 #### 13.7.9 AOT compilation: sync/async monomorphization.
 
@@ -7699,11 +7703,11 @@ spawn thread { long_running_ffi_work() };
 
 All three get a full interpreter with access to the shared heap.  The difference is scheduling:
 
-| Mechanism            | Runs on             | Yields at IO?         | Task-local `local`?       | Use case                    |
-|----------------------|---------------------|-----------------------|---------------------------|-----------------------------|
-| `spawn { }`          | Tokio task          | Yes                   | Yes (`tokio::task_local`) | IO, concurrency, general    |
-| `spawn blocking { }` | Tokio blocking pool | No (dedicated thread) | Yes (`tokio::task_local`) | CPU-bound Perl              |
-| `spawn thread { }`   | Raw OS thread       | No                    | Yes (`thread_local`)      | FFI, pinned TLS, long-lived |
+| Mechanism            | Runs on             | Yields at IO?         | Task/Thread-local `local`? | Use case                    |
+|----------------------|---------------------|-----------------------|----------------------------|-----------------------------|
+| `spawn { }`          | Tokio task          | Yes                   | Yes (`tokio::task_local`)  | IO, concurrency, general    |
+| `spawn blocking { }` | Tokio blocking pool | No (dedicated thread) | Yes (`tokio::task_local`)  | CPU-bound Perl              |
+| `spawn thread { }`   | Raw OS thread       | No                    | Yes (`thread_local`)       | FFI, pinned TLS, long-lived |
 
 Syntactically, `spawn` is a registered keyword.  The modifiers `blocking`, `thread`, and `all` are parsed within the
 keyword hook as optional bareword arguments — the standard parser never sees them.
@@ -7753,8 +7757,8 @@ All three work with `react`/`whenever`, and channels additionally support Perl's
 
 #### 13.10.2 Channels — queues with filehandle syntax:
 
-A channel is a thread-safe queue.  Each item sent is received by exactly one consumer (first come, first served).  This
-is the right primitive for work distribution:
+A channel is a task/thread-safe queue.  Each item sent is received by exactly one consumer (first come, first served).
+This is the right primitive for work distribution:
 
 ```perl
 # Create a channel — returns two ends, like pipe()
@@ -7777,7 +7781,7 @@ while (my $item = <$rx>) {
 ```
 
 The filehandle interface (`<$rx>`, `print $tx`, `close $tx`) is immediately familiar to every Perl programmer.  `while
-(<$rx>)` yields to Tokio between items, so other tasks make progress.
+(<$rx>)` yields to Tokio between items, so other tasks/threads make progress.
 
 Typed channels provide compile-time guarantees:
 
@@ -7881,9 +7885,9 @@ my @results =
     | collect;
 ```
 
-Each `|` creates a channel between stages.  Each stage runs as its own Tokio task.  A slow stage pauses upstream when
-the channel buffer fills.  This is the Unix pipeline model — the idiom Perl was born from — brought in-process with type
-safety and structured concurrency.
+Each `|` creates a channel between stages.  Each stage runs as its own Tokio task.  A slow stage pauses upstream
+when the channel buffer fills.  This is the Unix pipeline model — the idiom Perl was born from — brought in-process with
+type safety and structured concurrency.
 
 #### 13.10.5 `react`/`whenever` — unified event loop:
 
@@ -7954,7 +7958,7 @@ If this invariant is maintained, then:
 
 - User code cannot deadlock against internal locks — it never holds one.
 - Reentrant magic cannot create lock cycles — the lock is always released before the callback runs.
-- DESTROY callbacks are safe to run on any task — no internal lock is held at the point of destruction.
+- DESTROY callbacks are safe to run on any task/thread — no internal lock is held at the point of destruction.
 
 Explicit user-level locking (`Mutex`, `RwLock`, lock-taking methods inside callbacks) is powerful and unsafe in the
 normal way — the programmer accepts deadlock risk, just as in Rust.
@@ -7984,27 +7988,27 @@ user code executes:
 
 1. Acquire lock, read the magic callback (a code reference).
 2. Release lock.
-3. Execute callback (on this task's interpreter context).
+3. Execute callback (on this task/thread's interpreter context).
 4. Acquire lock, write result back.
 
-Between steps 2 and 4, another task could modify the value.  This is acceptable — the per-value lock protects individual
-reads and writes, not multi-step transactions.  This is the same concurrency contract as concurrent method calls on a
-shared object in any language.  Perl 5 doesn't guarantee transactional semantics for magic either.
+Between steps 2 and 4, another task/thread could modify the value.  This is acceptable — the per-value lock protects
+individual reads and writes, not multi-step transactions.  This is the same concurrency contract as concurrent method
+calls on a shared object in any language.  Perl 5 doesn't guarantee transactional semantics for magic either.
 
-#### 13.11.4 `DESTROY` on arbitrary threads.
+#### 13.11.4 `DESTROY` on arbitrary tasks/threads.
 
 When the last reference to an object is dropped, `DESTROY` runs.  With atomic refcounting on a shared heap, the last
-`Arc::drop` could happen on any task.  This means `DESTROY` may run on a different task than the one that created the
-object.
+`Arc::drop` could happen on any task/thread.  This means `DESTROY` may run on a different task/thread than the one that
+created the object.
 
-This is semantically correct — the object's lifetime has ended regardless of which task noticed — but it may surprise
-Perl code that assumes `DESTROY` runs in the creator's context.  Mitigations:
+This is semantically correct — the object's lifetime has ended regardless of which task/thread noticed — but it may
+surprise Perl code that assumes `DESTROY` runs in the creator's context.  Mitigations:
 
 - **Most DESTROY methods are harmless.**  Closing file handles, freeing external resources, updating counters — these
-  work regardless of which task runs them.
-- **Task-affine destruction.**  For objects that must be destroyed on a specific task, the runtime can queue the
-  destruction to the creating task's event loop rather than running it inline.  This is an opt-in via an attribute: `sub
-  DESTROY :affine { ... }`.
+  work regardless of which task/thread runs them.
+- **Task/thread-affine destruction.**  For objects that must be destroyed on a specific task/thread, the runtime can
+  queue the destruction to the creating task/thread's event loop rather than running it inline.  This is an opt-in via
+  an attribute: `sub DESTROY :affine { ... }`.
 - **Weak references.**  Where the concern is preventing cycles rather than running cleanup code, weak references
   (`weaken`) avoid the DESTROY timing issue entirely.
 
@@ -8024,8 +8028,8 @@ subclasses must be invalidated.  This uses a global generation counter: each sta
 cache entries whose generation is stale are recomputed on next access.  The generation counter is an atomic integer —
 incrementing it is a single atomic operation, and checking it is a non-locking read.
 
-**Concurrent `require`.**  If two tasks `require` the same module simultaneously, the compilation must happen only once.
-This is handled by a per-module registry:
+**Concurrent `require`.**  If two tasks/threads `require` the same module simultaneously, the compilation must happen
+only once.  This is handled by a per-module registry:
 
 ```rust
 struct ModuleRegistry {
@@ -8033,16 +8037,16 @@ struct ModuleRegistry {
 }
 
 enum ModuleState {
-    Loading(TaskId),     // being compiled by this task
+    Loading(TaskId),     // being compiled by this task/thread
     Loaded(ModuleId),    // compilation complete
     Failed(Error),       // compilation failed
 }
 ```
 
-A task that calls `require` checks the registry.  If the module is `Loading` by another task, it waits.  If it's
-`Loaded`, it proceeds.  If it's not present, it inserts `Loading(self)` and begins compilation.  Compilation itself
-(which runs `BEGIN` blocks and is therefore user code) runs without any registry lock held — only the state transitions
-are locked.
+A task/thread that calls `require` checks the registry.  If the module is `Loading` by another task/thread, it waits.
+If it's `Loaded`, it proceeds.  If it's not present, it inserts `Loading(self)` and begins compilation.  Compilation
+itself (which runs `BEGIN` blocks and is therefore user code) runs without any registry lock held — only the state
+transitions are locked.
 
 #### 13.11.6 Single-threaded fast path.
 
@@ -8053,17 +8057,17 @@ The most common Perl programs are single-threaded.  They should not pay for conc
 - **Build-time feature flag.**  A `--single-threaded` build flag replaces atomic operations with non-atomic equivalents,
   removing even the memory-ordering overhead.
 - **`RwLock` is uncontended-fast.**  An uncontended `RwLock::read` on x86 is essentially a single atomic
-  compare-and-swap.  Single- threaded code never contends, so every lock acquisition is the fast path.
-- **Task-count optimization.**  If only one task exists, skip locking entirely.  An atomic task counter allows the
-  runtime to short-circuit to non-locking paths when concurrency is not active.
+  compare-and-swap.  Single-threaded code never contends, so every lock acquisition is the fast path.
+- **Task/thread-count optimization.**  If only one task/thread exists, skip locking entirely.  An atomic task/thread
+  counter allows the runtime to short-circuit to non-locking paths when concurrency is not active.
 
 #### 13.11.7 Why not per-interpreter heaps with explicit sharing?
 
 The alternative architecture — per-interpreter heaps for untyped values, explicit sharing for typed values — was the
 starting point of this design and was rejected for specific reasons:
 
-- **Serialization cost.**  Passing a large data structure to a spawned task requires deep-copying it into the other
-  interpreter's heap.  This is the fundamental pain point of Perl 5's `ithreads`.
+- **Serialization cost.**  Passing a large data structure to a spawned task/thread requires deep-copying it into the
+  other interpreter's heap.  This is the fundamental pain point of Perl 5's `ithreads`.
 - **Complexity at the boundary.**  Every crossing between typed and untyped code becomes a serialization/deserialization
   step, not just a type coercion.  This discourages mixing the two layers.
 - **Two heap implementations.**  Maintaining both a per-interpreter arena and a shared arena doubles the surface area of
@@ -8446,7 +8450,7 @@ $y = 99;                            # fine — my is always mutable
 Immutability enables the compiler to:
 
 - Prove that values do not change, enabling more aggressive optimization.
-- Allow safe sharing of immutable values across threads without synchronization.
+- Allow safe sharing of immutable values across tasks/threads without synchronization.
 - Catch accidental mutation bugs at compile time.
 
 The `mut` keyword applies to the binding, not the type.  Interior mutability (e.g., `Arc<RwLock<T>>`) is handled by the
@@ -8749,11 +8753,12 @@ The lifecycle:
 4. When all Arcs drop, the data is freed.
 
 This maps directly to how `\$x` already works in Perl 5 — it creates a reference-counted shared pointer.  The typed
-version just uses `Arc` (atomic refcount, thread-safe) instead of Perl's SV refcount.
+version just uses `Arc` (atomic refcount, task/thread-safe) instead of Perl's SV refcount.
 
-#### 14.9.3 `\$x` enables sharing across threads:
+#### 14.9.3 `\$x` enables sharing across tasks/threads:
 
-Because `Arc<T>` is `Send + Sync`, values that have been referenced can be shared across threads without serialization:
+Because `Arc<T>` is `Send + Sync`, values that have been referenced can be shared across tasks/threads without
+serialization:
 
 ```perl
 let $config: String = "database.example.com";
@@ -8763,7 +8768,7 @@ spawn move || {
     print "Using $$shared\n";    # Arc clone moved into closure
 };
 
-print $config;                    # still accessible in parent thread
+print $config;                   # still accessible in parent task/thread
 ```
 
 #### 14.9.4 Borrows are `fn` parameters only — the typed `@_`.
@@ -8956,7 +8961,7 @@ let view: &str = cfg;       # emits: Arc::deref — one pointer chase
 ```
 
 Immutable bindings (the default) additionally allow the compiler to inline values, hoist them out of loops, and share
-them across threads without synchronization.
+them across tasks/threads without synchronization.
 
 ### 14.12 Typed Values and Concurrency
 
@@ -8990,8 +8995,9 @@ let total: i64 = *counter.read();
 Rust patterns.  Exposing them directly means Perl programmers learn the same concurrency vocabulary that Rust
 programmers use, and the implementation is zero-overhead.
 
-All `my` variables — including magic-bearing values — live on the shared heap (§13.3) and are shareable across threads.
-Typed values additionally provide compile-time guarantees and avoid the atomic refcount overhead of the shared heap.
+All `my` variables — including magic-bearing values — live on the shared heap (§13.3) and are shareable across
+tasks/threads.  Typed values additionally provide compile-time guarantees and avoid the atomic refcount overhead of the
+shared heap.
 
 ### 14.13 Typed Values and FFI
 
@@ -9622,7 +9628,7 @@ Note that `move` in this model means "clone into the closure," not "transfer own
 with the clone-on-assign model (§14.9) — the outer variable remains accessible.
 
 For `Arc` values, `move` clones the `Arc` (refcount bump), which is the efficient way to share data with a spawned
-thread:
+task/thread:
 
 ```perl
 let $config = \("database.example.com");  # Arc<String>
@@ -9656,8 +9662,8 @@ However, `move` and `async` are not Perl 5 keywords, so they can be registered v
 hits `move`, the keyword hook takes over and can parse `|args| expr` freely — the `|` is being interpreted by the custom
 parser at that point, not by Perl's operator dispatch.  The standard parser never sees it.
 
-This means the concurrency-critical closure forms — `move` closures for thread spawning and `async` closures for async
-tasks — are fully portable to standard Perl 5:
+This means the concurrency-critical closure forms — `move` closures for task/thread spawning and `async` closures for
+async tasks — are fully portable to standard Perl 5:
 
 ```perl
 # Portable — move keyword triggers our parser, |args| works
@@ -10171,8 +10177,8 @@ significantly during implementation.
 
 #### 19.4.2 Stack traces on exceptions by default:
 
-Every `die` (and every `Err` auto-unwrap) should capture a stack trace for the current task automatically.  This is the
-single most impactful debugging improvement over Perl 5:
+Every `die` (and every `Err` auto-unwrap) should capture a stack trace for the current task/thread automatically.  This
+is the single most impactful debugging improvement over Perl 5:
 
 ```text
 Exception: Can't open /etc/missing.conf: No such file or directory
@@ -10187,13 +10193,13 @@ Typed frames include the function signature.  Untyped frames show what is availa
 Stack trace capture should be cheap enough to enable by default — the call stack is already maintained for execution;
 formatting it into a trace is the only additional cost, and that only happens on exceptions.
 
-The default is a trace for the task that threw the exception — not all tasks.  An all-task dump is a separate diagnostic
-operation available on request for deadlock investigation and overall system inspection.
+The default is a trace for the task/thread that threw the exception — not all tasks/threads.  An all-task/thread dump is
+a separate diagnostic operation available on request for deadlock investigation and overall system inspection.
 
-#### 19.4.3 All-task dump — on request, not by default:
+#### 19.4.3 All-task/thread dump — on request, not by default:
 
-For debugging hangs, deadlocks, or unexpected behavior across tasks, a full task dump shows every active interpreter's
-call stack and current state:
+For debugging hangs, deadlocks, or unexpected behavior across tasks/threads, a full task/thread dump shows every active
+interpreter's call stack and current state:
 
 ```text
 perl> :taskdump
@@ -10217,10 +10223,10 @@ Task 4 [waiting: timer, 3s remaining] — Monitor
   at main (bin/app.pl:18)
 ```
 
-For interpreted code, this is straightforward — each `Interpreter` maintains its own call stack, and dumping all tasks
-walks all interpreters.  For AOT-compiled async code, the `async-backtrace` crate provides the same capability — the AOT
-compiler can annotate generated async functions with `#[async_backtrace::framed]` automatically, enabling
-`taskdump_tree` for suspended tasks that are invisible to traditional stack traces.
+For interpreted code, this is straightforward — each `Interpreter` maintains its own call stack, and dumping all
+tasks/threads walks all interpreters.  For AOT-compiled async code, the `async-backtrace` crate provides the same
+capability — the AOT compiler can annotate generated async functions with `#[async_backtrace::framed]` automatically,
+enabling `taskdump_tree` for suspended tasks that are invisible to traditional stack traces.
 
 #### 19.4.4 Built-in value inspection:
 
@@ -10379,8 +10385,8 @@ a live monitoring tool.
 
 The specifics of the debugging interface will evolve during implementation.  What the design document commits to is:
 
-1. Stack traces on exceptions are on by default for the current task.
-2. All-task dumps are available on request for system-wide debugging.
+1. Stack traces on exceptions are on by default for the current task/thread.
+2. All-task/thread dumps are available on request for system-wide debugging.
 3. A built-in value inspector (`dd()`) is available without CPAN.
 4. A first-class interactive REPL with line editing, syntax highlighting, tab completion, and introspection commands —
    not `perl -de0`.
@@ -10561,13 +10567,13 @@ expensive to fix later.  The internal ordering follows the dependency structure 
     differential, reuse, and destructor-accounting test layers.
 
 12. `Array` slab migration — the first node class through the new backend, validating layout, pinning, reuse,
-    finalization queueing, and cross-thread races.
+    finalization queueing, and cross-task/thread races.
 
 13. Remaining node classes (`Hash`, `Scalar`, `ConstScalar`) once step 12's matrix passes.
 
 14. Mortal stack — `Vec<Value>` per interpreter, scope-entry marks, scope-exit drops.
 
-15. Task-local `local` mechanism — `Option<Box<LocalStack>>` with `WasInactive`/`WasActive` save stack.  Test with
+15. Task/Thread-local `local` mechanism — `Option<Box<LocalStack>>` with `WasInactive`/`WasActive` save stack.  Test with
     simulated scope entry/exit.
 
 Each of these is independently testable with `#[test]` functions.  No lexer, no parser, no interpreter — just data
@@ -10654,8 +10660,8 @@ Implement builtins incrementally, guided by which upstream tests are closest to 
 ### 21.10 Concurrency
 
 Implement per-value synchronization, `spawn`/`spawn blocking`/ `spawn thread`, and Tokio integration.  The
-`Arc<RwLock<T>>` value model is concurrent from day one; this step adds the multi-task execution paths, the Tokio event
-loop, and the cardinal invariant enforcement (§13.11).
+`Arc<RwLock<T>>` value model is concurrent from day one; this step adds the multi-task/thread execution paths, the Tokio
+event loop, and the cardinal invariant enforcement (§13.11).
 
 ### 21.11 Typed layer
 
@@ -10794,7 +10800,7 @@ runtime/
         symbols/         # Symbol tables, stashes, globs
         scope/           # local, my, our — dynamic/lexical scope
         magic/           # Tied variables, special vars
-        concurrency/     # spawn, channels, task management
+        concurrency/     # spawn, channels, task/thread management
         bytecode/        # IR serialization/deserialization
         cli/             # Argument parsing, -e/-p/-n/-w flags
         repl/            # Interactive REPL (behind feature flag)
@@ -10902,8 +10908,8 @@ Three items were previously listed here as deferred, wrongly:
 
 - **`ithreads` compatibility.**  In scope for the initial compatibility goals.  `threads` and `threads::shared` are perl
   behavior like any other, and the §2.4 domain model exists in large part to support them: a domain is the teardown
-  enumeration unit, and an emulated thread needs its own — thread exit runs the same leaked-cycle sweep process exit
-  does (container-verified: cyclic objects receive `DESTROY` in the spawning thread before `join` returns).  Domains
+  enumeration unit, and an emulated ithread needs its own — ithread exit runs the same leaked-cycle sweep process exit
+  does (container-verified: cyclic objects receive `DESTROY` in the spawning ithread before `join` returns).  Domains
   plus teardown substantially deliver this.
 
   **`ithreads` defaults to strict compatibility [DECISION]**, whatever the global default becomes (§1.1).  Two reasons,
@@ -10979,7 +10985,7 @@ The key architectural decisions in this design:
    strings) inline in `Value` enum; heap-allocated values (scalars with magic, arrays, hashes) use `Arc<RwLock<T>>`.
 
 2. **Atomic reference counting with strict Perl cycle semantics** (cycles leak until global destruction — §2.4) for
-   memory management.  Per-variable task-local save stacks for `local` dynamic scope (§3.3).  Mortal stack for
+   memory management.  Per-variable task/thread-local save stacks for `local` dynamic scope (§3.3).  Mortal stack for
    per-statement temporaries.
 
 3. **Compiler and runtime are co-resident from day one.**  Compile-time execution (`BEGIN`, `use`, `eval STRING`) is a
@@ -10995,11 +11001,11 @@ The key architectural decisions in this design:
    runtime dependency.
 
 6. **Single shared heap concurrency.**  All values — including magic-bearing values — live on one shared heap with
-   atomic refcounting.  Only execution context (call stack, special variables, task-local dynamic scope) is per-task.
-   Magic callbacks are code references that run on whatever thread accesses the value.  Closures are shareable because
-   captures are shared heap values, not Perl 5-style interpreter-local pads.  Per-value `RwLock` for mutable shared
-   state, allocated on demand.  Automatic parallelism of `map`/`grep`/`sort` via Rayon.  Go-style green threads for
-   implicit async IO and Rust-style `async`/`await` for typed code, both on Tokio.
+   atomic refcounting.  Only execution context (call stack, special variables, task/thread-local dynamic scope) is
+   per-task/thread.  Magic callbacks are code references that run on whatever task/thread accesses the value.  Closures
+   are shareable because captures are shared heap values, not Perl 5-style interpreter-local pads.  Per-value `RwLock`
+   for mutable shared state, allocated on demand.  Automatic parallelism of `map`/`grep`/`sort` via Rayon.  Go-style
+   green threads for implicit async IO and Rust-style `async`/`await` for typed code, both on Tokio.
 
 7. **Value model first in implementation order**, because everything depends on it — not lexer first.
 
@@ -11029,9 +11035,6 @@ The key architectural decisions in this design:
 
 ## 25. Glossary
 
-Coined terms, each with the section that defines it.  Ordinary words with a fixed reading in this document — thread,
-task, task/thread, ithread — are in §0.
-
 - **Admission bit (`WEAK_CLOSED`)** — the high bit of `strong_gate`; while set, no weak upgrade from outside the
   executor can succeed, whatever the count (§2.4.4).
 - **Control block** — the two 32-bit words at the head of every slab slot, `strong_gate` and `weak_life` (§2.4.3).
@@ -11048,6 +11051,10 @@ task, task/thread, ithread — are in §0.
   owned by exactly one party at every instant (§2.4.5).
 - **Hybrid registry** — the referent-side list of exactly those weak holders that carry set magic (§2.4.8).
 - **`HeapArc` / `HeapWeak`** — the private slab-backed reference-counted handle and its weak form (§2.4.2).
+- **Ithread** — a Perl-level interpreter thread: the object `threads->create` returns on the ithreads compatibility
+  surface.  An ithread runs on some task/thread and is not itself one.  Module and function names keep Perl's
+  spelling (`threads`, `threads::shared`, `threads->tid`), and inside `compat/`, which describes Perl alone, "thread"
+  is necessarily an ithread (§0).
 - **Lane A / lane B** — the oracle harness's verdict lanes: a lane-A test's exact output is a function of the program
   and the pinned hash seed alone, identical across the stock, no-reuse and descending builds; a lane-B test's content is
   stable but its line order depends on the allocator, address values, or the hash seed, so it is compared canonically
@@ -11062,5 +11069,10 @@ task, task/thread, ithread — are in §0.
 - **Referent** — a promoted scalar: a shared, stably addressed, reference-counted identity (§2.2).
 - **Resurrection window** — everything `curse` runs, up to its single count read; closed and unreopenable past it
   (§2.4.4).
+- **Task** — a Tokio task (§0).
+- **Task/thread** — a Tokio task or an OS thread, whichever is running the code; used wherever a sentence holds for
+  both.  It is the unit that owns a destruction lease, holds destruction privilege, and blocks and is woken (§0,
+  §2.4.4).
+- **Thread** — an operating-system thread, what Rust's `std::thread` makes (§0).
 - **Tombstone** — a slot whose node is `DEAD` but whose control block is still retained by weak references or pins
   (§2.4.2, §2.4.3).
