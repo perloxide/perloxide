@@ -502,9 +502,9 @@ printf "%-6s n=%d build %.0f ms scan %.0f ms/pass peak %.1f MB %.1f B/elt\n",
 
 ## 6. Runtime candidates
 
-Alternatives for the interpreter's execution model.  `design.md` §13.7 rules that the interpreter requires Tokio and
-runs on the host's runtime when one is current; §13.11.6 rules that single-threaded programs pay the uncontended cost of
-the synchronization primitives.  Everything here would change one of those, and none of it is decided.
+Alternatives and open questions for the interpreter's execution model.  `design.md` §13.7 rules that the interpreter
+requires Tokio and runs on the host's runtime when one is current; §13.11.6 rules that single-threaded programs pay the
+uncontended cost of the synchronization primitives.  None of what follows is decided.
 
 ### 6.1 Single-threaded fast paths beyond the uncontended cost
 
@@ -580,6 +580,46 @@ workload size where Rayon's overhead dominates (a ten-element list), run sequent
 to parallelize a block the compiler can prove touches shared mutable state even though the program asked.  Whether a
 parallel `sort` keeps perl's stability and comparator-call guarantees is a §13 question the pragma's documentation must
 answer.
+
+### 6.6 `sort`: a comparator memo, and which algorithm runs
+
+Two questions for the `sort` builtin, recorded here until §21.9 reaches it.  Both bear on the value model now: the first
+on design §2.3.8's open question of whether a promoted scalar cell carries a cached numeric face, the second on what the
+oracle harness may diff on sort tests.
+
+**The comparator memo.**  Perl's `pp_sort` recognizes `{ $a <=> $b }`, `{ $b <=> $a }`, `{ $a cmp $b }`, `{ $b cmp $a
+}`, the bare `sort`, `reverse sort` and the `use integer` forms at compile time and runs a built-in comparator without
+calling the block; its memoization of the numified keys is incidental, the `pNOK`/`pIOK` cache in each SV, so it pays
+one parse per element and about a nanosecond per compare.  Compact values here recompute conversions (design §2.2.8), so
+the same idiom over a list of numeric strings would re-parse on every compare — tens of nanoseconds against one — unless
+`sort` memoizes for itself: a temporary key array parallel to the list (8–16 bytes per element, freed with the sort;
+perl already allocates a temporary `SV*` array of that size), filled on an element's *first comparison* rather than in
+an eager pass, compared on keys, then the permutation applied.  Lazy filling matters only if the algorithm is perl's
+(below): a warn-worthy element emits `Argument "..." isn't numeric in sort` the first time it is compared, so filling on
+first comparison reproduces perl's warning order exactly, and an element never compared is never numified, as in perl.
+The built-in path applies to plain values only; tied elements, overloaded objects and anything magical fall back to the
+general comparator, as perl's do through `amagic_ncmp`, because their numification has side effects the memo would skip
+or reorder.  The memo is sound for any comparator of the form `K($a) OP K($b)` with `K` side-effect-free — `lc($a) cmp
+lc($b)`, `$a->{n} <=> $b->{n}`, `length $a <=> length $b` — which is the Schwartzian transform done by the
+implementation; it needs a purity analysis in the compiler (no sub calls, no tie or overload on the operands, no
+assignment) and always has the general path as its fallback.  What it means for the value model: the one hot idiom that
+argued for memoizing string-to-number conversions in a promoted cell is answered inside `sort`, so nothing in `sort`
+asks the cell for a face; the remaining recomputes — a loop bound numified per iteration, a string hash value compared
+repeatedly — are the compact-value recomputes §2.2.8 already rules.
+
+**Which algorithm runs.**  Perl promises stability and nothing else: the `sort` pragma's documentation says the default
+has been stable since 5.8.0 and will remain so, the `_mergesort` and `_quicksort` selectors were removed in 5.28 and
+croak if used, the pragma is a no-op whose use is discouraged, and the maintainers state they are not averse to changing
+the algorithm.  Comparator call order and count are therefore observable but unpromised, and perlfunc leaves the result
+undefined when the comparator is inconsistent.  Two candidates: reproduce `S_mergesortsv` from `pp_sort.c` (a few
+hundred lines), which makes every comparator call sequence, every warning order and every inconsistent-comparator
+outcome bit-identical to the oracle, so the harness diffs stderr on sort tests without annotation; or use any stable
+sort — Rust's `slice::sort` on the memoized keys — accepting a different call order as an endorsed deviation, with no
+`compat/undefined.md` row owed because no promise is broken.  Under the standing rule that perl is the specification
+unless a deviation is expressly endorsed, the first is the default until ruled otherwise; with keys memoized the
+compares dominate either way, so the performance difference between the two is modest.  Perl also returns *aliases* into
+the sorted list (perlfunc: modifying an element of the returned list modifies the original), which ties `sort` to the
+alias representation question in design §2.3.8.
 
 ## 7. Rejected, with reasons
 
