@@ -83,9 +83,10 @@ is perl itself — probes with blessed outputs, executable transcriptions of are
 observed behavior through them, and a differential harness.  Its rules are `perl-conformance/README.md`; the build and
 environment every fact is relative to, `perl-conformance/profile.md`; the index of facts by area,
 `perl-conformance/facts.md`; what is verified and what is open, `perl-conformance/status.md`; and the windows where perl
-has no defined behavior, `perl-conformance/undefined.md`.  This document cites `perl-conformance/facts.md` entries
-rather than restating facts, and nothing under `perl-conformance/` names or depends on PerlOxide, so the reference
-stands on its own for any reimplementation.
+has no defined behavior, `perl-conformance/undefined.md`.  This document cites entries of `perl-conformance/facts.md` by
+id, written `[fact:area.slug]` so that `perl-conformance explain` resolves a citation to its evidence and `cite-check`
+verifies every citation here, rather than restating facts, and nothing under `perl-conformance/` names or depends on
+PerlOxide, so the reference stands on its own for any reimplementation.
 
 PerlOxide's side of that relationship is three things.  The harness's `check` subcommand runs PerlOxide against the
 blessed outputs lane by lane; the adapter that satisfies the harness's interface (accepting `-I`/`-M` and writing the
@@ -2810,11 +2811,11 @@ resolve: death wakes it to read `undef`, resurrection wakes it to retry against 
 would lie about an object that may be resurrected; a timeout would lie nondeterministically.  Blocking is the only
 answer the question has, and it costs the slow destructor alone.  Perl's ithreads cannot reach this situation — a weak
 reference there is per ithread and already `undef` before another ithread's `DESTROY` can begin
-(`perl-conformance/facts.md`, finalization; `probes/corpus/threads_03_shared_weak.pl`) — so this is a native-concurrency
-definition, not a compatibility surface.  **An episode with no executor is adopted, not waited on** [DECISION]: an
-interpreter-context task/thread that would park on a context-free ticket nobody has drained yet takes the ticket itself,
-becomes the executor, and resolves the episode before proceeding with its own access — a weak access is as good an
-interpreter boundary as any, and waiting on a ticket that only the waiter will ever drain would be a self-deadlock.
+([fact:finalization.shared-weak-per-thread]) — so this is a native-concurrency definition, not a compatibility surface.
+**An episode with no executor is adopted, not waited on** [DECISION]: an interpreter-context task/thread that would park
+on a context-free ticket nobody has drained yet takes the ticket itself, becomes the executor, and resolves the episode
+before proceeding with its own access — a weak access is as good an interpreter boundary as any, and waiting on a ticket
+that only the waiter will ever drain would be a self-deadlock.
 
 The waiters are registered per episode, under one lock per domain taken only to register, deregister, and resolve; a
 waiter registers and rechecks the gate under that lock before parking, and the executor resolves and wakes under the
@@ -3198,7 +3199,7 @@ Container-verified semantics, pinned as the contract (`perl-conformance/facts.md
   machinery, exactly as perl's weak flag lives on the SV and `sv_setsv` does not copy it.  A weak reference therefore
   never moves: `my $x = shift @a`, `return $w`, `@b = @a` all copy, and the copy is strong.  The one internal obligation
   this creates is that no Perl-level transfer may be implemented as a bitwise move of a weak holder; a holder duplicated
-  by a shortcut would be two slots with one registration.
+  by a shortcut would be two slots with one registration.  [fact:finalization.weak-flag-on-holder]
 - **`weaken` does not promote** [DECISION].  A weak holder is an inline 16-byte value unless something else gives it
   identity (a reference to it, an alias, magic); it moves with its container, and nothing needs to point at it, because
   death never visits an unregistered holder.  Weakening is therefore off the promotion lists of §2.2 and §2.2.7.
@@ -3575,8 +3576,7 @@ Tied variables specifically dispatch to Perl-level `FETCH`/`STORE`/etc.  methods
 Per the cardinal invariant (§13.11), magic callbacks never execute while any internal lock is held.
 
 **Tied-container elements [DECISION].**  Three rulings precede the magic design and bind it, each pinned by
-`perl-conformance/` (`facts.md`, `local` and the save stack; `probes/research/value-model/26`, `27`;
-`models/SaveStack`):
+`perl-conformance/` (the `local` and save stack area of `facts.md`; `models/SaveStack`):
 
 - **A proxy cell exists only where identity is taken.**  Perl reaches every element of a tied array or hash through a
   temporary proxy SV carrying `PERL_MAGIC_tiedelem`: its get magic `FETCH`es into the proxy's own slot and its set magic
@@ -3587,13 +3587,14 @@ Per the cardinal invariant (§13.11), magic callbacks never execute while any in
   magic as its own set magic, and lives as long as its handle.  Two sites are two cells and two fetches, as in perl;
   nothing a program can observe depends on the proxies perl allocates and we do not.  A proxy is an ordinary cell with
   an ordinary magic chain: `tie $$r, 'TS'` on a held proxy adds a scalar tie beside the element magic, reads run both
-  gets newest-first with the last one's value winning, and writes run both sets.
+  gets newest-first with the last one's value winning, and writes run both sets.  [fact:save-stack.tied-ref-names-index]
+  [fact:save-stack.proxy-acquires-magic]
 - **A held proxy fetches once.**  `magic_getpack` sets `MGf_GSKIP` on every tied-element `FETCH` (mg.c 2240) and only a
   set through the same proxy clears it (`mg_set`, mg.c 287), so a proxy is a snapshot taken at its first read until a
   write goes through it: read before a `shift`, it reports the pre-shift value afterward; a write `STORE`s at the index
   and re-arms the fetch; a scalar tie on the same proxy has no such flag and runs on every read.  The flag is per magic
   entry (`mg_flags` on the `MAGIC`), set by tied-element get and cleared by any set through the cell, and the proxy
-  cell's chain carries it the same way.
+  cell's chain carries it the same way.  [fact:save-stack.held-proxy-fetches-once]
 - **`local` on a tied element is two stores, not substitution.**  The tie has one slot per index; `local` `FETCH`es the
   old value into the proxy it parks in the save record, installs a fresh proxy for the same index (whose set magic runs
   on installation: the `STORE` of undef before the `STORE` of the value), and the restore is a `STORE` of the saved
@@ -3603,6 +3604,7 @@ Per the cardinal invariant (§13.11), magic callbacks never execute while any in
   the same write lands in the parked SV and comes back at the restore.  The implementation must never give a tied
   element's `local` a private slot by reaching for the plain-array mechanism; the SS cells watch exactly this.  `delete`
   on a tied container strips the element magic from the proxy it returns (av.c 1085, hv.c 1340).
+  [fact:save-stack.tied-local-is-value] [fact:save-stack.tied-absent-delete] [fact:save-stack.tied-absent-preref]
 
 ---
 
@@ -4227,18 +4229,19 @@ run.
 Everything above is the design for PerlOxide's native tasks/threads, which have no Perl counterpart: the per-task/thread
 overlay for binding sites is an extension (§1.1.1), and element `local` on a container shared between tasks/threads is
 the literal rebinding.  The `ithreads` surface is a compatibility surface and follows §23.1: `threads::shared` behavior
-is reproduced as the compatibility reference records it (`perl-conformance/facts.md`, save stack;
-`perl-conformance/probes/corpus/local_03_shared_elem_move.pl` and `threads_02_shared_local.pl`), and it differs from the
-native rule in four ways.  `local` on a shared variable, scalar or element, overwrites the shared cell in place, so
-every ithread sees the localized value while the scope lasts; `mg_localize` copies the shared-scalar magic onto the
-fresh proxy, and the overlay does not apply.  The save record for a shared element carries two addresses, the shared
-cell and the index, and the restore writes the saved value through both in that order, so that `local $a[1] = 99; shift
-@a` on `(10, 20, 30)` leaves `(20, 20)` whichever ithread did the shift, where one address would leave `(99, 20)`.  An
-absent shared element or key is never recorded as absent, because `threads::shared::tie` has `EXISTS` but no `DELETE`
-and `pp_aelem`/`pp_helem` consult `EXISTS` only when both exist, so the unwind stores the saved `undef` at the index and
-the slot or key exists afterward.  And two ithreads localizing the same shared element each write back their own saved
-value when their scope ends, in whatever order the scopes end: there is no save stack across ithreads.  Where the
-outcome depends on scheduling — restores racing with a structural change without a handshake — perl's own result is
+is reproduced as the compatibility reference records it ([fact:save-stack.shared-local-in-place],
+[fact:save-stack.shared-restore-twice], [fact:save-stack.shared-restore-any-thread],
+[fact:save-stack.shared-absent-never-deleted], [fact:save-stack.shared-two-threads]), and it differs from the native
+rule in four ways.  `local` on a shared variable, scalar or element, overwrites the shared cell in place, so every
+ithread sees the localized value while the scope lasts; `mg_localize` copies the shared-scalar magic onto the fresh
+proxy, and the overlay does not apply.  The save record for a shared element carries two addresses, the shared cell and
+the index, and the restore writes the saved value through both in that order, so that `local $a[1] = 99; shift @a` on
+`(10, 20, 30)` leaves `(20, 20)` whichever ithread did the shift, where one address would leave `(99, 20)`.  An absent
+shared element or key is never recorded as absent, because `threads::shared::tie` has `EXISTS` but no `DELETE` and
+`pp_aelem`/`pp_helem` consult `EXISTS` only when both exist, so the unwind stores the saved `undef` at the index and the
+slot or key exists afterward.  And two ithreads localizing the same shared element each write back their own saved value
+when their scope ends, in whatever order the scopes end: there is no save stack across ithreads.  Where the outcome
+depends on scheduling — restores racing with a structural change without a handshake — perl's own result is
 `perl-nondeterministic` and nothing is specified.
 
 ---
