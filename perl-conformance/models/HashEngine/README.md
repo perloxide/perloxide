@@ -1,5 +1,11 @@
 # HV: the hash engine
 
+**Source.**  Transcribed from the perl5 repository at tag `v5.44.0`: hv.c and hv_func.h.  Validated by replay against
+the supported 5.44.0 builds; results in `reports/`; the identical 5.38.2 run beside them is from the unsupported 5.38.2
+(`../../unsupported-perls.md`).  A transcription is of one version's C, so a replay mismatch on a supported version is
+either a model gap or a change in perl's own implementation between the transcribed tag and that version;
+`version-divergent` rows name the second kind, and the tag above is what a reader diffs against when one appears.
+
 `HV.pm` transcribes hv.c and hv_func.h for the profile in `profile.md`: the seed expansion (`perl_siphash_seed_state`,
 `sbox32_seed_state128`), the two hash functions (`perl_hash_siphash_1_3_with_state`, `sbox32_hash_with_state`),
 `hv_common` (head insertion, `DO_HSPLIT` gated on collision), `hsplit`, `hv_auxinit`, `PERL_HASH_ITER_BUCKET`,

@@ -1,5 +1,13 @@
 # FZ: finalization and temporary lifetime
 
+**Source.**  Transcribed from the perl5 repository at tag `v5.44.0`: sv.c (`sv_clear`, `S_curse`, `sv_kill_backrefs`,
+`sv_del_backref`, `sv_rvweaken`, `sv_setsv_flags`), scope.c and the tmps-stack and context routines of pp_ctl.c and
+pp_hot.c.  Validated by replay against the supported 5.44.0 builds; results in `reports/`; the identical 5.38.2 traces
+beside them are from the unsupported 5.38.2 (`../../unsupported-perls.md`).  A transcription is of one version's C, so a
+replay mismatch on a supported version is either a model gap or a change in perl's own implementation between the
+transcribed tag and that version; `version-divergent` rows name the second kind, and the tag above is what a reader
+diffs against when one appears.
+
 `FZ.pm` transcribes the lifetime machinery over a scenario IR: `SvREFCNT_dec` -> `sv_clear` -> `curse` (S_curse, with
 resurrection epochs and rebless), `sv_kill_backrefs`, `sv_setsv_flags` / `sv_set_undef` / `sv_del_backref` /
 `sv_rvweaken` / `sv_force_normal_flags`, the tmps stack (`free_tmps`, `cx_pushblock`, `cx_popblock`, `leave_scope`,

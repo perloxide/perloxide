@@ -1,6 +1,0 @@
-DESTROY
-in STORE: defined=1 isweak=1 ref=ARRAY reftype=ARRAY blessed=undef same_addr=1 elems=2 first=42
-in STORE: method call died: Can't call method "hello" on unblessed reference
-in STORE: wrote element and pushed: elems=3 first=43
-after the kill: later defined=0
-end

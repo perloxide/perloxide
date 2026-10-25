@@ -17,6 +17,8 @@ implementation's own documentation.
 | `profile.md`     | the build and environment the facts are relative to: Perl version, widths, allocator, hash function, locale, libc |
 | `status.md`      | one row per model and suite: what is verified, on which Perls, under which key generation, and what is open       |
 | `undefined.md`   | windows where `perl` itself crashes, reads freed memory, or otherwise has no defined behavior; facts only         |
+| `unsupported-perls.md` | observations from Perls that are not supported versions, kept in one place and resting on nothing          |
+| `supported-versions` | the supported versions, oldest first; the last is the harness's and the suites' default target                |
 | `facts.md`       | the prose index of every fact, by area, each linked to the probe or model row that demonstrates it                |
 | `harness/`       | the differential oracle: runner, normalizer, verdict rules, probe projector, citation index                       |
 | `perls/`         | the build script for a supported Perl's six builds, with the allocator patches; the structure-size tool           |

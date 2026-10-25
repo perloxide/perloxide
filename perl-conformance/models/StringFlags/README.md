@@ -1,5 +1,13 @@
 # PV: the UTF-8 flag and taint
 
+**Source.**  Transcribed from the perl5 repository at tag `v5.44.0`: sv.c (`sv_utf8_upgrade_flags_grow`,
+`sv_utf8_downgrade_flags`), utf8.c, pp_pack.c and the case-mapping and taint paths.  Validated by replay against the
+supported 5.44.0 builds; results in `reports/`; the 5.38.2 run and `reports/version-differences.diff` beside them are
+from the unsupported 5.38.2 (`../../unsupported-perls.md`).  A transcription is of one version's C, so a replay mismatch
+on a supported version is either a model gap or a change in perl's own implementation between the transcribed tag and
+that version; `version-divergent` rows name the second kind, and the tag above is what a reader diffs against when one
+appears.
+
 `PV.pm` transcribes the string-flag and taint semantics: `sv_utf8_upgrade_flags_grow`, `sv_utf8_downgrade_flags`,
 encode/decode, the lenient and strict UTF-8 readers, case mapping under the Unicode-bug table (no feature,
 `unicode_strings`, `use locale`), regex charset modifiers, `unpack` modes, concatenation, hash keys, and taint

@@ -3,13 +3,15 @@
 # oracle: differential oracle harness for Perl.
 #
 #   oracle list     CORPUS                    list test ids (file.pl or file.pl@variant)
-#   oracle run      CORPUS [--only RE]        run every test on the configured perl builds
-#   oracle verdict  CORPUS [--only RE]        classify recorded runs; writes RESULTS/verdicts.tsv
-#   oracle bless    CORPUS [--only RE]        store verdicts and normalized outputs as CORPUS/expected
-#   oracle selftest CORPUS [--only RE]        run + verdict, then compare against CORPUS/expected
-#   oracle check    CORPUS --impl PATH        run an implementation and compare per lane
+#   oracle run      CORPUS [--only RE]        run every test on the target version's builds
+#   oracle verdict  CORPUS [--only RE]        classify recorded runs; writes RESULTS/VERSION/verdicts.tsv
+#   oracle bless    CORPUS [--only RE]        store verdicts and normalized outputs as CORPUS/expected/TEST/VERSION
+#   oracle selftest CORPUS [--only RE]        run + verdict, then compare against the target's blessing
+#   oracle gaps     CORPUS                    list the tests not yet blessed on the target version
+#   oracle check    CORPUS --impl PATH        run an implementation and compare per lane against the target
 #
-# Common options: --results DIR (default ./results), --config FILE (default oracle.conf next to bin/).
+# Common options: --target VERSION (default: the newest version in ../supported-versions; also PERL_COMPAT_TARGET),
+# --results DIR (default ./results; runs land in DIR/VERSION), --config FILE (default oracle.conf next to bin/).
 #
 # Corpus directives, as comment lines anywhere in a test file:
 #   # oracle-requires: threads | locale NAME     skip the test on builds that lack the capability;
@@ -34,11 +36,14 @@ use Oracle::Locales;
 our $LOCPATH;
 use Oracle::Verdict;
 
-# The oracle is a family of three 5.44.0 builds: stock, and the two allocator variants.  There are
-# two families, unthreaded (plain) and built with -Dusethreads (threads).  A test runs in the plain
-# family unless it requires threads.  Whichever family is the test's oracle, its runs are recorded
-# under the generic names (stock.seed0.1 and so on), and the other family's stock build runs once
-# as the configuration cross-check (xconfig), beside the version cross-check (xcheck).
+# The oracle for a supported version is a family of three builds: stock, and the two allocator
+# variants.  There are two families, unthreaded (plain) and built with -Dusethreads (threads).  A test
+# runs in the plain family unless it requires threads.  Whichever family is the test's oracle, its
+# runs are recorded under the generic names (stock.seed0.1 and so on), and the other family's stock
+# build runs once as the configuration cross-check (xconfig).  Every run, verdict and blessing is per
+# version: the target version is selected with --target or PERL_COMPAT_TARGET and defaults to the newest
+# line of ../supported-versions.  A Perl that is not a supported version is never an oracle; it is
+# run only as an implementation under `check`.
 my %FAMILY = (
     plain   => { stock => 'stock',         noreuse => 'noreuse',         descending => 'descending' },
     threads => { stock => 'threads_stock', noreuse => 'threads_noreuse', descending => 'threads_descending' },
@@ -56,10 +61,9 @@ my @ORACLE_PLAN = (
     [ 'descending', 'seed1',  1 ],
 );
 my @CROSS_PLAN = (
-    [ 'xcheck',  'seed0', 1 ],
     [ 'xconfig', 'seed0', 1 ],
 );
-my @BUILD_KEYS = qw(stock noreuse descending threads_stock threads_noreuse threads_descending xcheck);
+my @BUILD_KEYS = qw(stock noreuse descending threads_stock threads_noreuse threads_descending);
 
 sub family_of {
     my ($t) = @_;
@@ -69,12 +73,11 @@ sub family_of {
 # The interpreter path for a run name within a test's family; xconfig is the other family's stock.
 sub build_path {
     my ($conf, $family, $build) = @_;
-    return $conf->{xcheck} if $build eq 'xcheck';
     return $conf->{ $FAMILY{ $family eq 'plain' ? 'threads' : 'plain' }{stock} } if $build eq 'xconfig';
     return $conf->{ $FAMILY{$family}{$build} };
 }
 
-sub usage { die "usage: oracle list|run|verdict|bless|selftest|check CORPUS [options]\n" }
+sub usage { die "usage: oracle list|run|verdict|bless|selftest|gaps|check CORPUS [options]\n" }
 
 sub slurp {
     my ($path) = @_;
@@ -102,16 +105,28 @@ sub spew_blessed {
     spew($path, $text);
 }
 
+# The supported versions, oldest first, from ../supported-versions; the last is the default target.
+sub supported_versions {
+    my @v = grep { length } map { s/^\s+|\s+$//gr } grep { !/^\s*#/ } split /\n/, slurp("$Bin/../../supported-versions");
+    die "no supported versions listed in supported-versions\n" unless @v;
+    return @v;
+}
+
+# The config has one [VERSION] section per supported version holding that version's six build paths,
+# and a global timeout.  Only the target version's section is loaded; its keys may be overridden by
+# PERL_COMPAT_STOCK, PERL_COMPAT_THREADS_STOCK and so on, as may impl and timeout.
 sub load_config {
-    my ($path) = @_;
-    my %conf = (timeout => 60);
+    my ($path, $target) = @_;
+    my %conf = (timeout => 60, target => $target);
+    my $section = '';
     for my $line (split /\n/, slurp($path)) {
         next if $line =~ /^\s*(#|$)/;
+        if ($line =~ /^\s*\[\s*(\S+)\s*\]\s*$/) { $section = $1; next }
         my ($k, $v) = $line =~ /^\s*(\w+)\s*=\s*(.*?)\s*$/ or die "bad config line in $path: $line\n";
-        $conf{$k} = $v;
+        $conf{$k} = $v if $section eq '' || $section eq $target;
     }
     for my $k (@BUILD_KEYS, qw(impl timeout)) {
-        $conf{$k} = $ENV{"ORACLE_" . uc $k} if defined $ENV{"ORACLE_" . uc $k};
+        $conf{$k} = $ENV{"PERL_COMPAT_" . uc $k} if defined $ENV{"PERL_COMPAT_" . uc $k};
     }
     return \%conf;
 }
@@ -162,10 +177,18 @@ sub has_capability {
     return $capability_cache{$key} = $ok;
 }
 
+# Results live at RESULTS/VERSION/TEST; blessings at CORPUS/expected/TEST/VERSION, so that a test's
+# blessings across versions sit together.
 sub test_dir {
     my ($results, $id) = @_;
     (my $safe = $id) =~ s/\@/__/g;
     return "$results/$safe";
+}
+
+sub expected_dir {
+    my ($corpus, $target, $id) = @_;
+    (my $safe = $id) =~ s/\@/__/g;
+    return "$corpus/expected/$safe/$target";
 }
 
 sub read_record {
@@ -220,10 +243,8 @@ sub classify_test {
         $runs{$name} = $r;
     }
     my ($verdict, $detail) = Oracle::Verdict::classify(\%runs);
-    for my $cross (qw(xcheck xconfig)) {
-        my $x = read_record("$dir/$cross.seed0.1");
-        $detail->{"agrees_with_$cross"} = $x ? (Oracle::Verdict::exact_key($x) eq Oracle::Verdict::exact_key($runs{'stock.seed0.1'}) ? 1 : 0) : '-';
-    }
+    my $x = read_record("$dir/xconfig.seed0.1");
+    $detail->{agrees_with_xconfig} = $x ? (Oracle::Verdict::exact_key($x) eq Oracle::Verdict::exact_key($runs{'stock.seed0.1'}) ? 1 : 0) : '-';
     $detail->{family} = $family;
     return ($verdict, $detail, \%runs);
 }
@@ -245,17 +266,16 @@ sub cmd_verdict {
 
 # Expected outputs: the verdict, the family that produced it, and also_lane_b for every test.  For
 # a lane-A test, the exact-normalized seed0 channels from stock run 1 and, when present, the
-# exact-normalized seed0 channels of each cross-check build (xcheck, the other version; xconfig, the
-# other family).  Canonical channels at seed 0 and seed 1 where a comparison uses them: for a lane-B
+# exact-normalized seed0 channels of the configuration cross-check (xconfig, the other family).  Canonical channels at seed 0 and seed 1 where a comparison uses them: for a lane-B
 # test, and for a lane-A test whose output is independent of hash order (also_lane_b).  An
 # allocator-sensitive or nondeterministic test records only its verdict, since no channel of it is
 # a function of the program.  Nothing recorded here comes from a random-seed run, so blessing the
 # same program twice writes the same files.
 sub cmd_bless {
-    my ($corpus, $results, @tests) = @_;
+    my ($conf, $corpus, $results, @tests) = @_;
     for my $t (@tests) {
         my ($verdict, $detail, $runs) = classify_test($results, $t);
-        my $dir = test_dir("$corpus/expected", $t->{id});
+        my $dir = expected_dir($corpus, $conf->{target}, $t->{id});
         remove_tree($dir);
         make_path($dir);
         spew("$dir/verdict", "$verdict\n");
@@ -277,7 +297,7 @@ sub cmd_bless {
                 }
             }
         }
-        for my $cross ($verdict eq 'lane-A-eligible' ? qw(xcheck xconfig) : ()) {
+        for my $cross ($verdict eq 'lane-A-eligible' ? qw(xconfig) : ()) {
             my $x = read_record(test_dir($results, $t->{id}) . "/$cross.seed0.1") or next;
             my @exact = Oracle::Normalize::exact(@{$x}{qw(stdout stderr fd3)});
             spew_blessed("$dir/$cross.seed0.$_", shift @exact, $t->{id}) for qw(stdout stderr fd3);
@@ -288,7 +308,7 @@ sub cmd_bless {
 }
 
 sub cmd_selftest {
-    my ($corpus, $results, @tests) = @_;
+    my ($conf, $corpus, $results, @tests) = @_;
     my $failures = 0;
 
     # A channel that differs from its blessed copy is written out as an expected/actual pair, so the
@@ -297,7 +317,7 @@ sub cmd_selftest {
     remove_tree($diffdir);
     make_path($diffdir);
     for my $t (@tests) {
-        my $dir = test_dir("$corpus/expected", $t->{id});
+        my $dir = expected_dir($corpus, $conf->{target}, $t->{id});
         my $want = slurp("$dir/verdict");
         chomp $want;
         my $want_family = slurp("$dir/family");
@@ -364,9 +384,14 @@ sub cmd_check {
     make_path($diffdir);
     my %tally;
     for my $t (@tests) {
-        my $edir = test_dir("$corpus/expected", $t->{id});
+        my $edir = expected_dir($corpus, $conf->{target}, $t->{id});
         my $verdict = slurp("$edir/verdict");
         chomp $verdict;
+        unless (length $verdict) {
+            $tally{UNBLESSED}++;
+            printf "%-5s %-44s %-22s %s\n", 'UNBLESSED', $t->{id}, '-', "not blessed on $conf->{target} (see `oracle gaps`)";
+            next;
+        }
         my @lacks = map { $_->[0] } grep { !has_capability($impl, $_) } @{ $t->{requires} };
         if (@lacks) {
             $tally{SKIP}++;
@@ -420,15 +445,28 @@ sub cmd_check {
     return $tally{FAIL} ? 1 : 0;
 }
 
+# The tests the target version has no blessing for: the catch-up list for a version added before
+# they were.  Closing it is `oracle run` and `oracle bless` with --target and --only.
+sub cmd_gaps {
+    my ($conf, $corpus, @tests) = @_;
+    my @gaps = grep { !-e expected_dir($corpus, $conf->{target}, $_->{id}) . "/verdict" } @tests;
+    print "$_->{id}\n" for @gaps;
+    printf STDERR "%d of %d tests not blessed on %s\n", scalar @gaps, scalar @tests, $conf->{target};
+    return @gaps ? 1 : 0;
+}
+
 my ($command, @args) = @ARGV;
 usage() unless defined $command;
-my ($results, $config, $only, $impl) = ('results', "$Bin/../oracle.conf", undef, undef);
-GetOptionsFromArray(\@args, 'results=s' => \$results, 'config=s' => \$config, 'only=s' => \$only, 'impl=s' => \$impl) or usage();
+my ($results, $config, $only, $impl, $target) = ('results', "$Bin/../oracle.conf", undef, undef, $ENV{PERL_COMPAT_TARGET});
+GetOptionsFromArray(\@args, 'results=s' => \$results, 'config=s' => \$config, 'only=s' => \$only, 'impl=s' => \$impl, 'target=s' => \$target) or usage();
 my $corpus = shift @args;
 usage() unless defined $corpus && -d $corpus;
+my @supported = supported_versions();
+$target = $supported[-1] unless defined $target && length $target;
+die "$target is not a supported version (supported-versions lists: @supported)\n" unless grep { $_ eq $target } @supported;
 $corpus  = File::Spec->rel2abs($corpus);
-$results = File::Spec->rel2abs($results);
-my $conf = load_config($config);
+$results = File::Spec->rel2abs($results) . "/$target";
+my $conf = load_config($config, $target);
 $LOCPATH = Oracle::Locales::compile("$results/locales");
 print STDERR "oracle: compiled locales unavailable ($Oracle::Locales::WHY); probes that require one are skipped\n" unless $LOCPATH;
 $conf->{impl} = $impl if defined $impl;
@@ -437,11 +475,12 @@ $conf->{impl} = $impl if defined $impl;
 # resolved here.
 $conf->{impl} = File::Spec->rel2abs($conf->{impl}) if defined $conf->{impl} && length $conf->{impl};
 my @tests = discover($corpus, defined $only ? qr/$only/ : undef);
-make_path($results);
+make_path($results) if $command eq 'run' || $command eq 'selftest' || $command eq 'check';
 if    ($command eq 'list')     { print "$_->{id}\n" for @tests }
 elsif ($command eq 'run')      { cmd_run($conf, $results, @tests) }
 elsif ($command eq 'verdict')  { cmd_verdict($results, @tests) }
-elsif ($command eq 'bless')    { cmd_bless($corpus, $results, @tests) }
-elsif ($command eq 'selftest') { cmd_run($conf, $results, @tests); exit cmd_selftest($corpus, $results, @tests) }
+elsif ($command eq 'bless')    { cmd_bless($conf, $corpus, $results, @tests) }
+elsif ($command eq 'selftest') { cmd_run($conf, $results, @tests); exit cmd_selftest($conf, $corpus, $results, @tests) }
+elsif ($command eq 'gaps')     { exit cmd_gaps($conf, $corpus, @tests) }
 elsif ($command eq 'check')    { exit cmd_check($conf, $corpus, $results, @tests) }
 else                           { usage() }

@@ -1,0 +1,2 @@
+# Runs, verdicts and compiled locales land under results/ by default (--results moves them); none of it is reference content.
+/results/

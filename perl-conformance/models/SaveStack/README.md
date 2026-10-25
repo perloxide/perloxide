@@ -1,5 +1,12 @@
 # SS: `local` and the save stack
 
+**Source.**  Transcribed from the perl5 repository at tag `v5.44.0`: scope.c, mg.c (`mg_localize`) and the localizing
+arms of pp_hot.c and pp.c.  Validated by replay against the supported 5.44.0 builds; results in `reports/`; the matching
+5.38.2 observation lines beside them are from the unsupported 5.38.2 (`../../unsupported-perls.md`).  A transcription is
+of one version's C, so a replay mismatch on a supported version is either a model gap or a change in perl's own
+implementation between the transcribed tag and that version; `version-divergent` rows name the second kind, and the tag
+above is what a reader diffs against when one appears.
+
 `SS.pm` transcribes scope.c's `local` machinery -- `save_scalar_at`, `save_scalar`, `save_aelem_flags`,
 `save_helem_flags`, `save_adelete`/`save_hdelete`, `save_gp`, `save_clearsv`, `mg_localize`, `restore_sv`, `leave_scope`
 and its record types -- plus the `pp_gvsv`/`pp_aelem`/`pp_helem` localizing arms that decide the entry `mg_set`, and the

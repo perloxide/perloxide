@@ -26,8 +26,8 @@ outputs with `harness/bin/oracle check`, not an oracle, whatever its version.
   (arenas threaded from the highest slot down).  A program whose output is not identical across stock, `noreuse`, and
   `descending` after address bijection is `allocator-sensitive` and is not an exact-comparison oracle.
 - **5.38.2** (the Ubuntu 24.04 system Perl, threaded) is not a supported version: it has no instrumented variants and
-  was never blessed as a target.  Its observations appear in the reference only where they were recorded during the
-  research as a cross-check beside 5.44.0's; they demonstrate nothing on their own, and no fact rests on them.
+  was never blessed as a target.  What it was observed to do beside 5.44.0 is gathered in `unsupported-perls.md` and
+  demonstrates nothing on its own.
 
 ## Widths and numeric configuration
 
@@ -78,8 +78,6 @@ separate allocations in every case.
   compiles them with the system's `localedef` against the system's own `i18n` sources at startup, so no probe depends on
   which locales the system has generated.  The compiled form is keyed by the sources and the `localedef` version, so a
   changed glibc recompiles.
-- Cross-version fact: after `setlocale(LC_NUMERIC, <comma locale>)` at file scope with no `use locale`, 5.38.2
-  stringifies `3.5` as `3,5` and 5.44.0 as `3.5`.
 
 ## Environment
 

@@ -1,5 +1,13 @@
 # Consolidation (2026-09-23): terminology, naming, reconciliation
 
+**Source.**  Transcribed from the perl5 repository at tag `v5.44.0`: sv.c (`sv_2iv_flags`, `sv_2nv_flags`,
+`sv_2pv_flags`, `S_sv_2iuv_common`, `sv_setsv_flags`, `sv_grow`), numeric.c and the operators' pp.c/pp_hot.c arms.
+Validated by replay against the supported 5.44.0 builds; results in `reports/*.5.44.0.txt`, and `reports/*.5.38.2.txt`
+from the unsupported 5.38.2 (`../../unsupported-perls.md`).  A transcription is of one version's C, so a replay mismatch
+on a supported version is either a model gap or a change in perl's own implementation between the transcribed tag and
+that version; `version-divergent` rows name the second kind, and the tag above is what a reader diffs against when one
+appears.
+
 Terminology: string form / numeric form; value flags (int_form, num_form: 0 none, 1 private, 2 public; is_uv;
 stringified; private); Dual.  Models: VF.pm (package VF, was M.pm), FZ.pm, HV.pm, PV.pm.  A snake_case routine in a
 model package mirrors the C function of that name (Perl_/S_ prefix removed; macros keep their spelling); everything else
