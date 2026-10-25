@@ -1338,9 +1338,9 @@ default.
 allocation pointer, a separate live-start, and gap-relative fill and capacity), replacing the step-6 `Vec`.  The motive
 is threefold: `shift` becomes an O(1) window slide where the `Vec` form pays an O(n) memmove — a semantic-performance
 divergence on idiomatic perl (`shift @_` in every sub prologue); the header narrows to 24 bytes, restoring the §2.4.3
-budget the `Vec` form exceeds and keeping the whole identity allocation in the 48-byte class today (16-byte `Arc` header
-+ 8-byte lock + 24); and the adjunct family — readonly, the bless stash, future flags — rides the header with zero
-waste, resolving the measured eight-bytes-for-one-bit padding of the `Vec` form.
+budget the `Vec` form exceeds and keeping the whole identity allocation in the 48-byte class today (16-byte `Arc`
+header + 8-byte lock + 24); and the adjunct family — readonly, the bless stash, future flags — rides the header with
+zero waste, resolving the measured eight-bytes-for-one-bit padding of the `Vec` form.
 
 **The header, 24 bytes exactly [DECISION]:**
 
@@ -1826,7 +1826,7 @@ Full:   32 + one extension allocation; payload and rare state
 ```
 
 The 24-byte cell — §2.4.3's two control words and the 16-byte `Scalar` — compares against perl 5 (head 24 + body ladder
-+ separate string buffers + 8-byte slot pointers; figures re-derived from the 5.42.2 reference sources): compact numbers
+separate string buffers + 8-byte slot pointers; figures re-derived from the 5.42.2 reference sources): compact numbers
 beat perl's 32-bytes-plus-a-dereference array elements by 50% and all of the pointer chasing; short strings beat perl's
 three-allocation ~50 bytes with zero allocations; and the heavily aliased plain scalar matches perl's 24.  The cost
 ledger above is the shape as implemented today, with magic and the stash in a boxed `Full` body; under §2.4.3's ruling
@@ -3500,7 +3500,7 @@ access, which would be the storm generator.
 
 **The Rust boundary** [DECISION].  The public handle types of `perloxide-core` are `!Send + !Sync`; crossing a thread
 goes through `share()`, which sets the domain flag, converts everything reachable from the handle, and returns the `Send
-+ Sync` form.  That is what makes the domain flag sound for a program using the core crate without the interpreter: the
+Sync` form.  That is what makes the domain flag sound for a program using the core crate without the interpreter: the
 compiler forbids the one path — `std::thread::spawn(move || value.clone())` — that no flag could see.  The runtime's
 interior holds the `Send` form in its frames, with the justification the domain flag already carries (only `spawn`
 creates a second task, and `spawn` sets the flag first; a lone task's migrations are ordered by the scheduler); that
