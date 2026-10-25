@@ -551,18 +551,31 @@ between two interpreter frames.  If that Perl code reaches an IO point, one of t
 The choice is about the interpreter's execution model and is best made before the interpreter loop exists.  The
 stackful option also makes §6.3 nearly free.
 
-### 6.3 Running without owning Tokio, or without Tokio
+### 6.3 Hosts on another executor
 
-The design requires Tokio and inherits the host's runtime.  Two further steps are possible:
+The design requires Tokio and inherits the host's runtime, and states that a host on another executor must not be
+locked out.  How is undecided; the rungs, from cheapest to most independent:
 
-- **A standalone driver.**  An `async` interpreter loop can be driven by any executor.  If the IO layer in synchronous
+- **`async-compat`.**  The interpreter stays Tokio-native, and a host on `smol` or another executor wraps the
+  interpreter's futures in `async_compat::Compat`, which keeps a Tokio context alive in the background so Tokio's IO,
+  timers and spawning work under the foreign executor.  A bridge, not an integration: Tokio is still a dependency and
+  still runs its reactor, and the foreign executor is a client of it.  Probably sufficient for the stated requirement.
+- **A standalone driver.**  An `async` interpreter loop can be driven by any executor, so if the IO layer in synchronous
   mode makes blocking calls and never returns `Pending`, a trivial `block_on` with a no-op waker runs the loop to
-  completion with no Tokio dependency — §13.7.9's sync/async split applied to the IO backend instead of to user
-  functions.  The cost is an IO, timer, signal, process, and channel abstraction with two backends, and an embedding
-  API with both a blocking `run` and an `async run`.
-- **Other executors.**  The same abstraction with a second async backend would admit `smol` or similar.  Timers,
-  sockets, processes, and signals are each executor-specific, so this is a backend per executor, not a flag;
-  `async-std` itself was discontinued in 2025 in favor of `smol`, so it is not a target.
+  completion with no runtime at all — §13.7.9's sync/async split applied to the IO backend instead of to user
+  functions.  Costs an IO, timer, signal, process, and channel abstraction with two backends and an embedding API with
+  both a blocking `run` and an `async run`.
+- **A trait layer with per-runtime implementations** — the `hyper` 1.0 shape (`hyper::rt::{Executor, Timer, Read,
+  Write}`, Tokio implementations in `hyper-util`).  The IO builtins are written against our traits and a runtime is a
+  set of implementations; Tokio first, native; `smol` or another runtime is a second set, written by whoever wants it.
+  The only rung that drops the Tokio dependency.  Timers, sockets, processes, and signals are each executor-specific,
+  so a second runtime is a backend, not a flag.
+
+Only the third rung has a cost that must be paid up front: the IO builtins are either written against an abstraction
+from day one or against Tokio directly, and retrofitting the abstraction later means rewriting them.  That is the
+decision this item waits on.  `async-std` is not a target: it was discontinued in 2025 in favor of `smol`, whose
+building blocks (`async-io`, `futures-lite`, `blocking`) are themselves runtime-agnostic and work under Tokio at the
+cost of their own reactor thread.
 
 ## 7. Rejected, with reasons
 

@@ -7203,8 +7203,9 @@ an implementation where the architecture makes parallelism natural.
 **The interpreter requires Tokio, and does not insist on owning it [DECISION].**  `perloxide-runtime` depends on
 Tokio; `perloxide-core` has no runtime dependency and its types work on any thread with no executor present.  An
 embedded interpreter runs on the host's runtime when one is current and creates a `current_thread` runtime of its own
-only when none is — the binary's case.  Tokio provides two complementary async models that correspond naturally to the
-`my`/`sub` vs `let`/`fn` split.
+only when none is — the binary's case.  A host on another executor must not be locked out; the mechanism is [OPEN]
+(`ideas.md` §6.3, where `async-compat` is the expected answer).  Tokio provides two complementary async models that
+correspond naturally to the `my`/`sub` vs `let`/`fn` split.
 
 #### 13.7.1 Implicit async for Perl code
 
