@@ -1,20 +1,18 @@
 # Design-research probes, set 2 (2026-09-17)
 
-> Research record from the design sessions that produced this reference, kept verbatim except for its title.
-> Where it describes what an implementation chooses to do in a window where perl has no defined behavior, that
-> is not a fact about perl; the facts are in `undefined.md` and the choices belong to the implementation.
+> Research record from the design sessions that produced this reference, kept verbatim except for its title.  Where it
+> describes what an implementation chooses to do in a window where perl has no defined behavior, that is not a fact
+> about perl; the facts are in `undefined.md` and the choices belong to the implementation.
 
-Interpreters: system perl 5.38.2 (`/usr/bin/perl`) and perl 5.44.0 built from the
-`v5.44.0` tag (perlbrew, unthreaded, `-O2`, single core, ~10 min). Every probe was
-run under both; **all outputs are identical across the two interpreters** except
-the insert-during-each iteration counts, which are undefined behavior and vary by
-seed and version (dups/skips occur under every combination). Probe 12 was
-additionally run with `PERL_HASH_SEED=0` under both.
+Interpreters: system perl 5.38.2 (`/usr/bin/perl`) and perl 5.44.0 built from the `v5.44.0` tag (perlbrew, unthreaded,
+`-O2`, single core, ~10 min). Every probe was run under both; **all outputs are identical across the two interpreters**
+except the insert-during-each iteration counts, which are undefined behavior and vary by seed and version (dups/skips
+occur under every combination). Probe 12 was additionally run with `PERL_HASH_SEED=0` under both.
 
 Layout:
 - `probes/` — the 16 probe scripts
-- `out/perl-5.38.2/`, `out/perl-5.44.0/` — stdout/stderr per probe
-  (`12_each_semantics.seed0.*` are the `PERL_HASH_SEED=0` runs)
+- `out/perl-5.38.2/`, `out/perl-5.44.0/` — stdout/stderr per probe (`12_each_semantics.seed0.*` are the
+  `PERL_HASH_SEED=0` runs)
 - `bench/bench.rs`, `bench/bench.results.txt` — rustc 1.91.1 `-O`, single core
 
 ## Probe -> claim map, with source citations (all from the v5.44.0 tree)
@@ -39,26 +37,21 @@ Layout:
 
 ## Amendments to the stated facts
 
-1. leave_scope's exit `mg_set` is conditional on `SvSMAGICAL` of the restored SV
-   (scope.c:1243), not literally unconditional; for a tied variable the restored SV
-   is the tied one, so it always fires there.
-2. The FREETMPS site list is longer than stated: add pp_anywhile, pp_dbstate,
-   pp_redo, pp_goto, and S_require_file.
-3. `"1"++` produces a **plain string** "2" (no numeric mark) — the string-carry
-   path covers pure-digit strings too (probe 15: `one_inc: (POK,pPOK)`,
-   `nine_inc: (POK,pPOK) val=10`).
-4. Data::Dumper's rule is public IOK **and** a PV round-trip match, not public
-   IOK alone (`" 10"` carries public IOK yet stays quoted).
+1. leave_scope's exit `mg_set` is conditional on `SvSMAGICAL` of the restored SV (scope.c:1243), not literally
+   unconditional; for a tied variable the restored SV is the tied one, so it always fires there.
+2. The FREETMPS site list is longer than stated: add pp_anywhile, pp_dbstate, pp_redo, pp_goto, and S_require_file.
+3. `"1"++` produces a **plain string** "2" (no numeric mark) — the string-carry path covers pure-digit strings too
+   (probe 15: `one_inc: (POK,pPOK)`, `nine_inc: (POK,pPOK) val=10`).
+4. Data::Dumper's rule is public IOK **and** a PV round-trip match, not public IOK alone (`" 10"` carries public IOK yet
+   stays quoted).
 
 ## Not verified here
 
-- Biased-refcount DESTROY-timing slip: a design-level claim about a Rust runtime;
-  perl runs one thread per interpreter, so there is nothing to probe.
-- `use locale` radix interaction with the numeric cache: no non-C locales
-  installed in the container.
-- Intra-op interleaving detail of (a): whether DESTROY triggered by `$x = 5`
-  observes `$x` already holding 5 (statement-level timing verified; sub-op
-  ordering not probed).
+- Biased-refcount DESTROY-timing slip: a design-level claim about a Rust runtime; perl runs one thread per interpreter,
+  so there is nothing to probe.
+- `use locale` radix interaction with the numeric cache: no non-C locales installed in the container.
+- Intra-op interleaving detail of (a): whether DESTROY triggered by `$x = 5` observes `$x` already holding 5
+  (statement-level timing verified; sub-op ordering not probed).
 
 ## Bench results (rustc 1.91.1 -O, single core)
 
