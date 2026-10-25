@@ -18,12 +18,13 @@
 //! Backends, chosen once at first use:
 //!
 //! - Linux `membarrier(2)`, `MEMBARRIER_CMD_PRIVATE_EXPEDITED` (kernel 4.14 and later): an inter-processor interrupt to
-//! every core currently running a thread of this process.  The command needs a one-time registration, which is per
-//! address space; a `fork`ed child re-registers on its first barrier if the kernel asks it to.  - Linux on x86 without
-//! that command: an `mprotect(2)` trick.  Revoking write access to a dirty page forces a TLB shootdown on every core
-//! that has the page mapped, and the shootdown's interrupt is a full fence on each.  The kernel does not document the
-//! shootdown as a barrier, and other architectures may flush TLBs without an interrupt, so the trick is enabled only
-//! where it is known to hold.  - Windows `FlushProcessWriteBuffers`.
+//!   every core currently running a thread of this process.  The command needs a one-time registration, which is per
+//!   address space; a `fork`ed child re-registers on its first barrier if the kernel asks it to.
+//! - Linux on x86 without that command: an `mprotect(2)` trick.  Revoking write access to a dirty page forces a TLB
+//!   shootdown on every core that has the page mapped, and the shootdown's interrupt is a full fence on each.  The
+//!   kernel does not document the shootdown as a barrier, and other architectures may flush TLBs without an interrupt,
+//!   so the trick is enabled only where it is known to hold.
+//! - Windows `FlushProcessWriteBuffers`.
 //!
 //! Elsewhere the barrier is [`Backend::Unavailable`]: [`heavy`] reports it rather than pretending, and the sharing tier
 //! stays off, so the light side never runs on a hot path there.  A caller gates on [`is_available`] before building a

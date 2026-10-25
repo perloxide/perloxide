@@ -13,8 +13,8 @@ Throughout the document, "Perl" means Perl 5 unless otherwise qualified.  "Raku"
 boundary decisions are needed.
 
 **Conventions for four words.**  "Thread" means an operating-system thread, what Rust's `std::thread` makes.  "Task"
-means a Tokio task.  "Task/thread" means either one, and is used wherever a sentence holds for both — the unit that
-owns a destruction lease, holds destruction privilege, blocks and is woken (§2.4.4).  "Ithread" means a Perl-level
+means a Tokio task.  "Task/thread" means either one, and is used wherever a sentence holds for both — the unit that owns
+a destruction lease, holds destruction privilege, blocks and is woken (§2.4.4).  "Ithread" means a Perl-level
 interpreter thread, the object `threads->create` returns on the ithreads compatibility surface; an ithread runs on some
 task/thread and is not itself one.  Module and function names keep Perl's spelling (`threads`, `threads::shared`,
 `threads->tid`).  Inside `compat/`, which describes Perl alone, "thread" is necessarily an ithread.  Coined terms are
@@ -1806,11 +1806,11 @@ struct FullScalar {
 }
 ```
 
-`Scalar` is 16 bytes (§2.2.9): the `Full` variant is a single pointer that threads through the payload's spare
-niche encodings (measured; §2.3.6).  Upgrade from `Plain` to `Full` happens **in place under the write lock** — the
-`HeapArc` address never changes, preserving every outstanding reference.  This is the same invariant perl's `sv_upgrade`
-maintains by swapping bodies behind a stable head; the mechanism differs (variant rewrite vs. body pointer), the
-identity guarantee is identical.
+`Scalar` is 16 bytes (§2.2.9): the `Full` variant is a single pointer that threads through the payload's spare niche
+encodings (measured; §2.3.6).  Upgrade from `Plain` to `Full` happens **in place under the write lock** — the `HeapArc`
+address never changes, preserving every outstanding reference.  This is the same invariant perl's `sv_upgrade` maintains
+by swapping bodies behind a stable head; the mechanism differs (variant rewrite vs. body pointer), the identity
+guarantee is identical.
 
 Cost ledger for a promoted scalar (64-bit, parking_lot):
 
@@ -1825,13 +1825,15 @@ Full:   32 + one extension allocation; payload and rare state
         objects never create Full scalar cells.
 ```
 
-The 32-byte cell — §2.4.3's two control words, the lock word, and the 16-byte `Scalar` — compares against perl 5 (head
-24 + body ladder + separate string buffers + 8-byte slot pointers; figures re-derived from the 5.42.2 reference
-sources): compact numbers beat perl's 32-bytes-plus-a-dereference array elements by 50% and all of the pointer chasing;
-short strings beat perl's three-allocation ~50 bytes with zero allocations; the one concession is the heavily aliased
-plain scalar (32 vs.  perl's 24), inherent to the two-tier bet, not the envelope.  (The staged backend — `HeapArc` as a
-newtype over std `Arc` — allocates into the 48-byte class today, a double-word `ArcInner` standing where the combined
-word will; the figure converges when §2.4's custom node lands.)
+The 24-byte cell — §2.4.3's two control words and the 16-byte `Scalar` — compares against perl 5 (head 24 + body ladder
++ separate string buffers + 8-byte slot pointers; figures re-derived from the 5.42.2 reference sources): compact numbers
+beat perl's 32-bytes-plus-a-dereference array elements by 50% and all of the pointer chasing; short strings beat perl's
+three-allocation ~50 bytes with zero allocations; and the heavily aliased plain scalar matches perl's 24.  The cost
+ledger above is the shape as implemented today, with magic and the stash in a boxed `Full` body; under §2.4.3's ruling
+those move to the cell's record (§2.4.2), the `Full` box's remaining job is the numeric caches, and where they live
+under the 24-byte cell is the open item of §2.4.11.  (The staged backend — `HeapArc` as a newtype over std `Arc` —
+allocates into the 48-byte class today, a double-word `ArcInner` standing where the control words will; the figure
+converges when §2.4's custom node lands.)
 
 The lazy-cache slots exist because exact conversions of *shared* scalars are worth memoizing once at the identity rather
 than recomputed per reader.  The fill mechanism is ruled: atomics for the numeric slots, `OnceLock` for the string slot
@@ -2411,15 +2413,24 @@ cell holding an owning payload is the one quadrant where the lock does work only
 be freed under a claimless reader, and — separately — an unreplaced buffer can be *rewritten* under one, which no
 sequence over the envelope can see.  The lock stays there.
 
-**The protocol.**  One 64-bit sequence word per cell, outside the envelope (the unclaimed eight bytes of the scalar
-slot's stride, or for containers the word the `RwLock` occupies; never inside the control words, whose spare bits are
-far below the safe width, and never sharing a line that refcount traffic writes).  Whether that eight-byte word exists
-in a 24-byte scalar cell is the open layout question of §2.4.3.  Writers acquire by `compare_exchange(even, even+1,
-Acquire, Relaxed)`; the odd value is both the writer's mutual exclusion and the readers' in-flight marker.  Inside the
-section the writer is the sole mutator and needs no read protocol of its own: read the tag, decide the operation, store
-the halves relaxed, then `store(even+2, Release)` — a plain store, since the writer owns the word.  Readers load the
-sequence with `Acquire`, read the halves relaxed, fence, re-read; odd or changed means retry.  The `Acquire`/`Release`
-pair on the sequence is what lets every payload access be `Relaxed`, so the pair cannot be weakened on either end.
+**The protocol.**  The sequence is the 24-bit field of the cell's second control word (§2.4.3), with the writer flag its
+own bit, so a scalar cell carries its seqlock in the 24 bytes it already has; for containers the word the `RwLock`
+occupies stays where it is.  Twenty-four bits is enough because a wrap needs a reader descheduled for the whole cycle —
+2^23 writes to that one cell, about 20 ms of another core writing it back-to-back — and then a 1-in-2^23 coincidence,
+and because the failure is a torn *immediate*: this protocol covers envelope-resident, non-owning payloads only, so a
+false validation yields a wrong value once, never a dangling pointer (`benchmarking.md`, sequence width).  The control
+words share a cache line with the payload, so refcount traffic from other cores does invalidate a reader's copy of the
+line; that cost is the general one of sharing a hot object and is addressed by not cloning to read and by the sharing
+tier (§2.4.12), not by the sequence protocol.  Writers acquire by a CAS that sets the writer bit on a word that had it
+clear; the set bit is both the writer's mutual exclusion and the readers' in-flight marker.  Inside the section the
+writer is the sole mutator and needs no read protocol of its own: read the tag, decide the operation, store the halves
+relaxed, then store the word back with the writer bit clear and the sequence field advanced by one (Release) — a plain
+store, since the writer owns the word, and one that preserves the word's other fields, which only the writer changes
+while the cell is shared.  Readers load the word with `Acquire`, read the halves relaxed, fence, re-read; a set writer
+bit or a changed sequence field means retry, and the compare masks the fields that are not the sequence.  The
+`Acquire`/`Release` pair on the word is what lets every payload access be `Relaxed`, so the pair cannot be weakened on
+either end.  Weak clone and drop on a shared cell are writers of this word too — they take the section to change the
+inline weak field, which is why that field can sit beside a plainly-stored sequence (§2.4.3).
 
 **Writers always serialize.**  A write confined to one aligned eight-byte half cannot tear against a *reader*, and
 same-type numeric assignment, short inline strings, and tainting are each such a write (measured by byte pattern: the
@@ -2434,19 +2445,20 @@ acquiring; store already-built values inside; take the old payload out and drop 
 can cascade a whole graph.  A tied `STORE` or any magic runs before acquisition and its result is what gets stored —
 this sharpens §13.11.1's pattern for the sequence-guarded case, where "release lock → execute callback → acquire lock →
 write result" becomes "run the callback → build the replacement → acquire → store → release."  With nothing fallible
-inside, there is no unwind path through an odd sequence and no poison state to model.
+inside, there is no unwind path through a set writer bit and no poison state to model.
 
-**Waiting.**  A blocked writer polls the sequence with plain loads and attempts the CAS only when it reads even
-(test-and-test-and-set; a failed CAS is a read-modify-write that takes the line exclusive from the holder it is waiting
-on).  The ladder, calibrated from the measured costs — bare load 0.37 ns, `PAUSE` 17.7 ns, `sched_yield` 195 ns, against
-a 1.90 ns section: **64 bare loads, then 10 `PAUSE`, then yield, then 128 `PAUSE` between further yields.** Each phase
-spends about one operation of the next tier before escalating, and the total before the first syscall is one yield's
-cost.  Bare loads come first because the section is shorter than a single hint; the hint comes after the threshold
-because that is when its benefits — not saturating a hyperthread sibling, and being visible to a hypervisor's PAUSE-Loop
-Exiting, whose detection needs on the order of a hundred consecutive pauses — begin.  The constants are per-target
-(`PAUSE` spans two orders of magnitude across machines) and the 0.37 was measured with loads in flight that a dependent
-spin loop cannot have; express budgets in bare loads and re-derive before carving anything in.  A reader's loop is the
-same shape but distinguishes odd (wait it out) from even-but-changed (re-read immediately; nothing is in flight).
+**Waiting.**  A blocked writer polls the word with plain loads and attempts the CAS only when it reads the writer bit
+clear (test-and-test-and-set; a failed CAS is a read-modify-write that takes the line exclusive from the holder it is
+waiting on).  The ladder, calibrated from the measured costs — bare load 0.37 ns, `PAUSE` 17.7 ns, `sched_yield` 195 ns,
+against a 1.90 ns section: **64 bare loads, then 10 `PAUSE`, then yield, then 128 `PAUSE` between further yields.** Each
+phase spends about one operation of the next tier before escalating, and the total before the first syscall is one
+yield's cost.  Bare loads come first because the section is shorter than a single hint; the hint comes after the
+threshold because that is when its benefits — not saturating a hyperthread sibling, and being visible to a hypervisor's
+PAUSE-Loop Exiting, whose detection needs on the order of a hundred consecutive pauses — begin.  The constants are
+per-target (`PAUSE` spans two orders of magnitude across machines) and the 0.37 was measured with loads in flight that a
+dependent spin loop cannot have; express budgets in bare loads and re-derive before carving anything in.  A reader's
+loop is the same shape but distinguishes a set writer bit (wait it out) from a changed sequence (re-read immediately;
+nothing is in flight).
 
 **Not a licence to extend lock-free reads to owning payloads.**  A sequence in the buffer header could cover in-place
 edits, but no sequence keeps an allocation alive, and the read-path saving was measured on a sixteen-byte payload read
@@ -2506,127 +2518,172 @@ sound.  The design therefore splits the two lifetimes:
 After demolition clears every edge, internal cycles' counts fall and their slots free normally — only genuinely escaped
 handles keep slots alive.  Perl-parity behavior, Rust-sound storage.
 
-**Normative geometry.**  Logical pages are 4 KiB; extents are 2 MiB-aligned 2 MiB reservations obtained through a narrow
-`VirtualMemory` abstraction (Unix: anonymous `mmap` with overallocate-and-trim alignment; Windows: reserve then commit),
-never through the global allocator.  The leading pages of each extent hold its descriptor region — the extent header and
-the `PageMeta` array — so every lookup is address arithmetic: page base = `addr & !0xFFF`, extent base = `addr & !(2 MiB
-− 1)`, descriptor = extent base + page index; no global table sits on the hot path.  The slot ordinal is `offset /
-stride` with the stride from the descriptor (a division, not a bitfield — strides vary by node class; `Scalar` at
-32-byte slots yields 128 per page).  Startup asserts the platform geometry (system page size a multiple of 4 KiB);
+**Normative geometry** [DECISION].  Logical pages are 4 KiB; extents are 2 MiB-aligned 2 MiB reservations obtained
+through a narrow `VirtualMemory` abstraction (Unix: anonymous `mmap` with overallocate-and-trim alignment; Windows:
+reserve then commit), never through the global allocator.  The leading pages of each extent hold its descriptor region —
+the extent header and the `PageMeta` array — so every lookup is address arithmetic: page base = `addr & !0xFFF`, extent
+base = `addr & !(2 MiB − 1)`, descriptor = extent base + page index; no global table sits on the hot path.  The slot
+ordinal within its extent is `(addr − cells_base) / stride` with the stride from the descriptor (a division, not a
+bitfield — strides vary by node class; `Scalar` at 24-byte slots yields 170 per page).  **A cell extent holds at most
+65,535 cells**, which bounds every per-cell index below to sixteen bits with zero left to mean none; the rest of the
+extent is descriptor region and slack.  Startup asserts the platform geometry (system page size a multiple of 4 KiB);
 commitment follows demand; reclamation is tiered with hysteresis — slot → page free-bitmap → extent free-page set → OS
 decommit/unmap for whole empty ranges, retaining a small empty-extent reserve — and per-thread active-page caches keep
-system calls off the allocation path entirely.  Huge-page backing is a measured option, not a correctness dependency.
+system calls off the allocation path entirely.
+
+**The lookaside and the record region** [DECISION].  Everything a cell may need beyond its 24 bytes lives in two regions
+reached from base pointers in the extent header, so that the common cell pays nothing and the uncommon one pays one or
+two loads:
+
+```text
+lookaside:   one 4-byte entry per cell, parallel to the cells, demand-paged
+             { weak_count: u16, record: u16 }
+                weak_count — the full weak count once the inline field spills (§2.4.3); saturates at 65,535,
+                             which leaves the slot a permanent tombstone and nothing else
+                record     — index of the cell's record, 0 for none
+record region: 32-byte records, allocated from a free list, demand-paged; 65,536 reserved per cell extent
+             record = [ header: kind mask, spare ][ up to three 8-byte fields, one per kind, canonical order ]
+                kinds: magic chain, class (for a blessed scalar, code or glob cell; containers keep theirs in the body),
+                       set-magic registry (§2.4.8)
+             field k is at  record + 8 × (1 + popcount(mask & (bit(k) − 1)))
+```
+
+`entry = lookaside_base + ordinal × 4` and `record = record_base + index × 32`: a load of the header pointer and one of
+the entry, then one of the record word.  The lookaside is a parallel array so that it needs no index of its own, and it
+is sparse by demand paging: a 4 KiB page of it covers 1,024 cells and is committed by the first write into it, which the
+kernel zero-fills, and zero is exactly "no spill, no record".  The record region is packed, so the physical pages it
+touches are `ceil(records in use / 128) × 4 KiB` wherever the cells that own them sit; one record reserved per cell
+(index zero meaning none) means it can never run out and a `u16` indexes all of it.  A record is fixed-size, so adding a
+kind never moves it; the three kinds today fill it exactly, and a fourth would chain through the header's spare bits to
+a second record.  A record is freed when its last kind is removed.  The cell's `weak = 15` or nonzero record index is
+what says to look, so no path consults a lookaside blindly.
+
+Three OS obligations come with the layout.  Transparent huge pages must not back the lookaside and record regions — a 2
+MiB range in `always` mode would be faulted in whole, defeating the sparseness — so each region is
+`madvise(MADV_NOHUGEPAGE)`, while the cell pages may be huge-page-eligible as a measured option.  Startup asserts that
+the platform's page size divides the regions' granularity.  And the virtual size of the process grows by the
+reservations (roughly 2.3 MiB of lookaside-and-records virtual space per 2 MiB of cells), which a 64-bit address space
+absorbs and a 32-bit one would not; 32-bit targets are not served by this layout.
 
 Destruction levels: **level 0** runs outstanding `DESTROY` (remaining strong cycles may persist until process end);
 **level 1** additionally demolishes every graph edge in the domain and releases nodes iteratively; **level 2+** adds
 invariant diagnostics.  External handles never dangle at any level.
 
-#### 2.4.3 The slot control block: two words
+#### 2.4.3 The slot control block: the gate and the sequence word
 
 The per-slot control block is **two 32-bit atomics, eight bytes in all** [DECISION]:
 
 ```rust
 #[repr(C)]
 struct Slot<T> {
-    strong_gate: AtomicU32,    // strong count + WEAK_CLOSED (§2.4.4)
-    weak_life: AtomicU32,      // weak count, pins, lifecycle (§2.4.4)
-    data: ManuallyDrop<T>,     // alive until DEAD commits (§2.4.4)
+    gate: AtomicU32,           // ALIVE | strong count                          (§2.4.4)
+    seq: AtomicU32,            // sequence or owner | weak | SHARED | blessed | readonly | writer
+    data: ManuallyDrop<T>,     // allocated until the gate reads dead (§2.4.4)
 }
-const WEAK_CLOSED: u32 = 1 << 31;
-const COUNT_MASK: u32 = WEAK_CLOSED - 1;
+const ALIVE: u32 = 1 << 31;
+const COUNT_MASK: u32 = ALIVE - 1;
+const MAX_STRONG: u32 = COUNT_MASK / 2;        // the immortalization threshold (§2.4.7)
 ```
 
-`strong_gate` holds a 31-bit strong count and one admission bit; `weak_life` holds the weak count, the allocation pins
-that keep the block mapped while an operation is still touching it, and the lifecycle (`ALIVE` / `DESTROYING` / `DEAD`).
-The split is the point: an ordinary clone is `fetch_add(1)` and an ordinary release `fetch_sub(1)` on `strong_gate`
-alone, never a CAS loop, while a weak upgrade compares the whole of `strong_gate` in one CAS and so proves "admission
-open and count nonzero" atomically.  A lifecycle transition shares its word with the weak count and is therefore a
-masked RMW or a CAS loop, never a plain store; that cost falls only on the rare path.  Both words are 32 bits so that
-every target with 32-bit atomics can run the protocol; the control block needs no 64-bit atomic anywhere.
+```text
+gate   [ALIVE:1][count:31]
+seq    [sequence:24 | owner id:24][weak:4][SHARED:1][blessed:1][readonly:1][writer:1]
+```
 
-The strong count matches Perl's own width (`sv_refcnt` is a `U32`), and a `clone`-then-`forget` loop can reach the top
-of it with no memory growth, so the increment path has a policy to choose:
+**The gate** holds the lifecycle and the strong count in one word, and every operation on it is a read-modify-write
+[DECISION].  An ordinary clone is `fetch_add(1)` and an ordinary release `fetch_sub(1)`, never a CAS loop; a weak
+upgrade is one CAS that requires `ALIVE` and a nonzero count, so "alive and referenced" is proved atomically by the same
+instruction that increments; the destruction claim and the epilogue are CASes on the same word (§2.4.4).  Keeping the
+lifecycle beside the count is what makes the protocol a single modification order to reason about: no admission bit, no
+cross-word fence, no publication subtlety between a lifecycle store and a count arbitration.  The count is 31 bits,
+matching Perl's `U32 sv_refcnt` to within one bit.
 
-- **Overflow policy [OPEN].**  Two candidates.  *Checked*: every increment compares the returned count against a
-  threshold well below the admission bit (`old & COUNT_MASK > MAX_STRONG` with `MAX_STRONG = COUNT_MASK / 2`, leaving
-  2^30 of headroom for increments already in flight) and aborts on overflow, as `std::sync::Arc` does; measured in this
-  container on a two-core x86-64 box at 200M increment/release pairs, the check is `test` and a never-taken `jne` after
-  the `lock xadd` and costs nothing distinguishable from noise (16.6 ns against 16.4 ns per pair).  *Unchecked*:
-  `fetch_add` with "the strong count stays below 2^31" stated as an implementation assumption, matching Perl, with the
-  check available behind a build feature.  Whichever is chosen, the hazard to name is a carry into `WEAK_CLOSED`, which
-  flips the admission bit without overflowing the integer; a checked build masks the count field, it does not test `u32`
-  overflow.
+**The sequence word** is owned by whoever may write the payload.  While a cell is shared, its high 24 bits are the
+§2.3.9 sequence counter and the low bit is the writer flag; while a cell is unshared there is no sequence to keep,
+because exactly one task/thread may touch the payload, and the same 24 bits hold that owner's id instead (§2.4.12).
+Between them sit the inline weak count (0–14, with 15 meaning the count lives in the lookaside, §2.4.2), the `SHARED`
+bit that selects which reading the 24 bits take, and the two identity flags: `blessed` (the cell has a class; its stash
+is in the container body or in the cell's record, §2.4.2) and `readonly` (a writer loads it as a fast rejection and
+rechecks it inside its section, where it is authoritative).  Weak clone and drop on a shared cell enter the writer
+section to change the weak field, since the owner's plain-store release would otherwise clobber a free RMW; on an
+unshared cell they are the owner's plain stores like any other access.
 
-Nothing else is per-slot; every other concern is page-level or sparse, under one principle: **a feature costs memory
-only where it is used, and typed pages make the sparsity structural**:
+**Overflow is checked, and the ceiling immortalizes** [DECISION].  Every increment compares the value `fetch_add`
+returned against `MAX_STRONG` — a `test` and a never-taken `jne` after the `lock xadd`, measured at nothing
+distinguishable from noise (16.4 ns against 16.6 ns per clone/release pair at 200M pairs in this container) — and an
+increment past it converts the object to immortal (§2.4.7) rather than aborting.  The check is a soundness requirement,
+not a capacity one: a `clone`-then-`forget` loop in safe Rust reaches any ceiling with no memory growth, and an
+unchecked count would wrap into the `ALIVE` bit.  No ordinary Perl program approaches 2^30 references to one object
+(that is 16 GiB of handles pointing at it), so the policy is also what keeps the inline weak field and the `ALIVE` bit
+out of reach of arithmetic: a checked count never carries.
 
-- **`class_id`** — a **lazily allocated per-page parallel array** of `AtomicU32`, indexed by slot ordinal.  A page
-  allocates its class array on the first `bless` landing in it: the installer allocates a zeroed array and publishes it
-  with a CAS on the page-descriptor pointer (a racing loser frees its copy).  `bless` Release-stores the element;
-  dispatch and the global-destruction sweep Acquire-load it, and a null array pointer *is* the unblessed answer.
-  `Scalar` pages in object-oriented code essentially never see `bless`; blessed-hash pages pay four bytes per slot —
-  exactly the nodes doing method dispatch.  Stash *object* identity lives in the domain-local tombstoning table, zero
-  means unblessed, delete-and-recreate yields a new identity, dispatch on tombstoned entries stays defined.  The cost,
-  stated: dispatch's class load gains one dependent indirection (mask → descriptor → element) — a ledgered measurement
-  (§2.4.11), with the mitigation that this is precisely the cold identity line the false-sharing guidance wanted off the
-  count word.
-- **The weak count** lives in `weak_life`, not in a side array: `Weak` clone and drop are one RMW on it, `upgrade` never
-  touches it (a pure `strong_gate` CAS), and slot reuse gates on it reaching zero with no pins outstanding (§2.4.10).
-- **Identity-level flags** — readonly, `shared` (§2.2.14), has-magic for a promoted scalar — need a home in the control
-  block.  Where they live is **[OPEN]** with the payload-synchronization question of §2.3.9: either bits taken from the
-  weak-count field of `weak_life` (a 27-bit weak count is still beyond any program) or a third word, which also decides
-  whether the scalar cell is 24 or 32 bytes.  The protocols are unchanged by the placement: a readonly check loads
-  relaxed as a fast rejection and rechecks under the write lock; the check under the lock is authoritative.
-- **Finalization state** — no per-slot link exists; finalization queues *pages* through per-page pending bitmaps
-  (§2.4.5).
-- **Page identification** — no backpointer exists; pages are recovered by address masking against the normative geometry
-  (§2.4.2).
-- **The allocation serial** — debug builds only, in an out-of-line per-page array.
+**Nothing else is per-slot.**  Every other concern lives in the extent's lookaside or in a cell's record (§2.4.2),
+present only where used:
 
-**The placement criterion** survives with new homes.  Semantic identity determines what *may* leave the payload;
+- **The weak count beyond 14, and the enumeration of registered weak holders**, in the lookaside and the record.  The
+  inline field is sticky at 15 once it spills; a weak upgrade never consults either, being a gate CAS alone; slot reuse
+  consults both (§2.4.4).
+- **The class** of a blessed scalar, code or glob cell, in its record; blessed containers carry theirs in the body,
+  where dispatch already is.  The `blessed` bit is the fast reject that keeps the unblessed majority from ever looking.
+- **Magic**, in the record, with the body pointer the chain needs; `weak = 15` or the record index is what says to look.
+- **Finalization state** — no per-slot link; finalization queues *pages* through per-page pending bitmaps (§2.4.5).
+- **Page identification** — no backpointer; pages and extents are recovered by address masking (§2.4.2).
+- **The allocation serial** — debug builds only, out of line.
+- **Enumeration pins** are not a field: an enumerator that must touch a payload takes a transient strong unit through
+  the weak-upgrade CAS (`ALIVE|c → ALIVE|c+1`, `c > 0`) and releases it after the visit, so a concurrent last drop
+  cannot reach zero under it and a cell it cannot claim is one that is already dying or dead (§2.4.6).
+
+**The placement criterion** survives with the new homes.  Semantic identity determines what *may* leave the payload;
 lifetime, synchronization, size, and access frequency determine what *does*.  Identity-level state (survives payload
-assignment — container-verified for blessing and readonly): lifecycle in `weak_life`, readonly and `shared` in the
-control block, class identity in the sparse array, finalization state in the lifecycle plus the page bitmap.
-Value-level state travels with copies and stays in the locked payload: taint, the coercion caches and their validity,
-`numify_warned`, boolean-ness.  Magic is identity-level but *structured* — it stays in the locked `Full` region, not in
-control-word flags.
+assignment — container-verified for blessing and readonly): lifecycle and count in the gate; sharing state, readonly and
+blessed in the sequence word; class and magic in the record; finalization state in the lifecycle plus the page bitmap.
+Value-level state travels with copies and stays in the payload: taint, the coercion caches and their validity,
+`numify_warned`, boolean-ness.
 
-**Size budget** (release, 64-bit; enforced by assertions at implementation, compared against perl 5.42 fixed
-structures).  The control block is eight bytes in every node; what follows it is the open question above, so the table
-shows both candidates for the scalar cell:
+**Size budget** (release, 64-bit; enforced by assertions at implementation, compared against perl 5.42 fixed structures)
+[DECISION]:
 
 ```text
 node                 control  sync  payload  total   perl
-Scalar (32)                8     8       16     32   PVMG 72
-Scalar (24, open)          8     -       16     24
+Scalar                     8     -       16     24   PVMG 72
 Array                      8     8       24     40   AV   64
 Hash                       8     8     ~48+   ~64+   HV   56
 ```
 
-The 24-byte form keeps a 16-byte inline representation beside the control block and moves to an external body only when
-magic or richer state forces it (death then releases the body and leaves the same 24-byte slot as the tombstone that
-weak references retain); it is reachable only if the payload sequence word of §2.3.9 has somewhere else to live, which
-is the open item.  The hash header is the one concession, repaid within a few entries (32-byte key+value pairs against
-perl's 24-byte `HE` + key + a 24-byte value SV).  Amortized page metadata — bitmaps, queue state, domain, ops, stride,
-lazy-array headers, descriptors — targets **at most one byte per slot**, with half a byte the aspirational bound after
-field packing; the claim is settled by the mandatory per-class table — stride, slots/page, measured
-`size_of::<PageMeta>()`, descriptor-region loss, bytes/slot — not asserted in prose.
+The scalar cell is 24 bytes with its envelope synchronization inline: the sequence word is the §2.3.9 seqlock, and the
+identity-level state that used to force a boxed `Full` body (magic, a scalar's stash) moved to the record.  Two things
+the 24-byte cell leaves open (§2.4.11): where the numeric caches `FullScalar` carried now live, and how a *shared,
+mutable* scalar whose payload owns a buffer takes the lock §2.3.9 says that quadrant needs — the wordless lock in the
+sequence word with address-keyed parking, or an external body attached at the moment the cell is shared.  Containers
+keep their lock word, since their payload always owns storage.  Death leaves the same 24-byte slot as the tombstone that
+weak references retain.  The hash header is the one concession, repaid within a few entries (32-byte key+value pairs
+against perl's 24-byte `HE` + key + a 24-byte value SV).  Amortized page and extent metadata — bitmaps, queue state,
+domain, ops, stride, descriptors, the lookaside's base pointers — targets **at most one byte per slot**, with half a
+byte the aspirational bound after field packing; the claim is settled by the mandatory per-class table — stride,
+slots/page, measured `size_of::<PageMeta>()`, descriptor-region loss, bytes/slot — not asserted in prose.
 
-#### 2.4.4 Lifecycle: the two-word protocol
+#### 2.4.4 Lifecycle: the gate protocol
 
-Prompt `DESTROY` and "never execute Perl from Rust `Drop`" are reconciled by the lifecycle word rather than by a hidden
-count: a node is `ALIVE`, `DESTROYING` or `DEAD`, the body stays allocated until `DEAD` commits, and the strong count is
-exactly the number of real references with no hidden unit added by `bless` [DECISION].  Consequences fall out exactly:
+Prompt `DESTROY` and "never execute Perl from Rust `Drop`" are reconciled by the lifecycle living beside the count
+rather than by a hidden unit: a node is alive, dying or dead according to one word, the body stays allocated until the
+word reads dead, and the strong count is exactly the number of real references with no unit added by `bless` [DECISION].
+Consequences fall out exactly:
 
-- An acyclic object's count reaches zero → the releasing operation claims `ALIVE → DESTROYING` and finalization is
-  triggered promptly, the payload kept alive by the lifecycle until `DESTROY` has run from interpreter context.
+- An acyclic object's count reaches zero → the releasing operation claims the node and finalization is triggered
+  promptly, the payload kept alive by the lifecycle until `DESTROY` has run from interpreter context.
 - A cycled object's count never reaches zero → nothing happens until global destruction.  That *is* perl's cycle
   behavior.
 
+**The three states are one bit and a count** [DECISION].  `ALIVE` set is alive, with the count the number of real
+references.  `ALIVE` clear with a count of one or more is *dying*: a destruction episode is in progress and the count
+includes the executor's own unit.  `ALIVE` clear with a count of zero is *dead*, terminal, reached by exactly one
+instruction.  All-zero control words — dead, no weak holders — is a free slot, so a freshly zeroed page is a page of
+free slots and reclamation is "the CAS that produced the zero word".
+
 **Every permitted intermediate state has an operation responsible for resolving it.**  A physical representation need
-not make every semantic invariant true after each atomic step — `ALIVE` with a count of zero exists transiently between
-the last release and the claim — but no such state may be read as a conclusion by anyone other than the operation that
-will finish it.
+not make every semantic invariant true after each atomic step — `ALIVE` with a count of zero exists for the two
+instructions between the last release and the claim — but no such state may be read as a conclusion by anyone other than
+the operation that will finish it.
 
 **The resurrection window is `curse`'s** [DECISION].  Perl checks the count exactly once after `DESTROY`, in `S_curse`
 (sv.c 7799-7817): a nonzero count there stops `sv_clear` (7317) and the object lives on, blessed and intact; a zero
@@ -2635,114 +2692,117 @@ killed (7320-7331), the magic and the body are freed, and `sv_free2` (7886-7888)
 the SV *head* goes back on the free list.  So the window in which resurrection is acceptable is everything `curse` runs:
 the `DESTROY` body for each class in the rebless loop, the nested destructors it triggers, the release of the invocant
 temporary and the rest of the callback-capable cleanup.  Past the marker the window is closed and cannot reopen.  Our
-marker is the final count read in `finish_destroy_locked` below; `DEAD` is terminal, and no access, privileged or
-foreign, can resurrect a node after it.
+marker is the epilogue's CAS below; dead is terminal, and no access, privileged or foreign, can resurrect a node after
+it.
 
-**The protocol.**  The strong word is `strong_gate` (31-bit count, `WEAK_CLOSED` as the high bit); the lifecycle lives
-in `weak_life` beside the weak count (§2.4.3).  A *destruction lease* serializes the executors of one node's successive
-episodes and is held through the completion epilogue; a *privilege* is the executor's right to create strong references
-from nothing, scoped as stated below.  Written out:
+**The protocol.**  The *executor* is the task/thread that runs an episode; its *privilege* is the right to create strong
+references to the node from nothing, scoped as stated below.  Written out:
 
 ```text
-last release:   old = strong_gate.fetch_sub(1, Release)
-                if (old & COUNT_MASK) == 1:
+last release:   old = gate.fetch_sub(1, Release)
+                if old == ALIVE|1:
                     fence(Acquire)
-                    CAS lifecycle ALIVE -> DESTROYING (Acquire)
-                    on success, the ticket is this releaser's:
+                    CAS ALIVE|0 -> 0|1  (Acquire)            the claim; the 1 is the executor's unit
+                    on success the ticket is this releaser's:
                     interpreter context runs the executor now
                     (§2.4.5's synchronous rule); context-free
                     release publishes the page bit and wakes
 
-executor:       acquire the destruction lease
-                strong_gate.fetch_or(WEAK_CLOSED, Relaxed)
-                establish privilege for this node
-                create the counted $self: 0 -> 1 (privileged)
-                run the rebless/DESTROY loop; release $self;
-                finish callback-capable cleanup
-                finish_destroy_locked()
-                release the lease; wake waiters
+executor:       the unit created by the claim is $self: lend it to
+                each DESTROY in the rebless loop as the invocant and
+                take it back at return; run callback-capable cleanup;
+                then the epilogue
 
-finish_destroy_locked (lease held, no further privileged
-                       increments by this executor):
-                count = strong_gate.load(Relaxed) & COUNT_MASK
-                if count == 0:
-                    fence(Acquire); lifecycle := DEAD   -> Dead
-                lifecycle := ALIVE  (Release)
-                old = strong_gate.fetch_and(COUNT_MASK, Release)
-                if (old & COUNT_MASK) != 0:              -> Resurrected
-                fence(Acquire)
-                CAS lifecycle ALIVE -> DEAD:
-                    Ok                                   -> Dead
-                    Err(DESTROYING)                      -> Superseded
+epilogue:       loop:
+                    w = gate.load(Relaxed)
+                    if w == 0|1:  fence(Acquire); CAS w -> 0|0       -> Dead
+                    else:         CAS w -> ALIVE|(count(w) - 1)      -> Resurrected
+                                  (Release; retires the unit, reopens)
+                    on CAS failure, reload: a provisional holder
+                    released concurrently
 ```
 
-The ordering at entry is essential: lease, then close admission, then `$self`.  A successor must not set `WEAK_CLOSED`
-before it holds the lease, or the predecessor's `fetch_and` in its epilogue would clear the successor's bit.  The
-interval between the claim and the close is safe because the count is zero and a foreign upgrade cannot cross zero.
-Closing can be `Relaxed`: the bit and the count share one word, and the close is sequenced before any privileged
-increment.  The invariant the model checks is
+The claim creates the executor's unit at once, so the count is at least one for the whole episode: a temporary copy of
+`$self` inside the method, a nested destructor, a provisional reference handed to another task/thread and released there
+— none of them can take the count to zero, so no release other than the epilogue ever has to decide anything, and the
+privileged path is plain `fetch_add` with no `0 → 1` special case.  Perl's `curse` does the same: `newRV(sv)` takes the
+object's count to one before the method is called, which is why `Internals::SvREFCNT` reads 1 inside `DESTROY` in both.
+The epilogue is one CAS that retires the unit and decides: a count of one means nothing but the executor's unit
+survived, and the transition to the zero word is death; anything more is a resurrection, and the same CAS that drops the
+unit sets `ALIVE` again, so admission reopens in the instruction that publishes the executor's effects.  A successor
+episode can only begin after that CAS has published `ALIVE|n` and a later release has taken it to `ALIVE|0`, so no
+successor overlaps a predecessor's epilogue and there is no "superseded" outcome.  The invariant the model checks is
 
-> `DESTROYING` with a positive count implies `WEAK_CLOSED`.
+> `ALIVE` clear with a positive count is an episode in progress, and the only party that can take that count to zero is
+> its executor's epilogue.
 
-The epilogue's `fetch_and` does three jobs in one RMW: it reopens admission, it publishes the executor's effects (it is
-`Release`), and it arbitrates the final count — an RMW reads the immediately preceding value in the word's modification
-order.  The `ALIVE` store before it is `Release` because a last provisional holder can claim a successor episode before
-the `fetch_and` happens, and that early successor needs the lifecycle publication path.  `DEAD` is not a publication
-barrier and has two terminal forms (`WEAK_CLOSED|0` from the first branch, `0` from the repair); neither can create
-ownership.  After publication **every change to `strong_gate` is an RMW**: a plain store would break the release
-sequence a later Acquire CAS relies on, so the one plain store — slot reinitialization on reuse — is legal only because
-the reinitializer owns the slot exclusively.
+**Reclaim is the zero word, produced once** [DECISION].  A dead cell with weak holders is a tombstone: the gate reads
+zero and the sequence word's weak field (or the lookaside count it spilled to) does not.  The slot returns to the free
+list when both are zero, and two parties can be the one that makes it so — the epilogue, when no weak holder is left,
+and the last weak drop, when death came first.  Each does its own step, then a `SeqCst` fence, then reads the other
+word, and the reclaim itself is a `SeqCst` CAS of the sequence word from the zero-weak value it read to all-zero: both
+may attempt it, exactly one succeeds, and the fence on each side is what keeps the two from missing each other (the
+epilogue's gate CAS is already a full barrier; the weak drop's sequence-word store is not, which is why it fences).  A
+weak drop that leaves holders behind, or finds the gate still alive, does nothing further.  Reclaim happens on the rare
+path only, and the common case — a cell dying with no weak holders — is the epilogue's gate CAS and one load.
 
 **Weak access is state-sensitive** [DECISION].  A weak handle's upgrade from outside the executor is one Acquire CAS on
-`strong_gate` that requires the admission bit clear *and* the count nonzero; a failed attempt changes nothing, which is
-what makes an extra `DESTROY` or a resurrection caused solely by a failed upgrade structurally impossible (the
-speculative-increment-then-validate design is rejected for exactly that defect).  The states, from the accessing
-task/thread's point of view:
+the gate that requires `ALIVE` *and* a nonzero count; a failed attempt changes nothing, which is what makes an extra
+`DESTROY` or a resurrection caused solely by a failed upgrade structurally impossible (the speculative-increment-then-
+validate design is rejected for exactly that defect), and a stale expected value from before the claim cannot match a
+dying word.  The states, from the accessing task/thread's point of view:
 
 ```text
 ALIVE, count > 0     upgrade allowed (the CAS succeeds)
 ALIVE, count == 0    transient; nobody but the claimant reads it
-DESTROYING           own executor: privileged, succeeds, counts
+dying                own executor: privileged, succeeds, counts
                      toward resurrection (perl: a weak reference
                      copied inside DESTROY resurrects — verified)
                      any other task/thread: the access blocks
                      until the episode resolves (below)
-DEAD                 undef; isweak false; nothing to wait for
+dead                 undef; isweak false; nothing to wait for
 ```
 
 **Privilege is scoped to the task/thread, over its destruction stack** [DECISION].  Every node that task/thread is
 currently destroying — the outermost episode and every nested one its callbacks trigger — is privileged for the whole
 dynamic extent of the episode, so a destructor that drops the last reference to Y and copies a weak reference to X from
 inside Y's nested `DESTROY` still gets X, as it does in perl.  A task/thread therefore never blocks on its own stack,
-and every blocking edge points at a different task/thread.  Privilege is distinct from the lease: the old executor keeps
-the lease through its epilogue while a successor may already have claimed the next episode, and that does not license
-the old executor to resurrect in the successor's episode.
+and every blocking edge points at a different task/thread.
 
-**A foreign access blocks** [DECISION].  Any access to a weak reference whose referent is `DESTROYING` under another
+**The episode record.**  Each episode in progress has a record, keyed by the node's address in a per-domain table and
+created by the claim: the executor's identity (or none, while a context-free ticket waits for adoption), the waiters,
+and the destruction mode (normal, checked, forced — the phase at claim time, read under the producer barrier of §2.4.6).
+It is the lease of the earlier drafts reduced to what remains to serialize once the gate itself orders episodes, and it
+is freed by the epilogue.
+
+**A foreign access blocks** [DECISION].  Any access to a weak reference whose referent is dying under another
 task/thread — copying, `defined`, `ref`, dereference — is a read of an unresolved value and waits for the episode to
-resolve: `DEAD` wakes it to read `undef`, resurrection wakes it to retry against an open gate.  Returning `undef` early
+resolve: death wakes it to read `undef`, resurrection wakes it to retry against an open gate.  Returning `undef` early
 would lie about an object that may be resurrected; a timeout would lie nondeterministically.  Blocking is the only
 answer the question has, and it costs the slow destructor alone.  Perl's ithreads cannot reach this situation — a weak
 reference there is per ithread and already `undef` before another ithread's `DESTROY` can begin (`compat/facts.md`,
 finalization; `probes/corpus/threads_03_shared_weak.pl`) — so this is a native-concurrency definition, not a
-compatibility surface.
+compatibility surface.  **An episode with no executor is adopted, not waited on** [DECISION]: an interpreter-context
+task/thread that would park on a context-free ticket nobody has drained yet takes the ticket itself, becomes the
+executor, and resolves the episode before proceeding with its own access — a weak access is as good an interpreter
+boundary as any, and waiting on a ticket that only the waiter will ever drain would be a self-deadlock.
 
 The waiters are registered per episode, under one lock per domain taken only to register, deregister, and resolve; a
-waiter registers and rechecks the lifecycle under that lock before parking, and the executor resolves and wakes under
-the same lock, so no wakeup is lost.  Each episode records its owner and each task/thread records the one node it is
-waiting on, which materializes the wait-for graph.  Before parking, the would-be waiter walks it: the owner of the node
-it wants, what that owner waits on, that node's owner, and so on, until a running task/thread (safe to wait) or itself
-(a cycle).  A cycle is two or more destructors each strengthening a weak reference to the other's object; it cannot
-resolve, and the task/thread that would close it **clears its own weak holder to a plain `undef` immediately** — the
-same clearing death performs, permanent, with the holder's set magic run — and proceeds without blocking [DECISION].
+waiter registers and rechecks the gate under that lock before parking, and the executor resolves and wakes under the
+same lock, so no wakeup is lost.  Each episode records its executor and each task/thread records the one node it is
+waiting on, which materializes the wait-for graph.  Before parking, the would-be waiter walks it: the executor of the
+node it wants, what that executor waits on, that node's executor, and so on, until a running task/thread (safe to wait)
+or itself (a cycle).  A cycle is two or more destructors each strengthening a weak reference to the other's object; it
+cannot resolve, and the task/thread that would close it **clears its own weak holder to a plain `undef` immediately** —
+the same clearing death performs, permanent, with the holder's set magic run — and proceeds without blocking [DECISION].
 That is a legitimate weak-reference outcome (a holder may be found `undef` at any access without a strong reference of
 its own), it lets the destructor complete and release the task/thread waiting on it, and it unwinds the rest of the
-cycle.  The episode is marked "a waiter was forced out"; if it then resolves to `DEAD`, the forced `undef` was what the
+cycle.  The episode is marked "a waiter was forced out"; if it then resolves to death, the forced `undef` was what the
 waiter would have read and nothing is reported, and if it resolves to resurrection — the one outcome blocking could not
 have produced — the executor emits a warning naming the class and the task/thread whose reference was cleared, in its
 own `warnings` category, on by default.  A cycle through a user-level lock is invisible to the walk and is the user's
-deadlock, as it would be anywhere.  The common access is one load of the lifecycle; all of this is behind the
-`DESTROYING`-and- not-mine branch, which is a correctness path and not tuned.
+deadlock, as it would be anywhere.  The common access is one load of the gate; all of this is behind the
+dying-and-not-mine branch, which is a correctness path and not tuned.
 
 **Global destruction has two distinct destructor paths** — a fidelity fact from `sv_clean_objs` (source-verified): the
 reference-severing pass triggers *checked* destruction (`curse(sv, 1)`), where resurrection is the fatal error; the
@@ -2752,39 +2812,38 @@ during the forced sweep survives, pointing at a now-unblessed referent.  Collaps
 would be a fidelity bug.  In protocol terms the three modes differ only in the epilogue:
 
 ```text
-Normal (RUN / END):   finish_destroy_locked as written; on
-                      Resurrected the node is ALIVE, blessed, and
-                      will run DESTROY again at its next death
-                      (verified)
-CleanObjsChecked:     a nonzero count at the marker is the
+Normal (RUN / END):   the epilogue as written; on Resurrected the
+                      node is ALIVE, blessed, and will run DESTROY
+                      again at its next death (verified)
+CleanObjsChecked:     a count above one at the epilogue is the
                       perl-exact fatal error ("DESTROY created new
                       reference to dead object '%s'" — sv.c,
                       check_refcnt && PL_in_clean_objs); the node
                       enters an explicit exceptional state that
-                      owns the $self unit, the resurrecting
+                      owns the executor's unit, the resurrecting
                       references and the obligation, and discharge
                       follows the ledgered fatal-cleanup policy
                       (§2.4.11)
-GlobalForced:         no count check; the rebless/DESTROY loop runs
-                      (curse's do/while — a destructor reblessing
-                      into a new class gets that class's DESTROY
-                      too), class_id is Release-stored to zero, and
-                      the epilogue either commits DEAD or leaves the
-                      node ALIVE and unblessed; a reader that
+GlobalForced:         claimed from ALIVE|n as 0|n+1 (the unit added,
+                      the references kept); the rebless/DESTROY loop
+                      runs (curse's do/while — a destructor
+                      reblessing into a new class gets that class's
+                      DESTROY too), the class is cleared from the
+                      record, and the epilogue either dies or leaves
+                      the node ALIVE and unblessed; a reader that
                       observes an unblessed ALIVE node also observes
-                      the cleared class identity
+                      the cleared class
 ```
 
 The rebless loop is shared by every mode (perl's `curse`: repeat while the object remains blessed into a class not yet
-processed).  **How the mode reaches the executor is [OPEN]**: the two lifecycle bits in `weak_life` cannot encode it, so
-it is either recorded in bits taken from the weak count or derived from the domain phase at claim time, under the
-producer barrier of §2.4.6 that already orders phase transitions against claims.
+processed).  The mode travels in the episode record, taken from the domain phase at claim time [DECISION].
 
-**Clone and the other arithmetic operations** are state-blind on `strong_gate`: `clone` from an existing real handle is
-`fetch_add(1)` in every state in which a real handle can exist (`ALIVE`, `DESTROYING` — `$self` and the resurrecting
-references — and the forced-sweep survivor), `downgrade`, `strong_count` and `ptr_eq` are unconditional on any live
-handle, and the `$self` temporary is created by the executor's privileged path, never by public clone.  A `DEAD` node
-has a count of zero and no real handle to clone from.
+**Clone and the other arithmetic operations** are state-blind on the gate: `clone` from an existing real handle is
+`fetch_add(1)` in every state in which a real handle can exist (alive; dying — `$self` and the resurrecting references —
+and the forced-sweep survivor), `downgrade`, `strong_count` and `ptr_eq` are unconditional on any live handle, and the
+executor's unit is created by the claim, never by public clone.  A dead node has a count of zero and no real handle to
+clone from.  Under the sharing tier (§2.4.12) the same arithmetic runs as the owner's plain operations on an unshared
+cell; the gate's format does not change, only who may touch it without an RMW.
 
 `DESTROY` exceptions never propagate as the result of reference release (perl calls the destructor with
 `G_DISCARD|G_EVAL|G_KEEPERR|G_VOID` — source-verified; container: `$@` empty after a plain die in `DESTROY`, and an
@@ -2795,7 +2854,7 @@ never runs from Rust `Drop`; the destructor receives interpreter context, with t
 mechanism a §13 decision.
 
 The protocol is written in full and Loom-modeled before the custom `HeapArc` is implemented (§2.4.10 lists the
-obligations); the model that exists today predates the admission bit and is not the gate.
+obligations); the model that exists today predates this protocol and is not the gate.
 
 #### 2.4.5 Finalization routing: choke points and the page-bitmap queue
 
@@ -2810,7 +2869,7 @@ perl cannot express (`SvREFCNT_dec` takes `pTHX`), so its semantics are ours to 
 **allocation-free** and queues *pages*, not slots: a rare finalization event must not impose a pointer-sized permanent
 tax on every allocation.
 
-Producer, after winning the `ALIVE → DESTROYING` claim in `weak_life` (§2.4.4; the sole ticket creator):
+Producer, after winning the claim on the gate (§2.4.4; the sole ticket creator):
 
 1. `fetch_or` the slot's bit into the page's pending bitmap (Release).
 2. Ensure the page is queued: load the page's queue state — `Idle` → CAS `Idle → Queued` and Treiber-push the *page*
@@ -2823,43 +2882,43 @@ No allocation, no locks, no Perl, nothing that can panic — fully conformant wi
 Drainer, holding the drain-owner token: steal the whole page batch with one `swap(null)` at Acquire; per page, CAS
 `Queued → Draining`, then loop: atomically extract the pending words (`swap(0)`, Acquire), and for each set ordinal
 compute the slot address (`page_base + ordinal × stride`, the stride from the page descriptor — the sanctioned form of
-slot arithmetic), acquire that node's destruction lease as its executor (§2.4.4), invoke the callback only after
-acquiring it, and drain all nested finalization it generates before continuing.  When an extraction returns empty: CAS
-`Draining → Idle`, then load the bitmap **once more** — if bits appeared, re-queue the page (`Idle → Queued`, push) and
-continue.  A producer that sets its bit after that final load observes `Idle` at its ensure-queued step and queues the
-page itself.  **The handoff's four operations are `SeqCst`** — the bit publication, the producer's state observation,
-the `Draining → Idle` transition, and the final recheck: with Release/Acquire on two *different* atomics, the
-store-buffer interleaving is legal in which the producer observes `Draining` (declining to queue) while the drainer's
-final load misses the independently published bit — both tasks/threads reading stale.  `SeqCst` restores the single
-total order that excludes it; finalization is rare enough that the fence cost is immaterial, and a dirty/generation RMW
-handshake on the state word (a producer observing `Draining` still RMWs; the drainer idles only if no generation moved)
-is the recorded faster alternative.  **The no-lost-work obligation** — every set bit is eventually extracted by exactly
-one drainer, under every interleaving including specifically the producer-sees-`Draining` race — is a named Loom proof
-obligation (§2.4.10), not prose.
+slot arithmetic), take the node's episode as its executor (§2.4.4), invoke the callback only after taking it, and drain
+all nested finalization it generates before continuing.  When an extraction returns empty: CAS `Draining → Idle`, then
+load the bitmap **once more** — if bits appeared, re-queue the page (`Idle → Queued`, push) and continue.  A producer
+that sets its bit after that final load observes `Idle` at its ensure-queued step and queues the page itself.  **The
+handoff's four operations are `SeqCst`** — the bit publication, the producer's state observation, the `Draining → Idle`
+transition, and the final recheck: with Release/Acquire on two *different* atomics, the store-buffer interleaving is
+legal in which the producer observes `Draining` (declining to queue) while the drainer's final load misses the
+independently published bit — both tasks/threads reading stale.  `SeqCst` restores the single total order that excludes
+it; finalization is rare enough that the fence cost is immaterial, and a dirty/generation RMW handshake on the state
+word (a producer observing `Draining` still RMWs; the drainer idles only if no generation moved) is the recorded faster
+alternative.  **The no-lost-work obligation** — every set bit is eventually extracted by exactly one drainer, under
+every interleaving including specifically the producer-sees-`Draining` race — is a named Loom proof obligation
+(§2.4.10), not prose.
 
-Mode is preserved by the ticket, not the queue: a published ticket is a node in `DESTROYING` with a zero count and no
-lease holder; the bitmap is mode-blind, and how the drainer learns the mode (normal, checked, forced) is the open
-encoding question of §2.4.4.
+Mode is preserved by the ticket, not the queue: a published ticket is a dying node whose count is the executor's unit
+alone and whose episode record names no executor yet; the bitmap is mode-blind, and the drainer reads the mode from the
+record (§2.4.4).
 
 **Ticket ownership, three stages, exactly one owner at every instant**: *producer-unpublished* (between the pending CAS
 and the bit set — bracketed by the producer critical section, §2.4.6, so a phase transition cannot pass it by);
 *published* (bit set on a page that is `Queued`, held by a drainer, or about to be queued by its bracketed setter);
 *claimed* (bit extracted into a drainer's private words, through the pending→destroying CAS).  **Ticket exclusivity** is
-unchanged: no arena scan or phase transition independently claims a published hold — scanners skip every `DESTROYING`
-and `DEAD` node — and a failed lease acquisition on a published ticket is an invariant violation (diagnostic abort in
-checked builds, invariant-failure termination in production; cancellation/handoff deliberately unmodeled).  Page reuse
-creates no harmful ABA: page descriptors live for the extent's lifetime, a page is never released to the pool while any
-slot is occupied, and re-queueing an already-seen page is the protocol working as designed.
+unchanged: no arena scan or phase transition independently claims a published hold — scanners skip every dying and dead
+node — and a published ticket found to have an executor already is an invariant violation (diagnostic abort in checked
+builds, invariant-failure termination in production; cancellation/handoff deliberately unmodeled).  Page reuse creates
+no harmful ABA: page descriptors live for the extent's lifetime, a page is never released to the pool while any slot is
+occupied, and re-queueing an already-seen page is the protocol working as designed.
 
 The memory-ordering contract is part of the queue's safety proof, compositional per field: the control words through the
 §2.4.4 protocol's own argument; the pending bitmap through Release `fetch_or` and Acquire extraction/recheck; the page
-queue through Release push, Acquire steal, and AcqRel state CASes; the class array through Release store on
-bless/rebless/unbless, Acquire load by dispatch and the sweep, and Acquire load of the lazy array pointer.  The custom
-`HeapArc` inherits the remainder wholesale: the ordinary strong/weak ordering proof is retained from the upstream
-implementation, every modified operation is enumerated in the state-machine document with its additional lifecycle
-transitions preserving or strengthening the upstream synchronization, and payload destruction performs the same
-release/acquire synchronization as the upstream last-strong path.  Because this is unsafe ownership infrastructure, the
-Loom model checks the written contract; it is not a substitute for one.
+queue through Release push, Acquire steal, and AcqRel state CASes; the class in a cell's record through the writer
+section that installs it on bless/rebless/unbless and the Acquire load by dispatch and the sweep.  The custom `HeapArc`
+inherits the remainder wholesale: the ordinary strong/weak ordering proof is retained from the upstream implementation,
+every modified operation is enumerated in the state-machine document with its additional lifecycle transitions
+preserving or strengthening the upstream synchronization, and payload destruction performs the same release/acquire
+synchronization as the upstream last-strong path.  Because this is unsafe ownership infrastructure, the Loom model
+checks the written contract; it is not a substitute for one.
 
 Processing order is bitmap order within a page and steal order across pages — batch-local only; concurrent producers,
 multiple steals, and owner-recursive drains make no domain-wide order claim (ordering here is defined-by-us and
@@ -2880,7 +2939,7 @@ PageMeta (in the extent descriptor region)
                                 no strong Perl edge)
         demolish_edges         (drains into the ReleaseContext)
     stride, alloc bitmap, pending bitmap, queue state + link,
-    lazy class array pointer, debug serials
+    debug serials
 ```
 
 Edge extraction and payload destruction are separate operations because the worklist alone does not prevent recursion —
@@ -2894,9 +2953,10 @@ keeps it as typed operations.)
 nothing more: the heap arenas, the lifecycle phase machine, and the finalization queue — the unit of teardown
 enumeration, and the only part of an interpreter `perloxide-core` knows.  The rest of an interpreter — symbol tables,
 the module registry, globals — belongs to the runtime, which owns a `Domain` rather than being one.  Core therefore
-never learns what a stash is: a node carries a `class_id`, core enqueues its finalization, and resolving that id to a
-class and running `DESTROY` is the runtime's work (§2.4.5).  The split is what lets `perloxide-core` stand alone: a
-consumer with no interpreter still allocates, still tears down, and never meets a symbol table.
+never learns what a stash is: a node carries a class identifier in its body or record, core enqueues its finalization,
+and resolving that id to a class and running `DESTROY` is the runtime's work (§2.4.5).  The split is what lets
+`perloxide-core` stand alone: a consumer with no interpreter still allocates, still tears down, and never meets a symbol
+table.
 
 Pages are domain-dedicated (one logical domain per page until every slot frees), and the header's `domain` pointer is
 how a context-free drop reaches its queue head and phase.  **Teardown frees the `Domain` itself [DECISION]**: nothing
@@ -2925,13 +2985,13 @@ semantics: `bless` is strictly in place — container-verified that the referent
 returns the reference it was given, and that a reference taken *before* the bless observes the class afterward — so a
 copy would silently split the object in two, and a container referent would need an unbounded deep copy besides.  A
 per-slot domain word is closed by the §2.4.3 budget (eight bytes on every node to serve a rare embedding case).  What
-remains viable is a **lazily allocated per-page parallel array** of domain pointers, exactly the `class_id` shape: the
-page word gains a fourth "heterogeneous" state, the array is installed on first adoption, homogeneous pages keep the
-fast path and pay nothing, and per-node entries avoid the collateral tombstoning that page-granularity adoption would
-inflict on unrelated crate-user values sharing the page.  The ownership direction stays one-way: the process-global pool
-owns extents and pages, and the domain holds only non-owning page references.  When a page's last slot goes physically
-free (allocation bitmap empty, every slot's weak count and pins zero): remove the page from the domain's index if the
-domain is still alive, reset stride/type/routing state and the lazy array — only then may the pool reassign the page.
+remains viable is a per-cell domain word in the extent's lookaside (§2.4.2), installed on first adoption: the page word
+gains a fourth "heterogeneous" state, homogeneous pages keep the fast path and pay nothing, and per-node entries avoid
+the collateral tombstoning that page-granularity adoption would inflict on unrelated crate-user values sharing the page.
+The ownership direction stays one-way: the process-global pool owns extents and pages, and the domain holds only
+non-owning page references.  When a page's last slot goes physically free (allocation bitmap empty, every slot's control
+words zero): remove the page from the domain's index if the domain is still alive, reset stride/type/routing state —
+only then may the pool reassign the page.
 
 The two timing rules are distinct and both binding — boundary polling never substitutes for the synchronous rule:
 
@@ -2981,18 +3041,18 @@ The last-real-drop algorithm maps every phase to a release mode — nothing is i
 
 ```text
 Phase                          blessed last real drop
-Running                        DESTROYING (normal mode)
+Running                        dying (normal mode)
 EndPhase                       normal mode; resurrection allowed
 EnteringGlobalDestruction      normal mode — perl's equivalent
                                window (PL_phase = DESTRUCT before
                                sv_clean_objs) has PL_in_clean_objs
                                false, so ordinary resurrection
                                rules apply (probe-verifiable)
-CleaningObjects, checked pass  DESTROYING (checked mode)
+CleaningObjects, checked pass  dying (checked mode)
 CleaningObjects, during forced
-  callbacks                    DESTROYING (checked mode; an
-                               unreached node is still ALIVE —
-                               §2.4.6 step 4)
+  callbacks                    dying (checked mode; an unreached
+                               node is still ALIVE — §2.4.6
+                               step 4)
 Demolishing                    no Perl finalization; mechanical
 Tombstoned                     no Perl finalization; mechanical
 ```
@@ -3013,47 +3073,47 @@ The passes mirror `sv_clean_objs` (source-verified structure):
 1. Quiesce ordinary Perl execution; acquire slab enumeration guards (pages stable while enumerators walk).  Page guards
    keep page *memory* alive — they do not keep an individual payload alive against a concurrent context-free last drop
    of an *unblessed* node (a blessed node's body is held by its lifecycle until `DEAD`; an unblessed one's is not).
-   Payload access therefore goes through the **internal enumeration pin**: the pin field of `weak_life` (§2.4.3),
-   claimed by CAS against an `ALIVE` state before the payload is touched and released after the visit (candidates come
-   from the page allocation bitmaps; the control words under the pin are authoritative).  The pin blocks physical
-   payload drop (a last real release under pin defers the mechanical drop to pin release), is invisible to resurrection
-   arithmetic and to `strong_count`, and never counts as a Perl reference.  This protocol covers every enumerator: the
-   checked pass, the forced-sweep scan, level-1 demolition, diagnostic enumeration, and the future on-demand cycle
-   detector.  (Recorded alternatives: an exclusive domain operation gate — rejected for taxing every ordinary clone/drop
-   — and an epoch/hazard scheme — deferred as the more complex escalation if pin contention ever measures.)  Without a
-   payload claim, slab enumeration is not memory-safe.
+   Payload access therefore goes through a **transient strong unit**: the enumerator CASes the gate from `ALIVE|c` to
+   `ALIVE|c+1` with `c > 0` before the payload is touched and releases the unit after the visit (candidates come from
+   the page allocation bitmaps; the gate under the unit is authoritative — a cell the CAS cannot claim is one that is
+   already dying, dead, or free, and is skipped).  Under the unit a concurrent last drop cannot reach zero, so the
+   payload cannot be dropped beneath the visit; the unit is held across the visit alone, never across a callback, so no
+   Perl code can observe it in a count.  This protocol covers every enumerator: the checked pass, the forced-sweep scan,
+   level-1 demolition, diagnostic enumeration, and the future on-demand cycle detector.  (Recorded alternatives: a
+   dedicated pin field — retired with the control block's bit budget, §2.4.3; an exclusive domain operation gate —
+   rejected for taxing every ordinary clone/drop; and an epoch/hazard scheme — deferred as the more complex escalation
+   if contention ever measures.)  Without a payload claim, slab enumeration is not memory-safe.
 2. **Checked reference-severing pass.**  Visit every strong `Value` slot through the typed `visit_strong_slots`
    operation — array elements, hash values, scalar reference payloads, and later closure environments and glob fields —
    plus surviving interpreter roots, under each node's write lock (mutators are quiescent; no concurrent snapshot
    needed); weak edges are not visited.  Sever each reference to a blessed referent, performing its decrement in checked
-   mode — a real-zero is claimed `DESTROYING` in checked mode, and resurrection in the resulting `DESTROY` is the fatal
-   error.  (Perl's `do_clean_objs` over `SVf_ROK` SVs.)  Visitation operates by extraction: lock the node, replace
-   qualifying strong slots with undef, collect the removed values, unlock — then release the values and drain the
-   finalizers they generate.  No finalizer ever runs under the visited node's lock.  Because the edge is extracted
-   before any callback runs, the aliasing cases are defined for free: a container referring to itself, multiple slots
-   referring to one blessed node, and a `DESTROY` reaching back into the container its reference was removed from all
-   observe the already-severed state.  Recursive `DESTROY` mutates the heap mid-pass; the traversal follows perl's
-   finite arena-pass structure rather than promising rescans of modified nodes — actual coverage equivalence is the
-   ledgered fixed-point probe item.  The normative criterion: **every field whose ownership contributes to a Perl
-   referent's real strong count is visited or explicitly exempted** — scalar reference payloads, array elements, hash
-   values, and later magic chains, closure environments, glob and IO fields, code objects, runtime caches that own
-   values, and interpreter roots; `class_id` is exempt as a table identifier, not a `HeapArc` edge.  A per-type audit
-   table accompanies the implementation.  Incomplete slot visitation is a fidelity bug, not an optimization gap: a
-   reference perl would sever in this pass must not survive into the forced pass, where resurrection semantics differ.
-   The containers' existing crate-private `values_iter` hooks are the seeds of this visitation.  Pending tickets —
-   including any already published by context-free drops — are drained as generated.
+   mode — a real-zero is claimed dying in checked mode, and resurrection in the resulting `DESTROY` is the fatal error.
+   (Perl's `do_clean_objs` over `SVf_ROK` SVs.)  Visitation operates by extraction: lock the node, replace qualifying
+   strong slots with undef, collect the removed values, unlock — then release the values and drain the finalizers they
+   generate.  No finalizer ever runs under the visited node's lock.  Because the edge is extracted before any callback
+   runs, the aliasing cases are defined for free: a container referring to itself, multiple slots referring to one
+   blessed node, and a `DESTROY` reaching back into the container its reference was removed from all observe the
+   already-severed state.  Recursive `DESTROY` mutates the heap mid-pass; the traversal follows perl's finite arena-pass
+   structure rather than promising rescans of modified nodes — actual coverage equivalence is the ledgered fixed-point
+   probe item.  The normative criterion: **every field whose ownership contributes to a Perl referent's real strong
+   count is visited or explicitly exempted** — scalar reference payloads, array elements, hash values, and later magic
+   chains, closure environments, glob and IO fields, code objects, runtime caches that own values, and interpreter
+   roots; the class is exempt as a table identifier, not a `HeapArc` edge.  A per-type audit table accompanies the
+   implementation.  Incomplete slot visitation is a fidelity bug, not an optimization gap: a reference perl would sever
+   in this pass must not survive into the forced pass, where resurrection semantics differ.  The containers' existing
+   crate-private `values_iter` hooks are the seeds of this visitation.  Pending tickets — including any already
+   published by context-free drops — are drained as generated.
 3. The named-root/glob analogs of perl's two glob passes, when globs exist.
 4. **Forced sweep — incremental, never preclaiming.**  The scan proceeds one node at a time in arena order: find the
-   next still-blessed `ALIVE` node; claim *that node alone* as its executor — take the lease, close admission, then
-   `ALIVE → DESTROYING` with the count left as it is (the invariant of §2.4.4 holds because the bit is set first; the
-   count is untouched, and the enumeration pin lives in the other word, so nothing is mistaken for a reference at the
-   epilogue's count read); per ticket exclusivity (§2.4.5) the scan skips `DESTROYING` and `DEAD` nodes.  Process the
-   claimed node in forced mode (`DESTROY` runs, the blessing is stripped regardless of retained references, §2.4.4),
-   drain all nested finalization the callback generated, and only then continue scanning.  Batch-preclaiming even two
-   nodes is a fidelity bug: if A and B were both preclaimed and A::DESTROY released B's last real reference, B would die
-   in forced mode — where perl's corresponding decrement lands in *checked* destruction, with fatal resurrection
-   semantics.  A node not yet reached remains `ALIVE`, so a real-zero during another destructor is correctly claimed in
-   checked mode.  A race with a concurrent ordinary release resolves by whichever CAS wins — one ticket either way.
+   next still-blessed `ALIVE` node; claim *that node alone* as its executor — one CAS from `ALIVE|n` to `0|n+1`, the
+   references kept and the executor's unit added (§2.4.4's forced mode), with the episode record created in forced mode;
+   per ticket exclusivity (§2.4.5) the scan skips dying and dead nodes.  Process the claimed node in forced mode
+   (`DESTROY` runs, the blessing is stripped regardless of retained references, §2.4.4), drain all nested finalization
+   the callback generated, and only then continue scanning.  Batch-preclaiming even two nodes is a fidelity bug: if A
+   and B were both preclaimed and A::DESTROY released B's last real reference, B would die in forced mode — where perl's
+   corresponding decrement lands in *checked* destruction, with fatal resurrection semantics.  A node not yet reached
+   remains `ALIVE`, so a real-zero during another destructor is correctly claimed in checked mode.  A race with a
+   concurrent ordinary release resolves by whichever CAS wins — one ticket either way.
 5. Objects created or made finalizable during destructors are processed under the pending-finalization rules
    (container-verified: an object blessed inside a shutdown `DESTROY` receives its own `DESTROY`).  Whether perl's
    finite pass sequence amounts to a complete fixed point for *every* recursively created object is a ledgered fidelity
@@ -3065,7 +3125,7 @@ The passes mirror `sv_clean_objs` (source-verified structure):
    pending CAS and its publication, stranding an unpublished ticket.  Normative sequences:
 
    Producer: (1) increment `active_producers` (Acquire/Release); (2) load the phase; (3) validate that the phase permits
-   the intended transition — on mismatch decrement and retry; (4) claim `ALIVE → DESTROYING` or take the mechanical
+   the intended transition — on mismatch decrement and retry; (4) claim the node on the gate or take the mechanical
    path; (5) publish the pending bit and ensure the page is queued, if a ticket was created; (6) decrement
    `active_producers` (Release).
 
@@ -3080,18 +3140,24 @@ The passes mirror `sv_clean_objs` (source-verified structure):
    until their final ownership disappears (§2.4.2).
 
 No pre-callback claim of the whole population is needed: the lifecycle already guarantees that an object released by
-another object's destructor is claimed `DESTROYING` rather than dying unprocessed — and claiming everything up front
-would prevent reproducing the checked severing pass at all.
+another object's destructor is claimed dying rather than dying unprocessed — and claiming everything up front would
+prevent reproducing the checked severing pass at all.
 
 `DESTROY` order within the sweep is deterministic internally (slab/page/slot order) and **unguaranteed publicly**,
 matching perl's documented unpredictability; tests must not pin the internal order as a compatibility promise.
 
 #### 2.4.7 Immortals
 
-The boolean singletons (§2.3.3) are a dedicated immortal class: static or reserved allocations outside reusable slabs,
-with the IMMORTAL control-word sentinel making clone and drop no-ops (CPython's immortal-object treatment; also the
-Arborescent paper's permanently-uncollectable class).  They never enter `DESTROYING`, are skipped by the sweep, and are
-excluded from demolition.
+An immortal node's gate reads `ALIVE|COUNT_MASK`, a value the checked increment keeps arithmetic from ever reaching
+(§2.4.3), and clone and release test for it before their RMW and skip it: one predictable branch instead of a locked
+instruction, CPython's immortal-object treatment.  Two populations are immortal.  The boolean singletons (§2.3.3) and
+the per-task/thread literal and constant cells are immortal from birth: static or reserved allocations outside reusable
+slabs, never dying, skipped by the sweep's checked pass, and excluded from demolition.  And an object whose count
+crosses `MAX_STRONG` becomes immortal at that moment [DECISION] — the incrementing operation CASes the gate to the
+sentinel — rather than aborting the process: it leaks, exactly as a perl cycle leaks, and like a leaked cycle it is a
+still-blessed survivor that the forced sweep (§2.4.6) finds at global destruction and runs `DESTROY` on, the sweep's
+claim and epilogue consulting no count in forced mode.  The transition is one-way, and whether it emits a diagnostic is
+a §13 question.
 
 #### 2.4.8 `weaken`
 
@@ -3201,40 +3267,42 @@ immediately, all graph-bearing variants move to them, and raw `Arc` construction
 the eventual backend swap is then module-local, the niche assertions are exercised now, and the code inventories the API
 the custom implementation must provide.  The slab backend is a self-contained component whose `clone`/`drop`/`upgrade`
 algorithms are **gated on a Loom model** covering, at minimum, the §2.4.4 protocol's own obligations — a foreign upgrade
-that wins prevents the last drop, and a last drop that wins prevents an upgrade across zero; a privileged `0 → 1` under
-`DESTROYING` admits no foreign upgrade; a stale pre-destruction CAS fails against `WEAK_CLOSED|N`; a successor cannot
-have its admission bit cleared by its predecessor's epilogue; `fetch_and(COUNT_MASK, Release)` keeps the publication and
-arbitration properties of the no-op RMW it replaces; after a committed resurrection a foreign upgrade succeeds; a failed
-upgrade never changes the count; old completion work cannot modify a later episode's result; physical reclamation waits
-for in-flight drops and upgrades; waiters never miss the terminal notification; the wait-graph walk detects every
-multi-party cycle and the forced clearing releases it — and then: normal resurrection with repeated count changes;
-forced unblessing racing weak upgrade; `class_id` clearing before an unblessed `ALIVE`; a claim racing a domain phase
-transition; an unpublished obligation protected by an active producer (producers starting immediately before and after
-each phase publication); pending-bit publication racing page steal; the page queue's `Idle`/`Queued`/`Draining`
-no-lost-work obligation (a bit set racing the final recheck and the re-queue); bit extraction, claim, resurrection, and
-same-slot re-publication; the exclusivity assertion that no interleaving produces a failed lease acquisition on a
-published ticket; lazy class array installation racing concurrent `bless`; the incremental forced sweep racing another
-object's last drop; slot enumeration racing an unblessed payload's context-free drop (the most important addition); the
-final weak release and pin release racing page enumeration; slot reuse after them; page reassignment after domain
-teardown; fatal checked resurrection retaining its ownership obligations; owner-recursive nested finalization;
-drain-owner acquisition by competing tasks/threads; wake notification racing park; physical-phase publication and reuse;
-and reduced-width count boundary tests; plus differential tests against `std::sync::Arc` — scoped to the ordinary
-unblessed core (clone, downgrade, upgrade, releases, `ptr_eq`, payload dropped exactly once, control block released
-exactly once); the lifecycle protocol, Perl weak-copy semantics, the set-magic registry, tombstoning, and global
-destruction get state-machine oracle tests instead — on randomized operation histories, aggressive slot-reuse stress
-(one-slot pages), and destructor accounting (constructed once, dropped once, released once, never touched after).
-Sanitizer passes need nightly and run outside the session container.  No-panic mapping: fallible `try_new_in` returning
-`AllocError`; refcount overflow follows the §2.4.3 policy once ruled (`Clone` cannot return `Err`, so a checked build
-aborts); finalizer publication from `HeapArc::drop` is allocation-free, while mechanical release uses a reusable
-worklist that may grow — allocation-free release needs a separately specified preallocation strategy if ever required.
+that wins prevents the last drop, and a last drop that wins prevents an upgrade across zero; the claim's unit keeps the
+count off zero for the whole episode, so no release but the epilogue decides anything; a stale pre-claim CAS fails
+against a dying word; the epilogue's CAS retires the unit and publishes the executor's effects in one step; after a
+committed resurrection a foreign upgrade succeeds; a failed upgrade never changes the count; no successor episode begins
+before its predecessor's epilogue has published; the reclaim CAS is won exactly once between the epilogue and the last
+weak drop, in every interleaving of their fences; physical reclamation waits for in-flight drops and upgrades; waiters
+never miss the terminal notification; an executor-less ticket is adopted by its first waiter; the wait-graph walk
+detects every multi-party cycle and the forced clearing releases it — and then: normal resurrection with repeated count
+changes; forced unblessing racing weak upgrade; the class cleared from the record before an unblessed `ALIVE`; a claim
+racing a domain phase transition; an unpublished obligation protected by an active producer (producers starting
+immediately before and after each phase publication); pending-bit publication racing page steal; the page queue's
+`Idle`/`Queued`/`Draining` no-lost-work obligation (a bit set racing the final recheck and the re-queue); bit
+extraction, claim, resurrection, and same-slot re-publication; the exclusivity assertion that no interleaving gives a
+published ticket two executors; record installation racing concurrent `bless`; the incremental forced sweep racing
+another object's last drop; slot enumeration racing an unblessed payload's context-free drop (the most important
+addition); the final weak release racing page enumeration; slot reuse after it; page reassignment after domain teardown;
+fatal checked resurrection retaining its ownership obligations; owner-recursive nested finalization; drain-owner
+acquisition by competing tasks/threads; wake notification racing park; physical-phase publication and reuse; and
+reduced-width count boundary tests; plus differential tests against `std::sync::Arc` — scoped to the ordinary unblessed
+core (clone, downgrade, upgrade, releases, `ptr_eq`, payload dropped exactly once, control block released exactly once);
+the lifecycle protocol, Perl weak-copy semantics, the set-magic registry, tombstoning, and global destruction get
+state-machine oracle tests instead — on randomized operation histories, aggressive slot-reuse stress (one-slot pages),
+and destructor accounting (constructed once, dropped once, released once, never touched after).  Sanitizer passes need
+nightly and run outside the session container.  No-panic mapping: fallible `try_new_in` returning `AllocError`; refcount
+overflow immortalizes (§2.4.7), so `Clone` has no failing path; finalizer publication from `HeapArc::drop` is
+allocation-free, while mechanical release uses a reusable worklist that may grow — allocation-free release needs a
+separately specified preallocation strategy if ever required.
 
-The physical phases ride the control words (§2.4.3): `Free → Constructing` (initialize both words and `T`) `→ Occupied`
-(Release-published — an enumerator's Acquire load observes complete initialization) `→ PayloadDropped` (only after `T`
-is mechanically dropped, which is only after `DEAD`) `→ Free` (only after the weak count and the pins in `weak_life`
-reach zero).  Where the phase bits sit is part of the open flag-placement question of §2.4.3.  Enumeration candidates
-come from the page allocation bitmap; the pin plus an `Occupied` check is authoritative (§2.4.6).  Before returning to
-`Free`, the slot clears its pending bit and its class array element, reinitializes both control words with the one plain
-store the protocol permits, and bumps the debug serial — reuse begins from a provably clean slate.
+The physical phases ride the control words (§2.4.3) with no bits of their own: *free* is the zero word pair; a slot
+popped from the free list is *constructing* while its allocator, who alone can reach it, initializes `T` and the
+sequence word and then Release-stores the gate as `ALIVE|1` — the one plain store the protocol permits, and an
+enumerator's Acquire load of a set `ALIVE` bit observes complete initialization; *dying* and *dead* are §2.4.4's; a dead
+slot whose weak holders remain is the tombstone, and the reclaim CAS that zeroes the sequence word returns it to free
+(§2.4.4).  Enumeration candidates come from the page allocation bitmap; the transient strong unit is authoritative
+(§2.4.6).  Before the zero word is produced, the slot's pending bit is clear and its record released, and the debug
+serial is bumped — reuse begins from a provably clean slate.
 
 The first slab migration is `Array` (the simplest graph-bearing node), validating layout, pinning, reuse, finalization
 queueing, and cross-task/thread races before `Scalar` — the most semantically loaded type — moves.
@@ -3251,32 +3319,32 @@ the `Devel::Cycle` analog) as ordinary tooling under strict fidelity.
 
 Open items, marked here: the stash-table lookup structure and tombstone dispatch rules; residual false-sharing layout
 questions (page identification itself is resolved: masking and extent-derived descriptors are normative, §2.4.2);
-adoption of domainless or cross-domain values by `bless` (§2.4.5 records the shapes considered; the lazy per-page domain
-array is the surviving candidate); process-continuation semantics after the `DESTROY created new reference` croak; which
-pure-Perl shapes reach the forced sweep rather than the checked pass, and whether perl's finite pass sequence achieves
-fixed-point coverage for recursively created objects (probe matrix); the measured cost of the class-array dispatch
-indirection against an inline word; the wordless-lock endgame (lock bits in the control block with address-keyed parking
-— count/lock contention coupling is the risk); final weak-release ordering against page reassignment; the `DESTROY`
-exception-reporting matrix (`G_KEEPERR` interaction with active exceptions, by phase); the dynamic environment (`$_`,
-`$@`, caller) installed for channel-drained `DESTROY` and for the sweep (§13); drain-task/thread selection and wake
-mechanism (§13); cross-task/thread last-drop of an object whose class lives in another interpreter (§13; perl's ithreads
-cannot reach this state); ticket posture under exceptional shutdown, and the full fatal-cleanup specification (whether
-cleanup continues for other objects, whether remaining tickets drain or abandon, domain poisoning, host-API surfacing,
-and the disposition of the drain-owner token and producer barrier — the discharge rules for the units a checked-mode
-resurrection's exceptional state owns); the exact rebless-loop algorithm (class capture before callback, revisiting
-previously processed classes, unblessing mid-loop, repeated reblessing, method-lookup failure, stash tombstoning during
-`DESTROY` — source- and probe-driven); the nested-`DESTROY` dynamic context under owner-recursive draining ($@ per
-depth, `caller`, inherited locals, a nested fatal checked error, unwinding the owner depth across a Perl exception); the
-control-word bit allocation document (the overflow policy and threshold of §2.4.3, the home of the identity-level flags
-and the physical phases, the lifecycle-mode encoding, immortal representation, why arithmetic never touches the
-admission or lifecycle bits — tested near boundaries with a reduced-width model); the weak-count and pin conventions
-(implicit weak unit, downgrade, last-strong release, freelist return, immortals); the ithreads representation of shared
-cells (per-ithread proxies or per-(ithread, cell) counts — §2.4.8); the policy for perl's memory-corruption crashes (a
-defined, memory-safe result per window, recorded in `compat/undefined.md`, or termination); debug-serial semantics
-(never an ownership proof, never a stable Perl identity); the release-context posture during Rust TLS teardown (leaked
-per-task/thread context, domain fallback worklist, or a handle-holding restriction); the per-page blessed bitmap as a
-measured sweep optimization (the lazy class arrays already bound the sweep's scan to pages that ever blessed);
-exit-status semantics of a fatal sweep resurrection.
+adoption of domainless or cross-domain values by `bless` (§2.4.5 records the shapes considered; a per-cell domain word
+in the lookaside is the surviving candidate); process-continuation semantics after the `DESTROY created new reference`
+croak; which pure-Perl shapes reach the forced sweep rather than the checked pass, and whether perl's finite pass
+sequence achieves fixed-point coverage for recursively created objects (probe matrix); the measured cost of a blessed
+scalar's dispatch through its record against the container body's inline class; the owning-payload lock for a shared
+mutable scalar cell (the wordless lock in the sequence word with address-keyed parking, or an external body attached at
+sharing — §2.4.3) and where the numeric caches of `FullScalar` live under the 24-byte cell; final weak-release ordering
+against page reassignment; the `DESTROY` exception-reporting matrix (`G_KEEPERR` interaction with active exceptions, by
+phase); the dynamic environment (`$_`, `$@`, caller) installed for channel-drained `DESTROY` and for the sweep (§13);
+drain-task/thread selection and wake mechanism (§13); cross-task/thread last-drop of an object whose class lives in
+another interpreter (§13; perl's ithreads cannot reach this state); ticket posture under exceptional shutdown, and the
+full fatal-cleanup specification (whether cleanup continues for other objects, whether remaining tickets drain or
+abandon, domain poisoning, host-API surfacing, and the disposition of the drain-owner token and producer barrier — the
+discharge rules for the units a checked-mode resurrection's exceptional state owns); the exact rebless-loop algorithm
+(class capture before callback, revisiting previously processed classes, unblessing mid-loop, repeated reblessing,
+method-lookup failure, stash tombstoning during `DESTROY` — source- and probe-driven); the nested-`DESTROY` dynamic
+context under owner-recursive draining ($@ per depth, `caller`, inherited locals, a nested fatal checked error,
+unwinding the owner depth across a Perl exception); the reduced-width boundary tests for the control words (that
+arithmetic never reaches the `ALIVE` bit, the immortal sentinel, or the inline weak field's spill value); the weak-count
+conventions (downgrade, last-strong release, freelist return, immortals); the diagnostic, if any, on immortalization by
+saturation (§2.4.7); the ithreads representation of shared cells (per-ithread proxies or per-(ithread, cell) counts —
+§2.4.8); the policy for perl's memory-corruption crashes (a defined, memory-safe result per window, recorded in
+`compat/undefined.md`, or termination); debug-serial semantics (never an ownership proof, never a stable Perl identity);
+the release-context posture during Rust TLS teardown (leaked per-task/thread context, domain fallback worklist, or a
+handle-holding restriction); the per-page blessed bitmap as a measured sweep optimization (the `blessed` bit already
+keeps the sweep from reading any unblessed cell's record); exit-status semantics of a fatal sweep resurrection.
 
 ### 2.5 Magic (Tied Variables and Friends)
 
@@ -6989,8 +7057,8 @@ what is *actually* tied to a specific interpreter reveals that most values have 
 
 ### 13.2 What Is Actually Interpreter-Local
 
-Analyzing what is truly tied to a specific interpreter reveals that *values* are almost never the bottleneck
-— *execution context* is.
+Analyzing what is truly tied to a specific interpreter reveals that *values* are almost never the bottleneck —
+*execution context* is.
 
 #### 13.2.1 Per-execution-context (not per-value):
 
@@ -7122,8 +7190,8 @@ synchronization is per-value:
   access.
 - **Typed values** — use explicit `Arc<RwLock<T>>` or `Arc<Mutex<T>>` as in Rust.
 
-For `my` variables that are shared and mutated, the cell's lock serializes the writers.  This is transparent to the
-Perl programmer:
+For `my` variables that are shared and mutated, the cell's lock serializes the writers.  This is transparent to the Perl
+programmer:
 
 ```perl
 my @results;
@@ -7200,12 +7268,12 @@ an implementation where the architecture makes parallelism natural.
 
 ### 13.7 Async Integration with Tokio
 
-**The interpreter requires Tokio, and does not insist on owning it [DECISION].**  `perloxide-runtime` depends on
-Tokio; `perloxide-core` has no runtime dependency and its types work on any thread with no executor present.  An
-embedded interpreter runs on the host's runtime when one is current and creates a `current_thread` runtime of its own
-only when none is — the binary's case.  A host on another executor must not be locked out; the mechanism is [OPEN]
-(`ideas.md` §6.3, where `async-compat` is the expected answer).  Tokio provides two complementary async models that
-correspond naturally to the `my`/`sub` vs `let`/`fn` split.
+**The interpreter requires Tokio, and does not insist on owning it [DECISION].**  `perloxide-runtime` depends on Tokio;
+`perloxide-core` has no runtime dependency and its types work on any thread with no executor present.  An embedded
+interpreter runs on the host's runtime when one is current and creates a `current_thread` runtime of its own only when
+none is — the binary's case.  A host on another executor must not be locked out; the mechanism is [OPEN] (`ideas.md`
+§6.3, where `async-compat` is the expected answer).  Tokio provides two complementary async models that correspond
+naturally to the `my`/`sub` vs `let`/`fn` split.
 
 #### 13.7.1 Implicit async for Perl code
 
@@ -7271,9 +7339,9 @@ spawn { let $result = fetch_and_transform("http://other.com") };
 ```
 
 The interpreter always runs on a Tokio runtime — the host's, or in "synchronous" mode a single-threaded runtime
-(`current_thread`) of its own.  The `.await` points in the interpreter loop are always present.  In single-threaded
-mode there is only one task, so yielding and resuming is a no-op.  The code path is identical; only the scheduling
-context differs.
+(`current_thread`) of its own.  The `.await` points in the interpreter loop are always present.  In single-threaded mode
+there is only one task, so yielding and resuming is a no-op.  The code path is identical; only the scheduling context
+differs.
 
 This is fundamentally different from Python's async split, where `async def` and `def` are different function "colors"
 that cannot freely call each other.  In this model there is one color.  Every function — `sub` or `fn` — is "potentially
@@ -7389,8 +7457,8 @@ async fn pipeline(urls: &[String]) -> Vec<ParsedPage> {
 ```
 
 When a `sub` calls an `async fn`, the result is awaited implicitly — the interpreter yields to Tokio while the future
-completes, and other tasks make progress.  When an `async fn` calls a `sub`, the sub runs synchronously within
-the current Tokio task.
+completes, and other tasks make progress.  When an `async fn` calls a `sub`, the sub runs synchronously within the
+current Tokio task.
 
 #### 13.7.7 The shared heap makes this seamless.
 
@@ -7527,8 +7595,7 @@ contends (§13.11.6).
 ### 13.8 Advanced Async Features
 
 The base async architecture (§13.7) provides implicitly async Perl code and async/await.  Several higher-level features
-build on it
-to address real-world concurrency patterns.
+build on it to address real-world concurrency patterns.
 
 #### 13.8.1 Structured concurrency.
 
@@ -7897,9 +7964,9 @@ my @results =
     | collect;
 ```
 
-Each `|` creates a channel between stages.  Each stage runs as its own Tokio task.  A slow stage pauses upstream
-when the channel buffer fills.  This is the Unix pipeline model — the idiom Perl was born from — brought in-process with
-type safety and structured concurrency.
+Each `|` creates a channel between stages.  Each stage runs as its own Tokio task.  A slow stage pauses upstream when
+the channel buffer fills.  This is the Unix pipeline model — the idiom Perl was born from — brought in-process with type
+safety and structured concurrency.
 
 #### 13.10.5 `react`/`whenever` — unified event loop:
 
@@ -8062,8 +8129,8 @@ transitions are locked.
 
 #### 13.11.6 Single-threaded fast path.
 
-The most common Perl programs are single-threaded.  What they pay for concurrency they don't use is the uncontended
-cost of the primitives, and nothing else:
+The most common Perl programs are single-threaded.  What they pay for concurrency they don't use is the uncontended cost
+of the primitives, and nothing else:
 
 - **Atomic operations are cheap on modern hardware.**  An `AtomicU32::fetch_add` is 1-2 nanoseconds on x86.  For
   comparison, a hash lookup is 20-50ns.  The atomic refcount overhead is small relative to the operations that use it.
@@ -8176,8 +8243,8 @@ you immutability, type checking, and no coercion overhead — with the type infe
 
 #### 14.3.3 `fn` for typed functions.
 
-`fn` declares a function with Rust-style typed parameters, typed
-return, and value semantics.  No `@_`, no prototypes, no `wantarray`:
+`fn` declares a function with Rust-style typed parameters, typed return, and value semantics.  No `@_`, no prototypes,
+no `wantarray`:
 
 ```perl
 fn greet(name: &str) -> String {
@@ -10574,8 +10641,8 @@ expensive to fix later.  The internal ordering follows the dependency structure 
     coercions, `copy_for_assignment`, and the finalization-state interaction points stubbed for step 11.
 
 11. The typed slab and restricted custom `HeapArc` (§2.4.2-§2.4.5) as a self-contained component — gated on the Loom
-    model of the two-word lifecycle protocol, page-bitmap publish/steal, sweep-claim races, and drain-owner token;
-    differential, reuse, and destructor-accounting test layers.
+    model of the gate protocol, page-bitmap publish/steal, sweep-claim races, and drain-owner token; differential,
+    reuse, and destructor-accounting test layers.
 
 12. `Array` slab migration — the first node class through the new backend, validating layout, pinning, reuse,
     finalization queueing, and cross-task/thread races.
@@ -11046,44 +11113,51 @@ The key architectural decisions in this design:
 
 ## 25. Glossary
 
-- **Admission bit (`WEAK_CLOSED`)** — the high bit of `strong_gate`; while set, no weak upgrade from outside the
-  executor can succeed, whatever the count (§2.4.4).
-- **Control block** — the two 32-bit words at the head of every slab slot, `strong_gate` and `weak_life` (§2.4.3).
-- **Destruction lease** — the per-node exclusion that serializes the executors of one node's successive destruction
-  episodes, held through the completion epilogue (§2.4.4).
+- **Control block** — the two 32-bit words at the head of every slab slot, the gate and the sequence word (§2.4.3).
 - **Destruction stack** — the nodes a task/thread is currently destroying, outermost episode first; the scope of its
   privilege (§2.4.4).
 - **Domain** — the allocation-related portion of an interpreter: heap arenas, the lifecycle phase machine, and the
   finalization queue; the unit of teardown enumeration (§2.4.5).
-- **Episode** — one run of a node's destruction, from the `ALIVE → DESTROYING` claim to `finish_destroy_locked`; a
-  resurrected node can have several (§2.4.4).
-- **Executor** — the task/thread that holds a node's destruction lease and runs its episode (§2.4.4).
-- **Finalization ticket** — the obligation to run a node's destructor, created by the `ALIVE → DESTROYING` claim and
-  owned by exactly one party at every instant (§2.4.5).
+- **Episode** — one run of a node's destruction, from the claim to the epilogue's CAS; a resurrected node can have
+  several (§2.4.4).
+- **Episode record** — the per-episode state kept beside the node while it is dying: the executor, the waiters, and the
+  destruction mode (§2.4.4).
+- **Executor** — the task/thread that holds a node's episode and runs it; the claim creates the unit that is its `$self`
+  (§2.4.4).
+- **Finalization ticket** — the obligation to run a node's destructor, created by the claim and owned by exactly one
+  party at every instant (§2.4.5).
+- **Gate** — the first control word: the `ALIVE` bit and the 31-bit strong count, every operation on it an RMW (§2.4.3).
 - **Hybrid registry** — the referent-side list of exactly those weak holders that carry set magic (§2.4.8).
 - **`HeapArc` / `HeapWeak`** — the private slab-backed reference-counted handle and its weak form (§2.4.2).
 - **Ithread** — a Perl-level interpreter thread: the object `threads->create` returns on the ithreads compatibility
-  surface.  An ithread runs on some task/thread and is not itself one.  Module and function names keep Perl's
-  spelling (`threads`, `threads::shared`, `threads->tid`), and inside `compat/`, which describes Perl alone, "thread"
-  is necessarily an ithread (§0).
+  surface.  An ithread runs on some task/thread and is not itself one.  Module and function names keep Perl's spelling
+  (`threads`, `threads::shared`, `threads->tid`), and inside `compat/`, which describes Perl alone, "thread" is
+  necessarily an ithread (§0).
 - **Lane A / lane B** — the oracle harness's verdict lanes: a lane-A test's exact output is a function of the program
   and the pinned hash seed alone, identical across the stock, no-reuse and descending builds; a lane-B test's content is
   stable but its line order depends on the allocator, address values, or the hash seed, so it is compared canonically
   (`compat/harness/README.md`).
-- **Lifecycle** — `ALIVE`, `DESTROYING`, `DEAD`, the two bits in `weak_life` (§2.4.4).
+- **Lifecycle** — alive, dying, dead: `ALIVE` set, or clear with a count, or clear with none, read off the gate
+  (§2.4.4).
+- **Lookaside** — the extent's parallel array of 4-byte per-cell entries holding the spilled weak count and the record
+  index (§2.4.2).
 - **Privilege** — an executor's right to create strong references to a node from nothing, scoped to its destruction
   stack (§2.4.4).
 - **Promotion** — moving a compact value into a stably addressed cell because something takes its identity (§2.2,
   §2.2.7).
 - **Proxy cell** — the cell through which a tied container's element is reached when identity is taken, carrying the
   container, the key, a cached value slot and the element magic (§2.5).
+- **Record** — a cell's 32-byte extension in the extent's record region: its magic chain, its class if it is a blessed
+  scalar, and its set-magic registry, each present only if the kind mask says so (§2.4.2).
 - **Referent** — a promoted scalar: a shared, stably addressed, reference-counted identity (§2.2).
 - **Resurrection window** — everything `curse` runs, up to its single count read; closed and unreopenable past it
   (§2.4.4).
+- **Sequence word** — the second control word: the §2.3.9 sequence counter (or the owner id while unshared), the inline
+  weak count, and the `SHARED`, `blessed`, `readonly` and writer bits (§2.4.3).
 - **Task** — a Tokio task (§0).
 - **Task/thread** — a Tokio task or an OS thread, whichever is running the code; used wherever a sentence holds for
   both.  It is the unit that owns a destruction lease, holds destruction privilege, and blocks and is woken (§0,
   §2.4.4).
 - **Thread** — an operating-system thread, what Rust's `std::thread` makes (§0).
-- **Tombstone** — a slot whose node is `DEAD` but whose control block is still retained by weak references or pins
-  (§2.4.2, §2.4.3).
+- **Tombstone** — a slot whose node is dead but whose control block is still retained by weak references (§2.4.2,
+  §2.4.4).
