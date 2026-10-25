@@ -7,12 +7,12 @@ point at their model's section text instead of restating the transition function
 
 Every entry opens with its id in a code span, `area.slug`, and is cited from any document as `[fact:area.slug]` — no
 space, so that a citation is one word that no paragraph rewrap can split.  The part before the dot is the area's prefix,
-the same for every entry under one heading; the slug names the rule and never changes, so an entry may be reordered or
-reworded without breaking its citations.  `bin/perl-conformance explain ID` prints an entry with its evidence
-resolved to paths (`--run` also runs the cited probes and cases on the target version); `explain` alone lists the areas,
-`explain AREA` lists one area's ids, `explain -a` every area's, and `explain --grep RE` finds entries by id or text, one
-line each — `-v` expands any of these to full entries; and `cite-check FILE...` verifies that every citation in a
-document names an entry here.
+declared in brackets at the end of the area's heading and shared by every entry under it; the slug names the rule and
+never changes, so an entry may be reordered or reworded without breaking its citations.  `bin/perl-conformance explain
+ID` prints an entry with its evidence resolved to paths (`--run` also runs the cited probes and cases on the target
+version); `explain` alone lists the areas, `explain AREA` lists one area's ids, `explain -a` every area's, and `explain
+--grep RE` finds entries by id or text, one line each — `-v` expands any of these to full entries; and `cite-check
+FILE...` verifies that every citation in a document names an entry here.
 
 Every entry ends with the supported versions it is demonstrated on, in brackets: a single version (`[5.44.0]`), or a
 range when the behavior is the same on every supported version from the first to the last named (`[5.40.0–5.44.0]`).  A
@@ -24,7 +24,7 @@ range.  The brackets are the only place an entry names a version; what an unsupp
 Nothing here is about any implementation of Perl.  What an implementation does where Perl's behavior is undefined
 (`undefined.md`) is that implementation's own record.
 
-## Value flags
+## Value flags [value-flags]
 
 The string and numeric forms of a scalar, the per-value flags recording which forms have been derived (public or
 private, `IsUV`, derived-from-integer, private-only, stringified), the copy-on-write state and buffer length that decide
@@ -37,7 +37,7 @@ Section: `models/ValueFlags/section.md`.  Model: `models/ValueFlags/ValueFlags.p
 
 Entries: to be filled from the section text.
 
-## `local` and the save stack
+## `local` and the save stack [save-stack]
 
 Section: `models/SaveStack/section.md`.  Model: `models/SaveStack/SaveStack.pm` (488 cells; the 176 structural cells are
 the `models/SaveStack/reports/table.*.tsv` rows whose mutation is `keep`, `shift1`, `shift2`, `unshift1`, `pop1`,
@@ -166,7 +166,7 @@ Entries:
   present key deleted by the other thread during the local is restored by the same `STORE`.  The same probe (E, G);
   `probes/research/value-flags/p4.pl` for the single-thread hash form. [5.44.0]
 
-## Finalization and temporary lifetime
+## Finalization and temporary lifetime [finalization]
 
 Section: `models/Finalization/section.md`.  Model: `models/Finalization/Finalization.pm` (114 scenarios).  Probes:
 `probes/research/value-model/` (04-06, 16, 19, 21), `probes/corpus/destroy_*`, `probes/corpus/gd_*`.
@@ -217,20 +217,20 @@ Entries (the transition function is the section text; these are the weak-referen
   references are undef before that `DESTROY` can begin.  Probe: `probes/corpus/threads_03_shared_weak.pl` (lane A,
   threaded family). [5.44.0]
 
-## The hash engine
+## The hash engine [hash-engine]
 
 Section: `models/HashEngine/section.md`.  Model: `models/HashEngine/HashEngine.pm` (bucket-level and program-level
 lanes).  Probes: `probes/research/value-model/` (12, 13), `probes/corpus/each_*`, `probes/corpus/order_*`.
 
-## The UTF-8 flag and taint
+## The UTF-8 flag and taint [string-flags]
 
 Section: `models/StringFlags/section.md`.  Model: `models/StringFlags/StringFlags.pm` (in progress; `status.md`).
 
-## Element aliasing
+## Element aliasing [aliasing]
 
 Suite: `suites/aliasing` (28 cases, 26 runnable, 2 undefined in Perl).
 
-## Arrays
+## Arrays [arrays]
 
 Entries:
 
@@ -260,7 +260,7 @@ Entries:
   the stack SVs.  List assignment copies, which is where the aliasing stops.  Case `A28_returned_lists_alias` (identity
   by `refaddr` read through `@_`, and the write-through for each builtin and form). [5.44.0]
 
-## Readonly values
+## Readonly values [readonly]
 
 Suite: `suites/readonly` (4 cases).  A write to a readonly scalar croaks `Modification of a read-only value attempted`;
 the message is the same for every writing operation.
@@ -293,7 +293,7 @@ the message is the same for every writing operation.
   past the end grow the array, `$#b = -2` and `$#b = -1` are accepted, and the rvalue, `exists` and `delete` forms are
   silent.  `pp_aelem`, `Perl_av_fetch` with `lval`.  Case `R04_non_creatable_elements`. [5.44.0]
 
-## Address identity, literal cells, and global destruction
+## Address identity, literal cells, and global destruction [identity]
 
 Probes: `probes/corpus/addr_*`, `probes/corpus/consts_*`, `probes/corpus/gd_*`, `probes/research/value-model/` (14),
 each cited in `sources.md`.

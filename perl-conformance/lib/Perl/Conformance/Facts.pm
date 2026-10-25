@@ -8,7 +8,7 @@ package Perl::Conformance::Facts;
 #   - `area.slug`: text, possibly continued on lines indented two spaces, ending in the version bracket. [5.44.0]
 #
 # The id is lowercase letters, digits and hyphens on each side of one dot; the part before the dot is the area's
-# prefix, shared by every entry under one heading.  Entries are cited elsewhere as `[fact:area.slug]`; that spelling has
+# prefix, which the area heading declares in brackets (`## Arrays [arrays]`) and every entry under it shares.  Entries are cited elsewhere as `[fact:area.slug]`; that spelling has
 # no space so that a citation is one word, which no paragraph rewrap can split.
 #
 # Evidence is whatever the entry's backtick spans name: a path under the reference (probes, model reports, suites),
@@ -46,9 +46,10 @@ sub parse {
     for my $i (0 .. $#$lines) {
         my $line = $lines->[$i];
         my $no = $i + 1;
-        if ($line =~ /^## (.*)/) {
+        if ($line =~ /^## (.*?)(?: \[([a-z0-9][a-z0-9-]*)\])?\z/) {
             $finish->();
-            $area = { title => $1, line => $no, prefix => undef, facts => [] };
+            $area = { title => $1, line => $no, prefix => $2, facts => [] };
+            push @{ $self->{problems} }, "$self->{path}:$no: area `$1` declares no id prefix" unless defined $2;
             push @{ $self->{areas} }, $area;
             next;
         }
@@ -83,8 +84,7 @@ sub admit {
     }
     my $prefix = $1;
     my $area = $entry->{area};
-    $area->{prefix} //= $prefix;
-    push @{ $self->{problems} }, "$where: id `$id` is not under the area's prefix `$area->{prefix}`" if $prefix ne $area->{prefix};
+    push @{ $self->{problems} }, "$where: id `$id` is not under the area's prefix `$area->{prefix}`" if defined $area->{prefix} && $prefix ne $area->{prefix};
     if ($self->{facts}{$id}) {
         push @{ $self->{problems} }, "$where: duplicate id `$id` (first at line $self->{facts}{$id}{line})";
         return;

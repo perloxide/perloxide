@@ -496,7 +496,7 @@ sub list_areas {
     my ($facts, $verbose) = @_;
     for my $area ($facts->areas) {
         my $n = @{ $area->{facts} };
-        printf "%-56s %s\n", $area->{title}, ($n ? "[$area->{prefix}.*] $n " . ($n == 1 ? "entry" : "entries") : "(no entries yet)");
+        printf "%-56s [%s.*] (%s)\n", $area->{title}, $area->{prefix}, ($n == 0 ? "no entries yet" : $n == 1 ? "1 entry" : "$n entries");
         list_facts($area, 0) if $verbose && $n;
     }
 }
@@ -505,6 +505,7 @@ sub list_areas {
 sub list_facts {
     my ($area, $with_title) = @_;
     print "$area->{title}\n" if $with_title;
+    print "  (no entries yet)\n" unless @{ $area->{facts} };
     printf "  %-44s [%s]\n", $_->{id}, $_->{versions} for @{ $area->{facts} };
 }
 
