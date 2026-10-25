@@ -8,6 +8,7 @@
 //!   numification-warning bit, taint, and the scan cache recording what is known about Rust-level validity.
 //! - [`cow_buffer`] — the reference-counted copy-on-write buffer behind heap strings.
 //! - [`heap`] — `HeapArc`/`HeapWeak`, the façade over shared ownership that the slab backend will replace.
+//! - [`barrier`] — the process-wide asymmetric memory barrier the per-object sharing tier rests on.
 //!
 //! Two private modules hold representations that never allocate: `inline` for content of fifteen payload bytes or
 //! fewer, `packed` for the nibble encoding that carries sixteen to thirty characters of digit-dense text.
@@ -50,6 +51,7 @@
 mod numeric;
 
 pub(crate) mod alloc_backend;
+pub mod barrier;
 pub mod containers;
 pub mod cow_buffer;
 pub mod heap;
