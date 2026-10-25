@@ -9,9 +9,9 @@ Every entry opens with its id in a code span, `area.slug`, and is cited from any
 space, so that a citation is one word that no paragraph rewrap can split.  The part before the dot is the area's prefix,
 the same for every entry under one heading; the slug names the rule and never changes, so an entry may be reordered or
 reworded without breaking its citations.  `harness/bin/perl-conformance explain ID` prints an entry with its evidence
-resolved to paths (`--run` also runs the cited probes and cases on the target version); `explain` alone lists every id,
-`explain AREA` lists one area's, and `explain --grep RE` finds entries by id or text, one line each or in full with
-`-v`; and `cite-check FILE...` verifies that every citation in a document names an entry here.
+resolved to paths (`--run` also runs the cited probes and cases on the target version); `explain` alone lists the areas,
+`explain AREA` lists one area's ids, and `explain --grep RE` finds entries by id or text, one line each — `-v` expands
+any of these to full entries; and `cite-check FILE...` verifies that every citation in a document names an entry here.
 
 Every entry ends with the supported versions it is demonstrated on, in brackets: a single version (`[5.44.0]`), or a
 range when the behavior is the same on every supported version from the first to the last named (`[5.40.0–5.44.0]`).  A

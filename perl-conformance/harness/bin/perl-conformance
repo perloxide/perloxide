@@ -9,9 +9,10 @@
 #   perl-conformance selftest CORPUS [--only RE]        run + verdict, then compare against the target's blessing
 #   perl-conformance gaps     CORPUS                    list the tests not yet blessed on the target version
 #   perl-conformance check    CORPUS --impl PATH        run an implementation and compare per lane against the target
-#   perl-conformance explain  [ID|AREA...] [--run]      print facts.md entries with their evidence resolved to paths;
-#                                                      an AREA prefix lists its ids, no argument lists every id, and
-#                                                      --run also runs the cited probes and cases
+#   perl-conformance explain  [ID|AREA...] [-v] [--run]  print facts.md entries with their evidence resolved to paths;
+#                                                      an AREA prefix lists its ids (-v: explains its entries), no
+#                                                      argument lists the areas (-v: every id), --run also runs the
+#                                                      cited probes and cases
 #   perl-conformance explain  --grep RE [-v]            one line per entry whose id or text matches; -v prints them in full
 #   perl-conformance cite-check FILE...                 verify that every [fact:ID] citation in FILE names an entry
 #
@@ -86,7 +87,7 @@ sub build_path {
 
 sub usage {
     die "usage: perl-conformance list|run|verdict|bless|selftest|gaps|check CORPUS [options]\n"
-      . "       perl-conformance explain [ID|AREA...] [--run] | explain --grep RE [-v] | cite-check FILE...\n";
+      . "       perl-conformance explain [ID|AREA...] [-v] [--run] | explain --grep RE [-v] | cite-check FILE...\n";
 }
 
 sub slurp {
@@ -489,14 +490,21 @@ sub wrap_entry {
     return "$out\n";
 }
 
-# `explain` with no ids: every id under its area, with versions; `explain AREA` (a prefix, no dot): that area alone.
-sub list_facts {
-    my ($facts, @areas) = @_;
-    for my $area (@areas ? @areas : $facts->areas) {
-        next unless @{ $area->{facts} };
-        print "$area->{title}\n";
-        printf "  %-44s [%s]\n", $_->{id}, $_->{versions} for @{ $area->{facts} };
+# `explain` with no arguments: the areas, each with its prefix and entry count; with --verbose, every id under its area.
+sub list_areas {
+    my ($facts, $verbose) = @_;
+    for my $area ($facts->areas) {
+        my $n = @{ $area->{facts} };
+        printf "%-56s %s\n", $area->{title}, ($n ? "[$area->{prefix}.*] $n " . ($n == 1 ? "entry" : "entries") : "(no entries yet)");
+        list_facts($area, 0) if $verbose && $n;
     }
+}
+
+# `explain AREA` (a prefix, no dot): the area's ids with versions, under its title unless the caller printed one.
+sub list_facts {
+    my ($area, $with_title) = @_;
+    print "$area->{title}\n" if $with_title;
+    printf "  %-44s [%s]\n", $_->{id}, $_->{versions} for @{ $area->{facts} };
 }
 
 # `explain --grep RE`: one line per matching entry, the id and the entry's first sentence cut to the line; --verbose
@@ -678,17 +686,20 @@ if ($command eq 'explain') {
         exit grep_facts($facts, $pattern, $verbose);
     }
     if (!@args) {
-        list_facts($facts);
+        list_areas($facts, $verbose);
         exit 0;
     }
 
-    # An argument without a dot is an area prefix and lists that area; ids are explained.
+    # An argument without a dot is an area prefix and lists that area's ids, or with --verbose explains all of its
+    # entries; an argument with a dot is an id and is explained.
     my @areas = grep { !/\./ } @args;
     @args = grep { /\./ } @args;
     my $unknown = 0;
     for my $prefix (@areas) {
         my $area = $facts->area($prefix);
-        if ($area) { list_facts($facts, $area) } else { print STDERR "no area `$prefix`\n"; $unknown++ }
+        if (!$area) { print STDERR "no area `$prefix`\n"; $unknown++ }
+        elsif ($verbose) { push @args, map { $_->{id} } @{ $area->{facts} } }
+        else { list_facts($area, 1) }
     }
     exit($unknown ? 1 : 0) unless @args;
     my $runner;
