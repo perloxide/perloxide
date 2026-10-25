@@ -9,10 +9,11 @@
 #   perl-conformance selftest CORPUS [--only RE]        run + verdict, then compare against the target's blessing
 #   perl-conformance gaps     CORPUS                    list the tests not yet blessed on the target version
 #   perl-conformance check    CORPUS --impl PATH        run an implementation and compare per lane against the target
-#   perl-conformance explain  [ID|AREA...] [-v] [--run]  print facts.md entries with their evidence resolved to paths;
-#                                                      an AREA prefix lists its ids (-v: explains its entries), no
-#                                                      argument lists the areas (-v: every id), --run also runs the
-#                                                      cited probes and cases
+#   perl-conformance explain  [ID|AREA...|-a] [-v] [--run]
+#                                                      print facts.md entries with their evidence resolved to paths;
+#                                                      an AREA prefix lists its ids (-v: explains its entries), -a
+#                                                      selects every area, no argument lists the areas (-v: every
+#                                                      id), and --run also runs the cited probes and cases
 #   perl-conformance explain  --grep RE [-v]            one line per entry whose id or text matches; -v prints them in full
 #   perl-conformance cite-check FILE...                 verify that every [fact:ID] citation in FILE names an entry
 #
@@ -87,7 +88,7 @@ sub build_path {
 
 sub usage {
     die "usage: perl-conformance list|run|verdict|bless|selftest|gaps|check CORPUS [options]\n"
-      . "       perl-conformance explain [ID|AREA...] [-v] [--run] | explain --grep RE [-v] | cite-check FILE...\n";
+      . "       perl-conformance explain [ID|AREA...|-a] [-v] [--run] | explain --grep RE [-v] | cite-check FILE...\n";
 }
 
 sub slurp {
@@ -675,15 +676,20 @@ sub setup_target {
 
 my ($command, @args) = @ARGV;
 usage() unless defined $command;
-my ($results, $config, $only, $impl, $target, $run, $pattern, $verbose) = ('results', "$Bin/../perl-conformance.conf", undef, undef, $ENV{PERL_CONFORMANCE_TARGET}, 0, undef, 0);
-GetOptionsFromArray(\@args, 'results=s' => \$results, 'config=s' => \$config, 'only=s' => \$only, 'impl=s' => \$impl, 'target=s' => \$target, 'run' => \$run, 'grep=s' => \$pattern, 'verbose|v' => \$verbose) or usage();
+my ($results, $config, $only, $impl, $target, $run, $pattern, $verbose, $all) = ('results', "$Bin/../perl-conformance.conf", undef, undef, $ENV{PERL_CONFORMANCE_TARGET}, 0, undef, 0, 0);
+GetOptionsFromArray(\@args, 'results=s' => \$results, 'config=s' => \$config, 'only=s' => \$only, 'impl=s' => \$impl, 'target=s' => \$target, 'run' => \$run, 'grep=s' => \$pattern, 'verbose|v' => \$verbose, 'all|a' => \$all) or usage();
 if ($command eq 'explain') {
     # facts.md is UTF-8 and its entries print as text.
     binmode $_, ':encoding(UTF-8)' for \*STDOUT, \*STDERR;
     my $facts = load_facts();
     if (defined $pattern) {
-        usage() if @args || $run;
+        usage() if @args || $run || $all;
         exit grep_facts($facts, $pattern, $verbose);
+    }
+    # --all selects every area, as if each were named.
+    if ($all) {
+        usage() if @args;
+        @args = map { $_->{prefix} } grep { @{ $_->{facts} } } $facts->areas;
     }
     if (!@args) {
         list_areas($facts, $verbose);
