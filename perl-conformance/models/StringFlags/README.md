@@ -3,7 +3,7 @@
 **Source.**  Transcribed from the perl5 repository at tag `v5.44.0`: sv.c (`sv_utf8_upgrade_flags_grow`,
 `sv_utf8_downgrade_flags`), utf8.c, pp_pack.c and the case-mapping and taint paths.  Validated by replay against the
 supported 5.44.0 builds; results in `reports/`, with the 5.38.2 run and `reports/version-differences.diff` beside them
-from the unsupported 5.38.2 (`../../unsupported-perls.md`).  Source-validated with `harness/tools/source-validate.pl`
+from the unsupported 5.38.2 (`../../unsupported-perls.md`).  Source-validated with `tools/source-validate.pl`
 against v5.38.2, v5.40.2, v5.42.0, v5.44.0 (`source-validation.txt`): of the routines with a C definition, 1 are
 identical across all four tags and so transcribed equally validly for each, 1 differ only by moved declarations or added
 assertions, and 2 differ in code at one or more of the tags and must be read before any of those versions can be

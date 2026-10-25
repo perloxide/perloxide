@@ -17,8 +17,8 @@
 #   perl-conformance explain  --grep RE [-v]            one line per entry whose id or text matches; -v prints them in full
 #   perl-conformance cite-check FILE...                 verify that every [fact:ID] citation in FILE names an entry
 #
-# Common options: --target VERSION (default: the newest version in ../supported-versions; also PERL_CONFORMANCE_TARGET),
-# --results DIR (default ./results; runs land in DIR/VERSION), --config FILE (default perl-conformance.conf next to bin/).
+# Common options: --target VERSION (default: the newest version in supported-versions; also PERL_CONFORMANCE_TARGET),
+# --results DIR (default ./results; runs land in DIR/VERSION), --config FILE (default perl-conformance.conf beside bin/).
 #
 # Corpus directives, as comment lines anywhere in a test file:
 #   # perl-conformance-requires: threads | locale NAME     skip the test on builds that lack the capability;
@@ -51,7 +51,7 @@ use Perl::Conformance::Verdict;
 # runs are recorded under the generic names (stock.seed0.1 and so on), and the other family's stock
 # build runs once as the configuration cross-check (xconfig).  Every run, verdict and blessing is per
 # version: the target version is selected with --target or PERL_CONFORMANCE_TARGET and defaults to the newest
-# line of ../supported-versions.  A Perl that is not a supported version is never a reference; it is
+# line of supported-versions.  A Perl that is not a supported version is never a reference; it is
 # run only as an implementation under `check`.
 my %FAMILY = (
     plain   => { stock => 'stock',         noreuse => 'noreuse',         descending => 'descending' },
@@ -117,9 +117,9 @@ sub spew_blessed {
     spew($path, $text);
 }
 
-# The supported versions, oldest first, from ../supported-versions; the last is the default target.
+# The supported versions, oldest first, from supported-versions; the last is the default target.
 sub supported_versions {
-    my @v = grep { length } map { s/^\s+|\s+$//gr } grep { !/^\s*#/ } split /\n/, slurp("$Bin/../../supported-versions");
+    my @v = grep { length } map { s/^\s+|\s+$//gr } grep { !/^\s*#/ } split /\n/, slurp("$Bin/../supported-versions");
     die "no supported versions listed in supported-versions\n" unless @v;
     return @v;
 }
@@ -178,7 +178,7 @@ sub has_capability {
         $ok = ($out // '') eq '1' ? 1 : 0;
     }
     elsif ($kind eq 'locale') {
-        # A locale requirement names one of the harness's own compiled locales (harness/locales/),
+        # A locale requirement names one of the harness's own compiled locales (locales/),
         # never a system locale, so a probe runs the same wherever localedef and the glibc i18n
         # sources exist. It is unmet when those are missing (reported once at startup).
         $ok = ($LOCPATH && Perl::Conformance::Locales::provides($args[0] // '')) ? 1 : 0;
@@ -467,7 +467,7 @@ sub cmd_gaps {
     return @gaps ? 1 : 0;
 }
 
-my $FACTS_ROOT = File::Spec->rel2abs("$Bin/../..");
+my $FACTS_ROOT = File::Spec->rel2abs("$Bin/..");
 
 # Loads facts.md and refuses to go on if its form is broken, since every id and citation rests on it.
 sub load_facts {

@@ -8,7 +8,7 @@ point at their model's section text instead of restating the transition function
 Every entry opens with its id in a code span, `area.slug`, and is cited from any document as `[fact:area.slug]` — no
 space, so that a citation is one word that no paragraph rewrap can split.  The part before the dot is the area's prefix,
 the same for every entry under one heading; the slug names the rule and never changes, so an entry may be reordered or
-reworded without breaking its citations.  `harness/bin/perl-conformance explain ID` prints an entry with its evidence
+reworded without breaking its citations.  `bin/perl-conformance explain ID` prints an entry with its evidence
 resolved to paths (`--run` also runs the cited probes and cases on the target version); `explain` alone lists the areas,
 `explain AREA` lists one area's ids, `explain -a` every area's, and `explain --grep RE` finds entries by id or text, one
 line each — `-v` expands any of these to full entries; and `cite-check FILE...` verifies that every citation in a
@@ -296,4 +296,4 @@ the message is the same for every writing operation.
 ## Address identity, literal cells, and global destruction
 
 Probes: `probes/corpus/addr_*`, `probes/corpus/consts_*`, `probes/corpus/gd_*`, `probes/research/value-model/` (14),
-each cited in `harness/sources.md`.
+each cited in `sources.md`.

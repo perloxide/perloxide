@@ -15,7 +15,7 @@ builds — legwork a user who needs an older target fully current may have to do
 becomes less useful than on the day it was added.  The newest supported version is the default target for the harness's
 lane-A comparison; a user selects another supported version as their target where the harness and the suites take one.
 A Perl that is not supported — a system's stock `perl`, say — is an *implementation to check* against the blessed
-outputs with `harness/bin/perl-conformance check`, not a reference, whatever its version.
+outputs with `bin/perl-conformance check`, not a reference, whatever its version.
 
 - **5.44.0**, built from the `v5.44.0` tag of https://github.com/Perl/perl5 with `perls/build-perls.sh`, is the only
   supported version at this writing, and so the default target.  Unthreaded unless a probe states otherwise (`#
@@ -74,8 +74,8 @@ separate allocations in every case.
 
 - Numeric-radix probes and lanes use a locale the harness compiles from its own source (`radix_comma`: `LC_NUMERIC` with
   `decimal_point ","`, every other category POSIX); ctype probes use `ctype_utf8` (`LC_CTYPE` from the glibc `i18n`
-  classification, every other category POSIX).  The sources are `harness/locales/`;
-  `harness/lib/Perl/Conformance/Locales.pm` compiles them with the system's `localedef` against the system's own `i18n`
+  classification, every other category POSIX).  The sources are `locales/`;
+  `lib/Perl/Conformance/Locales.pm` compiles them with the system's `localedef` against the system's own `i18n`
   sources at startup, so no probe depends on which locales the system has generated.  The compiled form is keyed by the
   sources and the `localedef` version, so a changed glibc recompiles.
 

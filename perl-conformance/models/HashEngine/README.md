@@ -3,7 +3,7 @@
 **Source.**  Transcribed from the perl5 repository at tag `v5.44.0`: hv.c, hv_func.h, perl_siphash.h and sbox32_hash.h.
 Validated by replay against the supported 5.44.0 builds; results in `reports/`, with the identical 5.38.2 run beside
 them from the unsupported 5.38.2 (`../../unsupported-perls.md`).  Source-validated with
-`harness/tools/source-validate.pl` against v5.38.2, v5.40.2, v5.42.0, v5.44.0 (`source-validation.txt`): of the routines
+`tools/source-validate.pl` against v5.38.2, v5.40.2, v5.42.0, v5.44.0 (`source-validation.txt`): of the routines
 with a C definition, 7 are identical across all four tags and so transcribed equally validly for each, 2 differ only by
 moved declarations or added assertions, and 6 differ in code at one or more of the tags and must be read before any of
 those versions can be supported by this model — each such reading ends either in a `source-equivalences.tsv` line

@@ -10,4 +10,4 @@ and the exit status appended.
     ./run.sh /path/to/interpreter [expected-dir]
 
 All four cases produce identical output on 5.38.2 and 5.44.0.  Blessed outputs never end a line in whitespace
-(`harness/tools/lint-blessed.sh`).
+(`tools/lint-blessed.sh`).
