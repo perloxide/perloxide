@@ -3372,6 +3372,149 @@ the release-context posture during Rust TLS teardown (leaked per-task/thread con
 handle-holding restriction); the per-page blessed bitmap as a measured sweep optimization (the `blessed` bit already
 keeps the sweep from reading any unblessed cell's record); exit-status semantics of a fatal sweep resurrection.
 
+#### 2.4.12 Ownership: the sharing tier
+
+Every cell in the design so far is accessed as if it were shared: a clone is a locked increment, a read of a shared
+mutable cell runs the sequence protocol, a write takes the section.  Measured in this container, a clone/release pair
+costs 13 ns on the atomic path and under a nanosecond as plain arithmetic, and perl's own `SvREFCNT_inc` is the plain
+kind.  Most values in most programs are never reachable from more than one task/thread, so the heap pays for sharing it
+is not doing.  This section rules how a cell avoids that cost while it is private and acquires it the moment it is not —
+soundly, with no walk at publication, no obligation on a Rust host, and no bet on timing.
+
+**Two gates, the domain's and the cell's** [DECISION].  A domain starts *single-task*: a per-domain `concurrent` flag,
+clear at creation, is set permanently by the first operation that can create a second accessor of the heap — `spawn`,
+`spawn blocking`, `spawn thread`, `threads->create`, a `share()` on the Rust boundary, or a request for the explicit
+parallel forms of §13.6.  While it is clear, every count operation is plain arithmetic, every read skips the sequence
+check, every write skips the section, and the cell-level machinery below never runs; the test is one predictable branch
+on a cached word.  This is sound by construction: the only task/thread that could race the flag is the one setting it,
+in program order, and the spawn is the happens-before that makes its prior plain writes visible to the child.  Once the
+flag is set, the cell's own state decides.
+
+**The owner, named in the cell** [DECISION].  An unshared cell's sequence word carries a 24-bit *owner id* in the field
+the sequence counter would use (§2.4.3): zero means *unowned*, otherwise it names the one task/thread allowed to touch
+the cell's gate and payload with plain operations.  `SHARED` set means the field is a sequence counter again and every
+party uses the atomic paths.  The owner check on any access is a compare of that field against the current id, which a
+task/thread keeps in a register for the length of an op; no page descriptor, no lookup.  Ids are slots in a table of
+*owner records*, allocated at task/thread start and recycled through a free list at exit; 16M concurrent tasks/threads
+is the bound, and a task that cannot get an id runs without the tier, every cell it creates born `SHARED`.  Reuse of an
+id is harmless: a dead task's cells are "owned" by an id that now belongs to a new task, which is one accessor replacing
+another, and foreigners resolve the id to its current record, whose state is the live one.
+
+Four states, then, for a cell: unowned, mine, someone else's, shared.  A fresh cell is its allocator's: the allocator
+owns the slot exclusively and installs its id with a plain store.  An unowned cell is claimed by the first task/thread
+to touch it, with one CAS of the sequence word from zero to its id — exactly one claimant wins, and a loser finds
+another's id and proceeds as a foreigner.  A cell that is someone else's goes through the protocol below.  A shared cell
+is the §2.3.9 and §2.4.4 machinery as written.
+
+**The owner's fast path.**  Each owner record holds a `state` byte, written only by the owner, with `INSIDE` and
+`PARKED` bits, and a `converting` byte, written only by converters, which is a lock.  Every operation on a cell is
+bracketed:
+
+```text
+entry:   if state.load(Relaxed) == PARKED:
+             state.store(INSIDE, SeqCst)          // the resume: one xchg, drains the buffer before the next load
+         else:
+             state.store(INSIDE, Relaxed)         // the ~1 ns case
+         compiler_fence
+         if converting.load(SeqCst):              // a converter has claimed this owner
+             state.store(0, Release); wait until !converting; retry entry
+         ...the operation: plain arithmetic on the gate, plain reads and writes of the payload...
+exit:    compiler_fence; state.store(0, Release)
+park():  state.store(PARKED, Release)             // between ops; "I am away, and will announce my return"
+```
+
+`INSIDE` is a depth counter in practice, since magic can re-enter core from inside a cell operation and the inner exit
+must not announce "outside" while the outer operation still holds plain access; the bracket is a guard type so that a
+panic unwinds it.  Measured, the bracket costs about half a nanosecond per access: 1.82 ns for a clone/release pair
+against 13.04 ns on the atomic path and 0.89 ns for the arithmetic alone.  The `SeqCst` load of `converting` is a plain
+`mov` on x86; the one `xchg` is the first entry after a `park()`, once per resumption, not per op.
+
+**The foreigner's protocol.**  A task/thread touching a cell owned by another acquires that owner's `converting` lock
+(converters are serialized per owner), then establishes that the owner is not mid-operation, then converts:
+
+```text
+converting.store(true, SeqCst)                      // the lock; CAS from false
+if state.load(SeqCst) == PARKED:                    // the owner is away: no barrier needed
+    convert                                         //   the Dekker pair with the owner's resume store makes
+                                                    //   exactly one of them see the other
+else:
+    heavy barrier                                   // every core executes a fence; the owner's executed stores are
+    wait until state.load(Acquire) has no INSIDE    //   visible, and its next entry will see `converting`
+    convert
+converting.store(false, Release)
+```
+
+`convert` is `seq.fetch_or(SHARED, Release)` on the cell — and on every other cell of that owner the foreigner has
+reason to want, since the lock and the barrier are per owner, not per cell: a foreigner that walks into a local subgraph
+converts the reachable part under one barrier.  The owner's next access to a converted cell loads the sequence word,
+sees `SHARED`, and takes the atomic path; its plain ops and the foreigner's atomic ops never overlap, because the
+foreigner touches nothing until it has seen the owner outside, and an owner that enters after that point sees
+`converting` and withdraws.
+
+Why the barrier, and why nothing weaker: the owner's entry is "write my flag, then read yours", and so is the
+foreigner's, and no combination of release and acquire orderings keeps two such parties from each missing the other's
+store while it sits in a store buffer (Attiya et al., *Laws of Order*, POPL 2011: mutual exclusion needs a store-load
+fence or an RMW on both sides).  The owner's side cannot afford its fence; the process-wide barrier (`membarrier(2)`
+with `PRIVATE_EXPEDITED`, `FlushProcessWriteBuffers`, an `mprotect` TLB-shootdown trick on x86 Linux — `perloxide_core::
+barrier`) executes it on the owner's core from the foreigner's side, at a system call's cost: about 180 ns here on two
+vCPUs, more on a many-core host, which the single-CPU form of the call (Linux 5.10, the owner publishing its CPU from
+the `rseq` area) brings back to the syscall floor.  A parked owner needs no barrier at all, because its resume is the
+`xchg` that provides the owner's half, and that is the common case for data handed off and left: an actor that builds a
+message, sends it, and awaits the next one is parked when its message is read.
+
+**Parking.**  The runtime wraps each task's future: `resume()` before `poll`, `park()` after it returns — the poll
+boundary, not each `.await`, since an `.await` that completes without suspending never leaves the executor — with a
+guard for unwinding and the same bracket on cancellation and drop paths.  `resume()` is implicit: core's next entry
+finds `PARKED` and does the strong store itself, so the runtime's only obligation is `park()`.  A Rust host calls
+`park()` around anything that blocks, or never; a host that never parks is simply always in the barrier rows, correct
+and a little slower for its foreigners, and core exit never parks on its behalf, since that would make every entry the
+`xchg` one.
+
+**The active-owner policy** is a per-domain setting [DECISION]: `Barrier` where the platform has a process-wide barrier,
+which is the default there; `WaitForPark`, which a foreigner may use anywhere — it waits for the owner's next `park()`
+instead of issuing a barrier, free and sound but unbounded against a CPU-bound owner that never awaits, so it is
+selected by the runtime or by a host that accepts that; and `Off`, the default without a barrier, under which the
+per-object tier is not enabled and the domain flag alone applies.  Reclaim (below) follows the same setting.
+
+**Transfer, and the unowned state.**  Ownership moves without a handshake whenever the current owner gives it away: a
+sender resets a cell's owner id to zero with a plain store, between its ops, and whoever touches the cell next claims it
+with the CAS.  The runtime does this at the publication points it controls — a channel send, a `spawn` capture, a task's
+return value at `join` — for every cell reachable from the message whose count the sender can see is one, and converts
+to `SHARED` the cells it still references elsewhere; an actor pipeline that builds a message and forgets it then runs
+with no atomics on its messages end to end, each stage owning the data while it has it.  A sender that keeps using a
+message after sending it finds the cell either still unowned (and reclaims it, so the receiver converts) or the
+receiver's (and converts); both are correct, and both are what a genuinely shared object deserves.  Assignment to a
+package variable or into a `:shared` structure converts, since anything reachable from the symbol table may be named by
+any task/thread.  Package-level data is therefore shared by construction and the tier's benefit goes to lexically scoped
+data, which is most of a program's working set.
+
+**Reclaim.**  A shared cell can be made private again by the task/thread that will own it, at a documented cost and on
+an explicit decision: clear `SHARED` with a `SeqCst` RMW, store the new owner id, issue the barrier (under `Barrier`) or
+wait for every other owner record to read `PARKED` once (under `WaitForPark`), and then wait until every other owner
+record has been observed outside an operation at least once since — the grace period after which no foreigner can be
+inside an atomic operation that began under `SHARED`.  A foreigner that enters afterward finds the cell unshared and
+goes through the sharing protocol like any first touch.  The mechanism is sound; the policy — *when* to reclaim, since
+the count cannot say whether foreign handles remain — is open (§2.4.11), and one rule is fixed now: never on a bare
+access, which would be the storm generator.
+
+**The Rust boundary** [DECISION].  The public handle types of `perloxide-core` are `!Send + !Sync`; crossing a thread
+goes through `share()`, which sets the domain flag, converts everything reachable from the handle, and returns the `Send
++ Sync` form.  That is what makes the domain flag sound for a program using the core crate without the interpreter: the
+compiler forbids the one path — `std::thread::spawn(move || value.clone())` — that no flag could see.  The runtime's
+interior holds the `Send` form in its frames, with the justification the domain flag already carries (only `spawn`
+creates a second task, and `spawn` sets the flag first; a lone task's migrations are ordered by the scheduler); that
+`unsafe impl` lives in the runtime and nowhere else.  A host that holds a local handle is an owner like any other, and a
+foreigner reaching its cells — an interpreter task adopting a ticket the host published, say — converts them through the
+barrier protocol, the host's `INSIDE` bracket telling the truth about whether it is mid-operation whether or not it ever
+parks.
+
+**What the tier does not change.**  The gate's and the sequence word's formats; the lifecycle protocol, whose
+transitions are the same CASes the owner performs plainly on its own cells; `DESTROY` timing; weak semantics; or any
+observable.  What it changes is who may touch a word without a locked instruction, and when that changes.  The parts
+that need the §2.4.10 Loom model: the entry/exit bracket against a converter's barrier-and-wait; the parked Dekker pair;
+the converter lock; the claim CAS on an unowned cell; reclaim's grace period against a foreigner's atomic operation in
+flight; and nested entry under a panic.
+
 ### 2.5 Magic (Tied Variables and Friends)
 
 > **Placeholder.**  A sketch awaiting the magic design, which lands with `FullScalar`'s consumers; the trait shape and
@@ -7231,66 +7374,36 @@ for my $i (1..10) {
 }
 ```
 
-Every promoted cell carries its lock (§2.3.1), so the synchronization is always present.  Single-threaded code never
-contends, so every lock acquisition and every count operation takes its uncontended fast path, which makes the overhead
-as small as the primitives allow; it is not zero.  (Single-threaded means one task/thread touching the heap: a native
-Rust host that creates its own threads is multi-threaded whatever the Perl code does.)
+Every promoted cell carries its synchronization, so a shared cell's cost is the uncontended cost of the primitives; what
+spares a value that cost is the sharing tier of §2.4.12: a domain that has never spawned runs on plain arithmetic
+throughout, and after the first spawn a cell stays on plain arithmetic for the one task/thread that owns it until
+another touches it.  (A native Rust host that creates its own threads crosses that line through `share()`, which is how
+the compiler makes it visible — §2.4.12.)
 
-### 13.6 Automatic Parallelism via Rayon
+### 13.6 Parallel `map`, `grep` and `sort`: explicit only
 
 Because all values are on the shared heap and closures are shareable, the preconditions for work-stealing parallelism
-(Rayon) are met by the base architecture.  This enables — but does not require — automatic parallelization of list
-operations like `map`, `grep`, and `sort`.  This is a future optimization, not a day-one feature, but the shared heap
-architecture makes it possible without any redesign:
+(Rayon) are met by the base architecture.  **The runtime never parallelizes a list operation on its own** [DECISION].
+Perl's `map`, `grep` and `sort` are sequential by definition, and a block's order of evaluation is observable whenever
+it has any side effect — printing, pushing to an outer array, counting in a closure, aliasing `$_`, a comparator that
+logs — which no analysis can rule out across a sub call.  Automatic parallelization would be a deviation applied
+silently to code that was correct, and a heuristic ("small lists run sequentially", a purity analysis of the block)
+would make it a deviation applied *unpredictably*.
+
+Parallelism is therefore requested, lexically, and the request is the program's statement that the blocks in its scope
+are order-independent, with the semantics on the program's head:
 
 ```perl
-# Standard Perl — the runtime can parallelize this automatically
+use parallel;                   # within this scope, map/grep/sort may run their blocks concurrently
 my @results = map { expensive_transform($_) } @huge_list;
 my @matches = grep { complex_predicate($_) } @large_dataset;
-my @sorted  = sort { heavy_comparison($a, $b) } @big_array;
 ```
 
-The programmer writes exactly the code they always wrote.  The runtime decides whether to parallelize based on:
-
-- **Workload size** — small lists run sequentially (Rayon overhead isn't worth it for a 10-element array).
-- **Available cores** — if only one core is free, run sequentially.
-- **Safety** — the callback must be safe to call from multiple tasks/threads simultaneously.
-
-#### 13.6.1 Safety analysis for parallelization:
-
-Typed closures (`fn`, `|args|`) are the easy case.  The compiler can prove at compile time that a typed closure touching
-only its arguments and local variables has no shared mutable side effects — always safe to parallelize.
-
-For `sub { }` blocks, the analysis is harder.  The runtime can use a conservative approach:
-
-- If the block only reads `$_` (or its parameters) and calls pure builtins → safe to parallelize.
-- If the block writes to shared variables, calls IO functions, or uses global state → fall back to sequential execution.
-- A `use parallel` pragma could opt in to aggressive parallelization with the programmer asserting that the block is
-  safe.
-
-Even the conservative approach covers the common case — map and grep blocks that transform data are typically pure
-functions of their input.
-
-#### 13.6.2 Beyond map/grep/sort:
-
-The same mechanism extends to:
-
-- `for`/`foreach` with independent iterations
-- Parallel file processing (`map` over file handles)
-- Concurrent HTTP requests (`map` over URLs)
-- Any list-processing pipeline
-
-```perl
-# Parallel pipeline — each stage auto-parallelized
-my @processed =
-    map  { transform($_) }
-    grep { validate($_) }
-    map  { parse($_) }
-    @raw_lines;
-```
-
-This is not a special "parallel mode" or a different set of functions.  It is standard Perl `map` and `grep` running on
-an implementation where the architecture makes parallelism natural.
+The default, everywhere, is sequential.  Requesting parallelism also sets the domain's `concurrent` flag (§2.4.12),
+since it asks for other threads to touch the heap, and so it is a choice a single-task program makes knowingly.  The
+exact surface — the pragma alone, or a per-call form beside it — and what an explicit parallel `sort` promises about
+stability and comparator invocation are §13 items not ruled here; the workload-size and core-count heuristics that an
+explicit form might apply internally are recorded in `ideas.md`.
 
 ### 13.7 Async Integration with Tokio
 
@@ -8155,15 +8268,12 @@ transitions are locked.
 
 #### 13.11.6 Single-threaded fast path.
 
-The most common Perl programs are single-threaded.  What they pay for concurrency they don't use is the uncontended cost
-of the primitives, and nothing else:
-
-- **Atomic operations are cheap on modern hardware.**  An `AtomicU32::fetch_add` is 1-2 nanoseconds on x86.  For
-  comparison, a hash lookup is 20-50ns.  The atomic refcount overhead is small relative to the operations that use it.
-- **`RwLock` is uncontended-fast.**  An uncontended `RwLock::read` on x86 is essentially a single atomic
-  compare-and-swap.  Single-threaded code never contends, so every lock acquisition is the fast path.
-
-Whether single-threaded programs can be spared even that is undecided; the candidates are in `ideas.md` (§4.1, §6.1).
+The most common Perl programs are single-threaded, and they pay nothing for concurrency: the domain's `concurrent` flag
+(§2.4.12) is clear until the first `spawn`, and while it is clear every count operation is plain arithmetic and every
+read and write skips its synchronization, on one predictable branch.  After the first spawn, the per-object tier keeps
+the same fast path for every cell that only its owner touches.  What remains on the atomic path is what is actually
+shared, at the uncontended cost of the primitives — an `AtomicU32::fetch_add` at 1-2 nanoseconds on x86, an uncontended
+`RwLock::read` at one compare-and-swap — which is small next to the operations that use it.
 
 #### 13.11.7 Why not per-interpreter heaps with explicit sharing?
 
@@ -11108,8 +11218,10 @@ The key architectural decisions in this design:
    atomic refcounting.  Only execution context (call stack, special variables, task/thread-local dynamic scope) is
    per-task/thread.  Magic callbacks are code references that run on whatever task/thread accesses the value.  Closures
    are shareable because captures are shared heap values, not Perl 5-style interpreter-local pads.  Per-value `RwLock`
-   for mutable shared state.  Automatic parallelism of `map`/`grep`/`sort` via Rayon.  Implicitly async Perl code on
-   Tokio tasks for IO and Rust-style `async`/`await` for typed code, on a Tokio runtime the host may supply.
+   for mutable shared state.  Parallel `map`/`grep`/`sort` only under an explicit pragma, never automatically.
+   Implicitly async Perl code on Tokio tasks for IO and Rust-style `async`/`await` for typed code, on a Tokio runtime
+   the host may supply.  A sharing tier (§2.4.12): plain arithmetic until the first spawn, and afterward for every cell
+   its owner alone touches, with ownership named in the cell and converted on a foreign touch.
 
 7. **Value model first in implementation order**, because everything depends on it — not lexer first.
 
@@ -11139,6 +11251,8 @@ The key architectural decisions in this design:
 
 ## 25. Glossary
 
+- **Conversion** — making an unshared cell `SHARED`: a converter takes the owner's `converting` lock, establishes that
+  the owner is parked or outside an operation, and sets the bit; one-way until a reclaim (§2.4.12).
 - **Control block** — the two 32-bit words at the head of every slab slot, the gate and the sequence word (§2.4.3).
 - **Destruction stack** — the nodes a task/thread is currently destroying, outermost episode first; the scope of its
   privilege (§2.4.4).
@@ -11167,6 +11281,10 @@ The key architectural decisions in this design:
   (§2.4.4).
 - **Lookaside** — the extent's parallel array of 4-byte per-cell entries holding the spilled weak count and the record
   index (§2.4.2).
+- **Owner** — the one task/thread that may touch an unshared cell with plain operations, named by the 24-bit id in the
+  cell's sequence word; zero is unowned, claimed by the first touch (§2.4.12).
+- **Owner record** — the per-task/thread state the tier keeps: the `INSIDE`/`PARKED` byte the owner writes and the
+  `converting` lock converters take (§2.4.12).
 - **Privilege** — an executor's right to create strong references to a node from nothing, scoped to its destruction
   stack (§2.4.4).
 - **Promotion** — moving a compact value into a stably addressed cell because something takes its identity (§2.2,
