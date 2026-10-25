@@ -7120,8 +7120,8 @@ synchronization is per-value:
   access.
 - **Typed values** — use explicit `Arc<RwLock<T>>` or `Arc<Mutex<T>>` as in Rust.
 
-For `my` variables that are shared and need mutation, the runtime can automatically attach a `RwLock` when a value is
-first accessed from multiple tasks/threads.  This is transparent to the Perl programmer:
+For `my` variables that are shared and mutated, the cell's lock serializes the writers.  This is transparent to the
+Perl programmer:
 
 ```perl
 my @results;
@@ -7135,8 +7135,10 @@ for my $i (1..10) {
 }
 ```
 
-The `RwLock` is only allocated when contention is detected (the value is accessed from more than one task/thread).
-Single-threaded access has zero synchronization overhead.
+Every promoted cell carries its lock (§2.3.1), so the synchronization is always present.  Single-threaded code never
+contends, so every lock acquisition and every count operation takes its uncontended fast path, which makes the overhead
+as small as the primitives allow; it is not zero.  (Single-threaded means one task/thread touching the heap: a native
+Rust host that creates its own threads is multi-threaded whatever the Perl code does.)
 
 ### 13.6 Automatic Parallelism via Rayon
 
@@ -7196,16 +7198,19 @@ an implementation where the architecture makes parallelism natural.
 
 ### 13.7 Async Integration with Tokio
 
-The implementation runs on Tokio, providing two complementary async models that correspond naturally to the `my`/`sub`
-vs `let`/`fn` split.
+**The interpreter requires Tokio, and does not insist on owning it [DECISION].**  `perloxide-runtime` depends on
+Tokio; `perloxide-core` has no runtime dependency and its types work on any thread with no executor present.  An
+embedded interpreter runs on the host's runtime when one is current and creates a `current_thread` runtime of its own
+only when none is — the binary's case.  Tokio provides two complementary async models that correspond naturally to the
+`my`/`sub` vs `let`/`fn` split.
 
-#### 13.7.1 Implicit async for Perl code (Go-style green threads)
+#### 13.7.1 Implicit async for Perl code
 
 Each interpreter is a lightweight execution context — call stack, mortal stack, special variables — running as a Tokio
 task.  When Perl code hits a blocking operation (IO, sleep, network, system call), the interpreter yields to Tokio
 instead of blocking the OS thread.
 
-The Perl code looks completely synchronous.  Thousands of green threads multiplex onto a small number of OS threads:
+The Perl code looks completely synchronous.  Thousands of tasks multiplex onto a small number of OS threads:
 
 ```perl
 # These look synchronous but yield to Tokio under the hood
@@ -7262,13 +7267,16 @@ spawn { my $result = fetch_and_parse("http://example.com") };
 spawn { let $result = fetch_and_transform("http://other.com") };
 ```
 
-The interpreter always runs on a Tokio runtime — even in "synchronous" mode, it uses a single-threaded Tokio runtime
-(`current_thread`).  The `.await` points in the interpreter loop are always present.  In single-threaded mode there is
-only one task, so yielding and resuming is a no-op.  The code path is identical; only the scheduling context differs.
+The interpreter always runs on a Tokio runtime — the host's, or in "synchronous" mode a single-threaded runtime
+(`current_thread`) of its own.  The `.await` points in the interpreter loop are always present.  In single-threaded
+mode there is only one task, so yielding and resuming is a no-op.  The code path is identical; only the scheduling
+context differs.
 
 This is fundamentally different from Python's async split, where `async def` and `def` are different function "colors"
 that cannot freely call each other.  In this model there is one color.  Every function — `sub` or `fn` — is "potentially
-async" because the interpreter handles it transparently.
+async" because the interpreter handles it transparently.  Perl-to-Perl calls never recurse on the Rust stack, since Perl
+frames are heap data; how Perl code re-entered from inside a Rust builtin — a `sort` comparator, a tie method, an
+overload, `DESTROY`, a `(?{ })` block — reaches an IO point is [OPEN], with the candidates in `ideas.md` (§6.2).
 
 #### 13.7.3 `async fn` is optional, not required.
 
@@ -7355,7 +7363,7 @@ mechanistically the future is lazy and the interpreter is polling it.
 
 #### 13.7.6 The two models compose.
 
-Typed async and Perl-style green threads interoperate naturally:
+Typed async and implicitly async Perl code interoperate naturally:
 
 ```perl
 # async fn called from a sub — the interpreter yields while awaiting
@@ -7378,7 +7386,7 @@ async fn pipeline(urls: &[String]) -> Vec<ParsedPage> {
 ```
 
 When a `sub` calls an `async fn`, the result is awaited implicitly — the interpreter yields to Tokio while the future
-completes, and other green threads make progress.  When an `async fn` calls a `sub`, the sub runs synchronously within
+completes, and other tasks make progress.  When an `async fn` calls a `sub`, the sub runs synchronously within
 the current Tokio task.
 
 #### 13.7.7 The shared heap makes this seamless.
@@ -7510,12 +7518,13 @@ from one source, with no async runtime dependency for the sync variant.
 #### 13.7.10 Single-threaded compat mode.
 
 In compat mode, the interpreter runs on a single-threaded Tokio runtime (`current_thread`), preserving Perl 5's
-sequential execution semantics.  The shared heap is still used for architectural uniformity.  Atomic refcount operations
-can be compiled out or replaced with non-atomic versions in single-threaded builds.
+sequential execution semantics.  The shared heap is still used for architectural uniformity; single-threaded code never
+contends (§13.11.6).
 
 ### 13.8 Advanced Async Features
 
-The base async architecture (§13.7) provides green threads and async/await.  Several higher-level features build on it
+The base async architecture (§13.7) provides implicitly async Perl code and async/await.  Several higher-level features
+build on it
 to address real-world concurrency patterns.
 
 #### 13.8.1 Structured concurrency.
@@ -8050,16 +8059,15 @@ transitions are locked.
 
 #### 13.11.6 Single-threaded fast path.
 
-The most common Perl programs are single-threaded.  They should not pay for concurrency they don't use.  Mitigations:
+The most common Perl programs are single-threaded.  What they pay for concurrency they don't use is the uncontended
+cost of the primitives, and nothing else:
 
 - **Atomic operations are cheap on modern hardware.**  An `AtomicU32::fetch_add` is 1-2 nanoseconds on x86.  For
   comparison, a hash lookup is 20-50ns.  The atomic refcount overhead is small relative to the operations that use it.
-- **Build-time feature flag.**  A `--single-threaded` build flag replaces atomic operations with non-atomic equivalents,
-  removing even the memory-ordering overhead.
 - **`RwLock` is uncontended-fast.**  An uncontended `RwLock::read` on x86 is essentially a single atomic
   compare-and-swap.  Single-threaded code never contends, so every lock acquisition is the fast path.
-- **Task/thread-count optimization.**  If only one task/thread exists, skip locking entirely.  An atomic task/thread
-  counter allows the runtime to short-circuit to non-locking paths when concurrency is not active.
+
+Whether single-threaded programs can be spared even that is undecided; the candidates are in `ideas.md` (§4.1, §6.1).
 
 #### 13.11.7 Why not per-interpreter heaps with explicit sharing?
 
@@ -11004,8 +11012,8 @@ The key architectural decisions in this design:
    atomic refcounting.  Only execution context (call stack, special variables, task/thread-local dynamic scope) is
    per-task/thread.  Magic callbacks are code references that run on whatever task/thread accesses the value.  Closures
    are shareable because captures are shared heap values, not Perl 5-style interpreter-local pads.  Per-value `RwLock`
-   for mutable shared state, allocated on demand.  Automatic parallelism of `map`/`grep`/`sort` via Rayon.  Go-style
-   green threads for implicit async IO and Rust-style `async`/`await` for typed code, both on Tokio.
+   for mutable shared state.  Automatic parallelism of `map`/`grep`/`sort` via Rayon.  Implicitly async Perl code on
+   Tokio tasks for IO and Rust-style `async`/`await` for typed code, on a Tokio runtime the host may supply.
 
 7. **Value model first in implementation order**, because everything depends on it — not lexer first.
 

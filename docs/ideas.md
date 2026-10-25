@@ -503,7 +503,68 @@ printf "%-6s n=%d build %.0f ms scan %.0f ms/pass peak %.1f MB %.1f B/elt\n",
 
 ---
 
-## 6. Rejected, with reasons
+## 6. Runtime candidates
+
+Alternatives for the interpreter's execution model.  `design.md` §13.7 rules that the interpreter requires Tokio and
+runs on the host's runtime when one is current; §13.11.6 rules that single-threaded programs pay the uncontended cost of
+the synchronization primitives.  Everything here would change one of those, and none of it is decided.
+
+### 6.1 Single-threaded fast paths beyond the uncontended cost
+
+Three mechanisms have been proposed for sparing single-threaded programs even the uncontended atomics and lock words;
+each has a cost that the design does not yet accept:
+
+- **A build flag replacing atomics with plain operations.**  Zero synchronization cost, in a separate binary that must
+  refuse `spawn thread`, Rayon, and any multi-worker runtime, since nothing in it is sound across OS threads.  A
+  `current_thread` Tokio runtime is fine under it: tasks interleave only at `.await`.
+- **A task/thread-count short-circuit.**  Skip locking while the runtime's task/thread counter reads one.  As stated it
+  is a check-then-act race: the first `spawn` can start mutating while the main task/thread is inside an unlocked
+  write.  It is sound only with a stop-the-world transition at the first spawn — every unlocked operation quiescent
+  before the second task/thread runs — or with the §4.1 publication discipline, which makes the question per value
+  instead of global.
+- **A lock attached on first cross-task/thread access.**  The lock word is absent until a value is reached from a
+  second task/thread.  Attaching it is itself a transition that needs an atomic identity and a publication point, which
+  is again the §4.1 `share()` walk; without that, there is no safe moment to add the word.
+
+The §4.1 tier bit is the one of these that is exact at runtime.  All of them must be decided before the slab `HeapArc`
+fixes the node layout, since each takes bits or words in the control block.
+
+### 6.2 Perl re-entered from a Rust builtin under implicit async
+
+Perl code has one color because the interpreter loop is `async` and Perl frames are heap data, so Perl-to-Perl calls
+never recurse on the Rust stack.  The gap is re-entrancy from Rust: a `sort` comparator, a tie method, an overload, a
+`DESTROY`, a `(?{ })` block, or a signal handler is Perl code called from inside a Rust builtin, with a Rust frame
+between two interpreter frames.  If that Perl code reaches an IO point, one of three things happens:
+
+- **Stackless throughout.**  Every builtin that can call Perl is itself `async` (boxed recursion), comparators
+  included.  No unsafe code; the async-ness spreads through every builtin that can reach user code, which in Perl is
+  most of them, and a Rayon-parallel `sort` cannot yield inside its comparator.
+- **A stackful coroutine per interpreter.**  The Perl stack lives on its own switchable stack (`corosensei`-style); a
+  yield at IO switches stacks whatever Rust frames are in between, and Tokio sees one future that resumes the
+  coroutine.  Re-entrancy becomes trivial — perl's own situation on the C stack — at the price of unsafe stack
+  switching, stack sizing, and care around FFI, TLS, and panics across the switch.  This is the mechanism the phrase
+  "green threads" names; Tokio tasks are stackless state machines, which is why the design no longer uses the phrase.
+- **Non-yielding re-entrant calls.**  Perl called from inside a builtin runs a nested loop that blocks the worker
+  instead of yielding, as `block_in_place` does.  No color is visible at the language level and the results are
+  correct, but a `FETCH` that does network IO stalls a worker thread for its duration.
+
+The choice is about the interpreter's execution model and is best made before the interpreter loop exists.  The
+stackful option also makes §6.3 nearly free.
+
+### 6.3 Running without owning Tokio, or without Tokio
+
+The design requires Tokio and inherits the host's runtime.  Two further steps are possible:
+
+- **A standalone driver.**  An `async` interpreter loop can be driven by any executor.  If the IO layer in synchronous
+  mode makes blocking calls and never returns `Pending`, a trivial `block_on` with a no-op waker runs the loop to
+  completion with no Tokio dependency — §13.7.9's sync/async split applied to the IO backend instead of to user
+  functions.  The cost is an IO, timer, signal, process, and channel abstraction with two backends, and an embedding
+  API with both a blocking `run` and an `async run`.
+- **Other executors.**  The same abstraction with a second async backend would admit `smol` or similar.  Timers,
+  sockets, processes, and signals are each executor-specific, so this is a backend per executor, not a flag;
+  `async-std` itself was discontinued in 2025 in favor of `smol`, so it is not a target.
+
+## 7. Rejected, with reasons
 
 - **Pages / segmented arrays** (Sol, Astra): per-segment locks and per-page shapes buy concurrent writes to distinct
   inline elements of one shared array and density under region-clustered heterogeneity — both rare — at the price of a
