@@ -92,6 +92,16 @@ sub spew {
     close $fh or die "cannot close $path: $!\n";
 }
 
+# A blessed channel is refused if any line ends in whitespace.  Editors and git strip trailing whitespace, so a
+# blessed output carrying it would be silently corrupted the next time anyone touched the file; the probe is rewritten
+# to delimit what it prints instead.
+sub spew_blessed {
+    my ($path, $text, $id) = @_;
+    die "$id: " . basename($path) . " has trailing whitespace; delimit the probe's output instead of blessing it\n"
+        if $text =~ /[ \t]+(?:\n|\z)/;
+    spew($path, $text);
+}
+
 sub load_config {
     my ($path) = @_;
     my %conf = (timeout => 60);
@@ -255,14 +265,14 @@ sub cmd_bless {
             if ($verdict eq 'lane-A-eligible') {
                 my $s = $runs->{'stock.seed0.1'};
                 my @exact = Oracle::Normalize::exact(@{$s}{qw(stdout stderr fd3)});
-                spew("$dir/seed0.$_", shift @exact) for qw(stdout stderr fd3);
+                spew_blessed("$dir/seed0.$_", shift @exact, $t->{id}) for qw(stdout stderr fd3);
                 spew("$dir/seed0.exit", $s->{exit});
             }
             if ($verdict eq 'lane-B-only' || ($verdict eq 'lane-A-eligible' && $detail->{also_lane_b})) {
                 for my $mode (qw(seed0 seed1)) {
                     my $r = $runs->{"stock.$mode.1"};
                     my @canon = Oracle::Normalize::canonical(@{$r}{qw(stdout stderr fd3)});
-                    spew("$dir/canonical.$mode.$_", shift @canon) for qw(stdout stderr fd3);
+                    spew_blessed("$dir/canonical.$mode.$_", shift @canon, $t->{id}) for qw(stdout stderr fd3);
                     spew("$dir/canonical.$mode.exit", $r->{exit});
                 }
             }
@@ -270,7 +280,7 @@ sub cmd_bless {
         for my $cross ($verdict eq 'lane-A-eligible' ? qw(xcheck xconfig) : ()) {
             my $x = read_record(test_dir($results, $t->{id}) . "/$cross.seed0.1") or next;
             my @exact = Oracle::Normalize::exact(@{$x}{qw(stdout stderr fd3)});
-            spew("$dir/$cross.seed0.$_", shift @exact) for qw(stdout stderr fd3);
+            spew_blessed("$dir/$cross.seed0.$_", shift @exact, $t->{id}) for qw(stdout stderr fd3);
             spew("$dir/$cross.seed0.exit", $x->{exit});
         }
         printf "blessed %-44s %s\n", $t->{id}, $verdict;

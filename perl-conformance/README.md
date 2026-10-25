@@ -30,6 +30,11 @@ implementation's own documentation.
 **Admission.** A fact enters the reference only with a probe or a model row that demonstrates it on the pinned Perl.  A
 fact without one is not a fact yet.
 
+**Blessed output never ends a line in whitespace.**  Editors and git strip trailing whitespace, so a blessed file that
+depends on it is corrupted the first time anyone touches it.  A probe that would print a trailing space — an empty list
+interpolated at the end of a line, say — is rewritten to delimit what it prints; `harness/bin/oracle bless` refuses such
+output, and `harness/tools/lint-blessed.sh` checks the hand-blessed suite files.
+
 **Models.** A model is a transcription of one area of Perl's C source into Perl, validated by replaying Perl's own
 observed behavior through it.  Every snake_case routine in a model package mirrors the Perl function of the same name
 with its `Perl_`/`S_` prefix removed, one-to-one with the C call graph; macros and inline helpers keep their exact
