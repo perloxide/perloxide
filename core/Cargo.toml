@@ -24,7 +24,7 @@ tikv-jemalloc-sys = { workspace = true, optional = true }
 
 # The process-wide asymmetric barrier (`barrier`) is a system call on each platform that has one.
 [target.'cfg(target_os = "linux")'.dependencies]
-libc              = { workspace = true }
+nix               = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys       = { workspace = true, features = ["Win32_System_Threading"] }

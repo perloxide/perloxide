@@ -107,28 +107,31 @@ pub fn heavy() -> Result<(), BarrierError> {
 #[cfg(target_os = "linux")]
 mod platform {
     use super::{Backend, BarrierError};
+    use nix::errno::Errno;
     use std::ffi::{c_int, c_long};
-    use std::io;
 
-    /// The `membarrier(2)` commands this module uses.  They are the kernel's ABI values (`uapi/linux/membarrier.h`),
-    /// defined here rather than taken from the `libc` crate so that the floor on that crate's version stays where the
-    /// rest of the workspace needs it.
+    /// The `membarrier(2)` commands this module uses.  They are the kernel's ABI values (`uapi/linux/membarrier.h`).
+    /// `nix` wraps no `membarrier`, so the call below is the one raw system call in this crate; the command values are
+    /// defined here rather than imported so that the dependency on the underlying `libc` crate stays confined to the
+    /// system call number.
     const CMD_QUERY: c_int = 0;
     const CMD_PRIVATE_EXPEDITED: c_int = 1 << 3;
     const CMD_REGISTER_PRIVATE_EXPEDITED: c_int = 1 << 4;
 
     /// Issue one `membarrier` command.  The kernel takes `(cmd, flags, cpu_id)`; the latter two are zero for every
     /// command used here, and kernels older than the third argument ignore it.
-    fn membarrier(cmd: c_int) -> Result<c_long, i32> {
+    fn membarrier(cmd: c_int) -> Result<c_long, Errno> {
         // SAFETY: a raw system call with scalar arguments; the kernel validates the command and touches no caller
         // memory.
-        let ret = unsafe { libc::syscall(libc::SYS_membarrier, cmd, 0 as c_int, 0 as c_int) };
+        let ret = unsafe { nix::libc::syscall(nix::libc::SYS_membarrier, cmd, 0 as c_int, 0 as c_int) };
 
-        if ret < 0 { Err(errno()) } else { Ok(ret) }
+        Errno::result(ret)
     }
 
-    fn errno() -> i32 {
-        io::Error::last_os_error().raw_os_error().unwrap_or(0)
+    impl From<Errno> for BarrierError {
+        fn from(errno: Errno) -> Self {
+            BarrierError::Os(errno as i32)
+        }
     }
 
     /// Whether the private expedited command exists and can be registered for.
@@ -159,11 +162,13 @@ mod platform {
                 // `EPERM` means this address space is not registered.  Registration happened at detection, so the only
                 // way to be here is a `fork`: the child's address space is a copy, and whether the registration copies
                 // with it is the kernel's business.  Register again and retry once; a second refusal is real.
-                Err(libc::EPERM) => {
-                    membarrier(CMD_REGISTER_PRIVATE_EXPEDITED).map_err(BarrierError::Os)?;
-                    membarrier(CMD_PRIVATE_EXPEDITED).map(|_| ()).map_err(BarrierError::Os)
+                Err(Errno::EPERM) => {
+                    membarrier(CMD_REGISTER_PRIVATE_EXPEDITED)?;
+                    membarrier(CMD_PRIVATE_EXPEDITED)?;
+
+                    Ok(())
                 }
-                Err(code) => Err(BarrierError::Os(code)),
+                Err(errno) => Err(errno.into()),
             },
             Backend::Mprotect => mprotect::barrier(),
             Backend::FlushProcessWriteBuffers | Backend::Unavailable => Err(BarrierError::Unavailable),
@@ -180,18 +185,21 @@ mod platform {
     /// has run on it since its last switch, and a switch drains the buffers.
     pub(crate) mod mprotect {
         use super::BarrierError;
+        use nix::sys::mman::{MapFlags, ProtFlags, mlock, mmap_anonymous, mprotect, munmap};
+        use nix::unistd::{SysconfVar, sysconf};
         use std::ffi::c_void;
-        use std::ptr;
+        use std::num::NonZeroUsize;
+        use std::ptr::NonNull;
         use std::sync::atomic::{AtomicUsize, Ordering};
         use std::sync::{LazyLock, Mutex};
 
         struct Page {
-            base: *mut c_void,
+            base: NonNull<c_void>,
             len: usize,
             lock: Mutex<()>,
         }
 
-        // SAFETY: the page is private to this process, every access to it happens under `lock`, and the raw pointer is
+        // SAFETY: the page is private to this process, every access to it happens under `lock`, and the pointer is
         // never handed out.
         unsafe impl Send for Page {}
         unsafe impl Sync for Page {}
@@ -206,34 +214,34 @@ mod platform {
         static PAGE: LazyLock<Option<Page>> = LazyLock::new(map_page);
 
         fn map_page() -> Option<Page> {
-            // SAFETY: `sysconf` reads a constant.
-            let len = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
-            let len = usize::try_from(len).ok().filter(|len| *len > 0)?;
+            let len = sysconf(SysconfVar::PAGE_SIZE).ok().flatten()?;
+            let len = NonZeroUsize::new(usize::try_from(len).ok()?)?;
 
             // The page is mapped writable first and only then made inaccessible, because the lock below must come in
             // between: `mlock` populates the pages it locks, and it cannot populate a `PROT_NONE` mapping, so locking
             // one fails with `ENOMEM`.  The locked state belongs to the mapping and survives the protection change.
             //
-            // SAFETY: an anonymous private mapping with no file and no caller memory involved.
-            let base = unsafe { libc::mmap(ptr::null_mut(), len, libc::PROT_READ | libc::PROT_WRITE, libc::MAP_PRIVATE | libc::MAP_ANONYMOUS, -1, 0) };
-            if base == libc::MAP_FAILED {
-                return None;
-            }
+            // SAFETY: an anonymous private mapping at an address of the kernel's choosing, with no file and no caller
+            // memory involved.
+            let base = unsafe { mmap_anonymous(None, len, ProtFlags::PROT_READ | ProtFlags::PROT_WRITE, MapFlags::MAP_PRIVATE) }.ok()?;
+            let len = len.get();
 
             // The page must stay resident: a barrier against a page that was paged out would find no translation to
             // invalidate and interrupt nobody.  One page is within any default `RLIMIT_MEMLOCK`; if the lock is refused
             // anyway, the trick is not safe to rely on and the mapping goes back.
             //
             // SAFETY: `base` and `len` describe the mapping made above.
-            let locked = unsafe { libc::mlock(base, len) } == 0;
+            let locked = unsafe { mlock(base, len) }.is_ok();
 
             // SAFETY: as above; a failed protection change leaves the mapping valid and merely writable, which the
             // first barrier would set again anyway, but a page that cannot be made inaccessible cannot carry the trick
             // either.
-            let hidden = locked && unsafe { libc::mprotect(base, len, libc::PROT_NONE) } == 0;
+            let hidden = locked && unsafe { mprotect(base, len, ProtFlags::PROT_NONE) }.is_ok();
             if !hidden {
+                // A failed unmap of a page that is being abandoned anyway is not actionable.
+                //
                 // SAFETY: unmapping the mapping made above, which nothing else references.
-                unsafe { libc::munmap(base, len) };
+                let _ = unsafe { munmap(base, len) };
 
                 return None;
             }
@@ -251,21 +259,17 @@ mod platform {
             let _guard = page.lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
 
             // SAFETY: `base` and `len` are the mapping's; changing its protection touches no other memory.
-            if unsafe { libc::mprotect(page.base, page.len, libc::PROT_READ | libc::PROT_WRITE) } != 0 {
-                return Err(BarrierError::Os(super::errno()));
-            }
+            unsafe { mprotect(page.base, page.len, ProtFlags::PROT_READ | ProtFlags::PROT_WRITE) }?;
 
             // Dirty the page under the lock so that a present, dirty translation exists before it is revoked; a clean
             // or absent translation would let the kernel skip the shootdown.
             //
             // SAFETY: the page is mapped, writable, page-aligned, and private to this process; the atomic is in-bounds
             // and aligned.
-            unsafe { (*page.base.cast::<AtomicUsize>()).fetch_add(1, Ordering::SeqCst) };
+            unsafe { page.base.cast::<AtomicUsize>().as_ref().fetch_add(1, Ordering::SeqCst) };
 
             // SAFETY: as above.
-            if unsafe { libc::mprotect(page.base, page.len, libc::PROT_NONE) } != 0 {
-                return Err(BarrierError::Os(super::errno()));
-            }
+            unsafe { mprotect(page.base, page.len, ProtFlags::PROT_NONE) }?;
 
             Ok(())
         }
