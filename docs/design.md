@@ -180,8 +180,8 @@ for stable identity on every scalar up front (every SV is a heap object behind a
 identity-taking (references to lexicals, ties) is rare.  The two-tier model puts the cheap case inline and the rare case
 behind one allocation.
 
-**Once promoted, never demoted.**  Identity is the `Arc` address; any reference holding it must remain valid forever.
-All upgrades happen inside the allocation (§2.3.2), never by replacing it.
+**Once promoted, never demoted.**  Identity is the `HeapArc` address; any reference holding it must remain valid
+forever.  All upgrades happen inside the allocation (§2.3.2), never by replacing it.
 
 #### 2.2.1 `Value` — the universal slot value:
 
@@ -238,7 +238,7 @@ ops, and `ARRAY(0x...)`-style stringification all branch on referent kind first;
 wants to branch.  The scalar arms flatten one level further — per *mutability*, mirroring `Referent`'s Mut/Const split —
 because the nested identity enum carries its own tag that rustc cannot relocate, measurably defeating the niche-folding
 that keeps the envelope at 16 bytes (nested: 24; flattened: 16 — measured, and the write path branches on mutability
-exactly as deref branches on kind).  `cell::Referent` remains the API view type, reconstructed by `Arc` clone at the
+exactly as deref branches on kind).  `cell::Referent` remains the API view type, reconstructed by `HeapArc` clone at the
 boundary.  Remaining reference kinds adopt the same flattening if their identity types measure the same way when built.
 Aliased slots carry both mutabilities: `foreach` over a literal list aliases the loop variable to readonly elements, so
 `AliasConst` slots are real.
@@ -1763,12 +1763,12 @@ variants for a 16–20-character band, whose marquee 22-character case misses an
 
 ```rust
 enum Referent {
-    Mut(Arc<RwLock<Scalar>>),   // ordinary mutable scalar
-    Const(Arc<ConstScalar>),        // truly immutable; no lock
+    Mut(HeapArc<RwLock<Scalar>>),   // ordinary mutable scalar
+    Const(HeapArc<ConstScalar>),    // truly immutable; no lock
 }
 ```
 
-- Reference identity is `Arc::ptr_eq`; `==` on Perl references compares it.
+- Reference identity is `HeapArc::ptr_eq`; `==` on Perl references compares it.
 - Reads unify behind an accessor returning a guard that derefs to the cell either way.  `Const` reads take no lock: no
   acquisition, no contention, freely concurrent.
 - `write()` on a `Const` has no lock to hand out: the mutation failure is *structural*, surfacing as the error the
@@ -1808,7 +1808,7 @@ struct FullScalar {
 
 `Scalar` is 16 bytes (§2.2.9): the `Full` variant is a single pointer that threads through the payload's spare
 niche encodings (measured; §2.3.6).  Upgrade from `Plain` to `Full` happens **in place under the write lock** — the
-`Arc` address never changes, preserving every outstanding reference.  This is the same invariant perl's `sv_upgrade`
+`HeapArc` address never changes, preserving every outstanding reference.  This is the same invariant perl's `sv_upgrade`
 maintains by swapping bodies behind a stable head; the mechanism differs (variant rewrite vs. body pointer), the
 identity guarantee is identical.
 
@@ -1865,15 +1865,15 @@ single value).  Their promoted forms are two immortal singletons (`static LazyLo
 - false: `Value::False`, the dualvar — numerically 0, string `""` (not `"0"`).  Verified container 5.38: `(1==0)."" `
   has length 0.
 - Sharing is observably correct, not just fast: `\(1==1)` twice in perl yields the same address.  Upgrading
-  `Value::True` returns a clone of the singleton `Arc`.
+  `Value::True` returns a clone of the singleton `HeapArc`.
 - Assignment copies, aliasing shares: `my $x = (1==1); $x = 5` is legal (the *slot's* value is replaced); mutation of
   the immortal itself (through a ref or `foreach` alias) dies read-only.
 - `builtin::is_bool` answers from the variant, trivially.
 
-The singleton contract is pinned by perloxide-core tests requiring no runtime: `Arc::ptr_eq` across separate upgrades of
-`True` (and of `False`); the two singletons distinct; upgrades yield `Const`; pre-materialized values as above; mutation
-attempts yield the readonly error, never a panic; cross-task/thread upgrades still `ptr_eq` (guarding `LazyLock`
-initialization races).
+The singleton contract is pinned by perloxide-core tests requiring no runtime: `HeapArc::ptr_eq` across separate
+upgrades of `True` (and of `False`); the two singletons distinct; upgrades yield `Const`; pre-materialized values as
+above; mutation attempts yield the readonly error, never a panic; cross-task/thread upgrades still `ptr_eq` (guarding
+`LazyLock` initialization races).
 
 #### 2.3.4 Numification warnings:
 
@@ -2307,9 +2307,9 @@ that produced them.  Rulings are stated as design; questions still open are list
 is the prerequisite for §21.1 step 6 and for §2.3.9.
 
 **Locations leave `Value`.**  `AliasMut` and `AliasConst` are location variants — a slot naming a promoted cell — and as
-members of `Value` they make `Clone` ambiguous: deriving it bumps the `Arc`, which creates a second *name* rather than a
-copy, and nothing in the type says which a given `Value` is.  They move to `Slot`.  `Value` is then purely an rvalue:
-`Clone` copies, and every read is the value it holds.  `Slot` is deliberately not `Clone`; copying a location is
+members of `Value` they make `Clone` ambiguous: deriving it bumps the `HeapArc`, which creates a second *name* rather
+than a copy, and nothing in the type says which a given `Value` is.  They move to `Slot`.  `Value` is then purely an
+rvalue: `Clone` copies, and every read is the value it holds.  `Slot` is deliberately not `Clone`; copying a location is
 meaningless, and `load` (copy the value out) and `alias` (make a second name) stay separate verbs.
 
 **`Slot` is the name.**  §21.1 already calls this the slot model.  `Lvalue` is reserved for the syntactic category —
@@ -2331,7 +2331,7 @@ shape from `Slot::Cell(r)` (aliases the referent) by construction.
 cell names it until the slot dies; taking a reference is an initialization-only operation.  This is perl's `sv_upgrade`
 address stability from the other side.  Consequence: once a reader holds the cell pointer it is valid for as long as the
 slot holds it — that edge needs no reclamation protocol of any kind.  Freeing a cell whose count reaches zero is
-ordinary `Arc` semantics and is unaffected (the slot's own reference has already been released).
+ordinary `HeapArc` semantics and is unaffected (the slot's own reference has already been released).
 
 **Identity does not copy; therefore identity lives in the cell.** Container-verified on 5.44: a readonly scalar assigned
 to another variable yields a *mutable* copy; a tied scalar assigned yields a plain copy of its fetched value.  Readonly,
@@ -2339,8 +2339,8 @@ magic, and blessedness are per-location facts, never per-value — so they can l
 unpromoted `Slot`, only in the cell.  This is what forces the three-type split rather than one type with flags.
 
 **Demotion and claim-free reads are mutually exclusive.**  Collapsing a live cell back into its slot when the count
-drops to one is implementable (`Arc::try_unwrap`), but it means a reader may not use a cell pointer it read from a slot
-without holding a refcount or a lock for the duration.  If demotion never happens, readers deref the pointer with
+drops to one is implementable (`HeapArc::try_unwrap`), but it means a reader may not use a cell pointer it read from a
+slot without holding a refcount or a lock for the duration.  If demotion never happens, readers deref the pointer with
 nothing held.  The price of the other choice is measured: a `HeapArc` clone-and-drop pair is 13 ns against the 19 ns
 lock it would be replacing (`benchmarking.md`).  Ruled: no demotion; reads through a slot's cell pointer hold no claim.
 
@@ -2404,7 +2404,7 @@ replaceable.
 
 **Four cases, three of them free.**  A bare `Value` in a slot is unshared by definition (§2.2.14) — no writer exists, so
 a read is a plain load, and nothing here applies.  A frozen cell's payload never changes, so its read is a plain `&self`
-access pinned by the `Arc`, whatever the payload holds; pointer-bearing changes nothing.  A mutable cell holding an
+access pinned by the `HeapArc`, whatever the payload holds; pointer-bearing changes nothing.  A mutable cell holding an
 envelope-resident payload has a real writer, so a read can tear and needs the sequence check, but nothing is owned so
 nothing can be freed underneath it: this is where the seqlock applies, soundly, with no reclamation question.  A mutable
 cell holding an owning payload is the one quadrant where the lock does work only a lock can do: a replaced pointer can
@@ -3775,8 +3775,8 @@ trait would inherit that work rather than justify it.
 
 ### 3.1 Shared Runtime State
 
-With `Arc<RwLock<T>>` values (§2.2), there is no centralized "heap" that owns all values.  Values are self-contained —
-each `Arc` manages its own lifetime through atomic reference counting.  There is no per-interpreter data heap.
+With `HeapArc<RwLock<T>>` values (§2.2), there is no centralized "heap" that owns all values.  Values are self-contained
+— each `HeapArc` manages its own lifetime through atomic reference counting.  There is no per-interpreter data heap.
 
 The shared runtime holds only coordination structures:
 
@@ -3788,9 +3788,10 @@ struct SharedRuntime {
 }
 ```
 
-Magic-bearing values (tied, overloaded, with `DESTROY`) use the same `Arc<RwLock<T>>` representation as any other value.
-Magic is metadata on the value — "when accessed, call this code ref."  The code ref is compiled IR plus captured values,
-all reference-counted.  Whatever task/thread accesses the value runs the magic callback on its own execution context.
+Magic-bearing values (tied, overloaded, with `DESTROY`) use the same `HeapArc<RwLock<T>>` representation as any other
+value.  Magic is metadata on the value — "when accessed, call this code ref."  The code ref is compiled IR plus captured
+values, all reference-counted.  Whatever task/thread accesses the value runs the magic callback on its own execution
+context.
 
 Each interpreter task/thread owns only execution context, not data:
 
@@ -3814,9 +3815,10 @@ The `SpecialVars` struct holds variables that reflect execution state (`$@`, `$_
 Perl has a concept of "mortal" SVs — temporaries whose refcount is decremented at the end of the current statement or
 scope.  This is essential for expression evaluation.
 
-With `Arc`-based values, "mortal" means the interpreter holds a temporary `Arc` clone that is dropped at scope exit.
-The mortal stack is a per-task/thread `Vec<Value>` — at scope exit, each entry is dropped, decrementing its `Arc`
-refcount.  If the refcount reaches zero, the value is freed.  This mirrors `SAVETMPS` / `FREETMPS` from Perl 5.
+With `HeapArc`-based values, "mortal" means the interpreter holds a temporary `HeapArc` clone that is dropped at scope
+exit.  The mortal stack is a per-task/thread `Vec<Value>` — at scope exit, each entry is dropped, decrementing its
+`HeapArc` refcount.  If the refcount reaches zero, the value is freed.  This mirrors `SAVETMPS` / `FREETMPS` from Perl
+5.
 
 ### 3.3 Dynamic Scope (`local`) via Task/Thread-Local Storage
 
@@ -6694,7 +6696,7 @@ struct Glob {
     array: Option<ArrayRef>,
     hash: Option<HashRef>,
     code: Option<Arc<Code>>,
-    io: Option<Arc<RwLock<IoHandle>>>,
+    io: Option<HeapArc<RwLock<IoHandle>>>,
     format: Option<Arc<Format>>,
 }
 ```
@@ -7033,8 +7035,8 @@ interpreter — they need *an* interpreter's execution context to run on, and an
 All values — including magic-bearing values — live on a single shared heap (§3.1) with atomic reference counting.  There
 is no per-interpreter data heap.  No value migration between heaps.
 
-This means sharing data across tasks/threads is the default, not a special operation.  Every value is `Arc`-refcounted
-and accessible from any task/thread:
+This means sharing data across tasks/threads is the default, not a special operation.  Every value is
+`HeapArc`-refcounted and accessible from any task/thread:
 
 ```perl
 # All of these are on the shared heap from the moment they're created
@@ -7069,18 +7071,18 @@ Spawning a thread or async task creates a new `Interpreter` with a fresh executi
 
 ### 13.4 Closures and Tasks/Threads
 
-A closure is compiled IR (read-only, `Arc<Code>`) plus captured values (also `Arc`-refcounted).  Since both components
+A closure is compiled IR (read-only, `Arc<Code>`) plus captured values (`HeapArc`-refcounted).  Since both components
 are shared by construction, all closures are inherently shareable across tasks/threads.
 
 This is a fundamental departure from Perl 5, where a closure captures a "lexical pad" — an AV allocated in the
 per-interpreter arena, making every closure interpreter-local.
 
 This design does not use Perl 5-style pads.  A closure's captures are a `Vec<Value>` where each value is
-`Arc`-refcounted:
+`HeapArc`-refcounted:
 
 ```perl
-my $name = "worker";       # Arc-refcounted
-my $count = 0;             # Arc-refcounted
+my $name = "worker";       # HeapArc-refcounted
+my $count = 0;             # HeapArc-refcounted
 
 spawn {
     # captures are shared heap values — closure is Send
@@ -8007,8 +8009,8 @@ calls on a shared object in any language.  Perl 5 doesn't guarantee transactiona
 #### 13.11.4 `DESTROY` on arbitrary tasks/threads.
 
 When the last reference to an object is dropped, `DESTROY` runs.  With atomic refcounting on a shared heap, the last
-`Arc::drop` could happen on any task/thread.  This means `DESTROY` may run on a different task/thread than the one that
-created the object.
+`HeapArc::drop` could happen on any task/thread.  This means `DESTROY` may run on a different task/thread than the one
+that created the object.
 
 This is semantically correct — the object's lifetime has ended regardless of which task/thread noticed — but it may
 surprise Perl code that assumes `DESTROY` runs in the creator's context.  Mitigations:
@@ -8097,7 +8099,7 @@ solve.
 ### 14.1 Motivation
 
 The default Perl scalar is a `PString`-backed container with int/num/string coercion flags, magic chains, and
-`Arc`-refcounted heap allocation.
+`HeapArc`-refcounted heap allocation.
 
 This is necessary for Perl 5 compatibility, but it imposes costs:
 
@@ -10381,7 +10383,7 @@ the IR can include optional instrumentation points that activate when profiling 
 
 - Per-function entry/exit timing
 - Per-line execution counts
-- Allocation tracking (how many `Arc`s created, how many upgraded from compact to full Scalar)
+- Allocation tracking (how many `HeapArc`s created, how many upgraded from compact to full Scalar)
 - Lock contention tracking (which values are contended, how long waits take)
 - Async task lifecycle events
 
@@ -10581,8 +10583,8 @@ expensive to fix later.  The internal ordering follows the dependency structure 
 
 14. Mortal stack — `Vec<Value>` per interpreter, scope-entry marks, scope-exit drops.
 
-15. Task/Thread-local `local` mechanism — `Option<Box<LocalStack>>` with `WasInactive`/`WasActive` save stack.  Test with
-    simulated scope entry/exit.
+15. Task/Thread-local `local` mechanism — `Option<Box<LocalStack>>` with `WasInactive`/`WasActive` save stack.  Test
+    with simulated scope entry/exit.
 
 Each of these is independently testable with `#[test]` functions.  No lexer, no parser, no interpreter — just data
 structures and their operations.  Behavioral expectations are container-verified before being pinned (§1.1); layout
@@ -10668,8 +10670,8 @@ Implement builtins incrementally, guided by which upstream tests are closest to 
 ### 21.10 Concurrency
 
 Implement per-value synchronization, `spawn`/`spawn blocking`/ `spawn thread`, and Tokio integration.  The
-`Arc<RwLock<T>>` value model is concurrent from day one; this step adds the multi-task/thread execution paths, the Tokio
-event loop, and the cardinal invariant enforcement (§13.11).
+`HeapArc<RwLock<T>>` value model is concurrent from day one; this step adds the multi-task/thread execution paths, the
+Tokio event loop, and the cardinal invariant enforcement (§13.11).
 
 ### 21.11 Typed layer
 
@@ -10988,9 +10990,9 @@ staggering blow, and this design says so rather than waving it away.
 
 The key architectural decisions in this design:
 
-1. **`Arc<RwLock<T>>`-based value representation.**  Self-managing reference-counted values, no centralized arena.
+1. **`HeapArc<RwLock<T>>`-based value representation.**  Self-managing reference-counted values, no centralized arena.
    `PString` as a distinct type (octet vec + UTF-8 flag), not Rust `String`.  Small values (integers, floats, short
-   strings) inline in `Value` enum; heap-allocated values (scalars with magic, arrays, hashes) use `Arc<RwLock<T>>`.
+   strings) inline in `Value` enum; heap-allocated values (scalars with magic, arrays, hashes) use `HeapArc<RwLock<T>>`.
 
 2. **Atomic reference counting with strict Perl cycle semantics** (cycles leak until global destruction — §2.4) for
    memory management.  Per-variable task/thread-local save stacks for `local` dynamic scope (§3.3).  Mortal stack for
