@@ -9,6 +9,9 @@
 #   perl-conformance selftest CORPUS [--only RE]        run + verdict, then compare against the target's blessing
 #   perl-conformance gaps     CORPUS                    list the tests not yet blessed on the target version
 #   perl-conformance check    CORPUS --impl PATH        run an implementation and compare per lane against the target
+#   perl-conformance explain  [ID...] [--run]           print facts.md entries with their evidence resolved to paths;
+#                                                      no id lists every id; --run also runs the cited probes and cases
+#   perl-conformance cite-check FILE...                 verify that every [fact:ID] citation in FILE names an entry
 #
 # Common options: --target VERSION (default: the newest version in ../supported-versions; also PERL_CONFORMANCE_TARGET),
 # --results DIR (default ./results; runs land in DIR/VERSION), --config FILE (default perl-conformance.conf next to bin/).
@@ -31,6 +34,8 @@ use Getopt::Long qw(GetOptionsFromArray);
 use Perl::Conformance::Run;
 use Perl::Conformance::Normalize;
 use Perl::Conformance::Locales;
+use Perl::Conformance::Facts;
+use Text::Wrap ();
 
 # The LOCPATH holding the harness's compiled locales, set at startup; undef when they could not be compiled.
 our $LOCPATH;
@@ -77,7 +82,10 @@ sub build_path {
     return $conf->{ $FAMILY{$family}{$build} };
 }
 
-sub usage { die "usage: perl-conformance list|run|verdict|bless|selftest|gaps|check CORPUS [options]\n" }
+sub usage {
+    die "usage: perl-conformance list|run|verdict|bless|selftest|gaps|check CORPUS [options]\n"
+      . "       perl-conformance explain [ID...] [--run] | cite-check FILE...\n";
+}
 
 sub slurp {
     my ($path) = @_;
@@ -455,20 +463,213 @@ sub cmd_gaps {
     return @gaps ? 1 : 0;
 }
 
+my $FACTS_ROOT = File::Spec->rel2abs("$Bin/../..");
+
+# Loads facts.md and refuses to go on if its form is broken, since every id and citation rests on it.
+sub load_facts {
+    my $facts = Perl::Conformance::Facts->load("$FACTS_ROOT/facts.md");
+    my @problems = $facts->lint;
+    print STDERR "$_\n" for @problems;
+    die "facts.md has " . scalar(@problems) . " problem(s)\n" if @problems;
+    return $facts;
+}
+
+# Wraps an entry's text at 120 columns under an indent, never breaking inside a code span.
+sub wrap_entry {
+    my ($indent, $text) = @_;
+    $text =~ s/(`[^`]*`)/ my $c = $1; $c =~ s{ }{\x{1}}g; $c /ge;
+    local $Text::Wrap::columns = 121;
+    local $Text::Wrap::huge    = 'overflow';
+    local $Text::Wrap::unexpand = 0;
+    my $out = Text::Wrap::wrap($indent, $indent, $text);
+    $out =~ s/\x{1}/ /g;
+    $out =~ s/[ \t]+$//mg;
+    return "$out\n";
+}
+
+# `explain` with no ids: every id under its area, with versions.
+sub list_facts {
+    my ($facts) = @_;
+    for my $area ($facts->areas) {
+        next unless @{ $area->{facts} };
+        print "$area->{title}\n";
+        printf "  %-44s [%s]\n", $_->{id}, $_->{versions} for @{ $area->{facts} };
+    }
+}
+
+# `explain ID...`: the entry, its Perl source references, and its evidence with every path resolved.  Under --run the
+# cited corpus probes and suite cases run on the target's stock build and are compared with the target's blessing, and
+# cited research probes run for their output alone.
+sub cmd_explain {
+    my ($facts, $run, @ids) = @_;
+    my $missing = 0;
+    for my $id (@ids) {
+        my $fact = $facts->fact($id);
+        unless ($fact) {
+            print STDERR "no fact `$id`\n";
+            $missing++;
+            next;
+        }
+        print "$fact->{id} [$fact->{versions}]\n";
+        print "area: $fact->{area}{title} (facts.md:$fact->{line})\n\n";
+        print wrap_entry('  ', $fact->{text}), "\n";
+        my @evidence = $facts->evidence($fact);
+        my @source = map { $_->{name} } grep { $_->{kind} eq 'source' } @evidence;
+        print "source: ", join(', ', @source), "\n" if @source;
+        my @cited = grep { $_->{kind} ne 'source' } @evidence;
+        if (@cited) {
+            print "evidence:\n";
+            for my $e (@cited) {
+                my $flag = exists $e->{exists} && !$e->{exists} ? 'MISSING ' : '';
+                my $where = $e->{kind} eq 'case' && $e->{path} ? "  ($e->{path})" : '';
+                printf "  %s%-5s %s%s\n", $flag, $e->{kind}, $e->{name}, $where;
+            }
+        }
+        print "\n";
+        $missing += run_evidence($run, @cited) if $run;
+    }
+    return $missing ? 1 : 0;
+}
+
+# Runs each runnable piece of evidence on the target's stock build.  A corpus probe is run once in seed0 mode in the
+# family its requirements name and compared with the target's blessing the way selftest compares; a suite case is run
+# the way the suite's run.sh runs it and compared with its expected file; a research probe is run for its output.
+# Returns the number of runs that differ from their blessing.
+sub run_evidence {
+    my ($run, @cited) = @_;
+    my ($conf, $results) = @{$run}{qw(conf results)};
+    my $differs = 0;
+    for my $e (@cited) {
+        next unless $e->{path} && $e->{exists};
+        my $path = "$FACTS_ROOT/$e->{path}";
+        if ($e->{kind} eq 'case') {
+            my ($suite, $name) = $e->{path} =~ m{^(suites/[^/]+)/cases/([^/]+)\.pl\z};
+            my $expected = "$FACTS_ROOT/$suite/expected/$conf->{target}/$name.out";
+            my $got = `cd "$FACTS_ROOT/$suite/cases" && "$conf->{stock}" "$name.pl" 2>&1; echo "exit=\$?"`;
+            my $want = slurp($expected);
+            my $same = -e $expected && $got eq $want;
+            $differs++ unless $same;
+            print "run $e->{path} on $conf->{target} stock: ", (-e $expected ? ($same ? "matches the blessing" : "DIFFERS from $suite/expected/$conf->{target}/$name.out") : "no blessing on $conf->{target}"), "\n";
+            print indent_block($got), "\n";
+        }
+        elsif ($e->{path} =~ m{^probes/corpus/[^/]+\.pl\z}) {
+            my $corpus = "$FACTS_ROOT/probes/corpus";
+            my $name = basename($e->{path});
+            for my $t (grep { basename($_->{file}) eq $name } discover($corpus, undef)) {
+                my $family = family_of($t);
+                my $perl = build_path($conf, $family, 'stock');
+                my @unmet = grep { !has_capability($perl, $_) } @{ $t->{requires} };
+                if (@unmet) {
+                    print "run $t->{id}: requirements unmet on $conf->{target} $family stock (@{[ map { $_->[0] } @unmet ]})\n\n";
+                    next;
+                }
+                my $dir = test_dir("$results/explain", $t->{id});
+                remove_tree($dir);
+                make_path($dir);
+                Perl::Conformance::Run::run(
+                    perl => $perl, file => $t->{file}, prefix => "$dir/stock.seed0.1", mode => 'seed0',
+                    extra_env => { %{ $t->{env} || {} }, ($LOCPATH ? (LOCPATH => $LOCPATH) : ()) }, probe_lib => ($t->{probe} ? "$Bin/../probe-lib" : undef),
+                    timeout => $t->{timeout} // $conf->{timeout},
+                );
+                my $r = read_record("$dir/stock.seed0.1");
+                my $blessed = expected_dir($corpus, $conf->{target}, $t->{id});
+                my $verdict = slurp("$blessed/verdict");
+                chomp $verdict;
+                my @problems;
+                if ($verdict eq 'lane-A-eligible') {
+                    my @exact = Perl::Conformance::Normalize::exact(@{$r}{qw(stdout stderr fd3)});
+                    for my $ch (qw(stdout stderr fd3)) {
+                        my $got = shift @exact;
+                        push @problems, "seed0 $ch differs" if $got ne slurp("$blessed/seed0.$ch");
+                    }
+                }
+                elsif (-e "$blessed/canonical.seed0.exit") {
+                    my %c = (exit => $r->{exit});
+                    @c{qw(stdout stderr fd3)} = Perl::Conformance::Normalize::canonical(@{$r}{qw(stdout stderr fd3)});
+                    push @problems, compare_channels('canonical seed0', \%c, $blessed, 'canonical.seed0', $dir, $t->{id});
+                }
+                $differs++ if @problems;
+                my $status = !length $verdict ? "no blessing on $conf->{target}" : @problems ? "DIFFERS from the blessing (@problems)" : "matches the blessing ($verdict)";
+                print "run $t->{id} on $conf->{target} $family stock: $status\n";
+                for my $ch (qw(stdout stderr fd3)) {
+                    next unless length $r->{$ch};
+                    print "  [$ch]\n", indent_block($r->{$ch});
+                }
+                print "  [exit] $r->{exit}\n";
+            }
+        }
+        elsif ($e->{path} =~ /\.pl\z/ && -f $path) {
+            my $got = `cd "$FACTS_ROOT/@{[ $e->{path} =~ s{/[^/]*\z}{}r ]}" && "$conf->{stock}" "@{[ basename($e->{path}) ]}" 2>&1; echo "exit=\$?"`;
+            print "run $e->{path} on $conf->{target} stock (research probe, no blessing):\n", indent_block($got), "\n";
+        }
+    }
+    return $differs;
+}
+
+sub indent_block {
+    my ($text) = @_;
+    $text =~ s/^/    /mg;
+    $text .= "\n" unless $text =~ /\n\z/;
+    return $text;
+}
+
+# `cite-check FILE...`: every `[fact:ID]` in each file must name an entry.
+sub cmd_cite_check {
+    my ($facts, @files) = @_;
+    usage() unless @files;
+    my ($count, $unknown) = (0, 0);
+    for my $file (@files) {
+        for my $c (Perl::Conformance::Facts->citations(slurp($file))) {
+            my ($id, $line) = @$c;
+            $count++;
+            next if $facts->fact($id);
+            print "$file:$line: unknown fact `$id`\n";
+            $unknown++;
+        }
+    }
+    printf STDERR "%d citation(s) in %d file(s), %d unknown\n", $count, scalar @files, $unknown;
+    return $unknown ? 1 : 0;
+}
+
+# The target version, its config, and the compiled locales, for every command that runs a Perl.
+sub setup_target {
+    my ($target, $config, $results) = @_;
+    my @supported = supported_versions();
+    $target = $supported[-1] unless defined $target && length $target;
+    die "$target is not a supported version (supported-versions lists: @supported)\n" unless grep { $_ eq $target } @supported;
+    $results = File::Spec->rel2abs($results) . "/$target";
+    my $conf = load_config($config, $target);
+    $LOCPATH = Perl::Conformance::Locales::compile("$results/locales");
+    print STDERR "perl-conformance: compiled locales unavailable ($Perl::Conformance::Locales::WHY); probes that require one are skipped\n" unless $LOCPATH;
+    return ($conf, $results);
+}
+
 my ($command, @args) = @ARGV;
 usage() unless defined $command;
-my ($results, $config, $only, $impl, $target) = ('results', "$Bin/../perl-conformance.conf", undef, undef, $ENV{PERL_CONFORMANCE_TARGET});
-GetOptionsFromArray(\@args, 'results=s' => \$results, 'config=s' => \$config, 'only=s' => \$only, 'impl=s' => \$impl, 'target=s' => \$target) or usage();
+my ($results, $config, $only, $impl, $target, $run) = ('results', "$Bin/../perl-conformance.conf", undef, undef, $ENV{PERL_CONFORMANCE_TARGET}, 0);
+GetOptionsFromArray(\@args, 'results=s' => \$results, 'config=s' => \$config, 'only=s' => \$only, 'impl=s' => \$impl, 'target=s' => \$target, 'run' => \$run) or usage();
+if ($command eq 'explain') {
+    my $facts = load_facts();
+    if (!@args) {
+        list_facts($facts);
+        exit 0;
+    }
+    my $runner;
+    if ($run) {
+        my ($conf, $res) = setup_target($target, $config, $results);
+        make_path($res);
+        $runner = { conf => $conf, results => $res };
+    }
+    exit cmd_explain($facts, $runner, @args);
+}
+if ($command eq 'cite-check') {
+    exit cmd_cite_check(load_facts(), @args);
+}
 my $corpus = shift @args;
 usage() unless defined $corpus && -d $corpus;
-my @supported = supported_versions();
-$target = $supported[-1] unless defined $target && length $target;
-die "$target is not a supported version (supported-versions lists: @supported)\n" unless grep { $_ eq $target } @supported;
-$corpus  = File::Spec->rel2abs($corpus);
-$results = File::Spec->rel2abs($results) . "/$target";
-my $conf = load_config($config, $target);
-$LOCPATH = Perl::Conformance::Locales::compile("$results/locales");
-print STDERR "perl-conformance: compiled locales unavailable ($Perl::Conformance::Locales::WHY); probes that require one are skipped\n" unless $LOCPATH;
+$corpus = File::Spec->rel2abs($corpus);
+my $conf;
+($conf, $results) = setup_target($target, $config, $results);
 $conf->{impl} = $impl if defined $impl;
 
 # Runs change into the test's directory before exec, so a relative implementation path must be
