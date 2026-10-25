@@ -13,12 +13,12 @@ Throughout the document, "Perl" means Perl 5 unless otherwise qualified.  "Raku"
 boundary decisions are needed.
 
 **Conventions for four words.**  "Thread" means an operating-system thread, what Rust's `std::thread` makes.  "Task"
-means a Tokio task.  "Task/thread" means either one, and is used wherever a sentence holds for both — the unit that owns
-a destruction lease, holds destruction privilege, blocks and is woken (§2.4.4).  "Ithread" means a Perl-level
-interpreter thread, the object `threads->create` returns on the ithreads compatibility surface; an ithread runs on some
-task/thread and is not itself one.  Module and function names keep Perl's spelling (`threads`, `threads::shared`,
-`threads->tid`).  Inside `compat/`, which describes Perl alone, "thread" is necessarily an ithread.  Coined terms are
-collected in the glossary (§25).
+means a Tokio task.  "Task/thread" means either one, and is used wherever a sentence holds for both — the unit that
+executes a destruction episode, blocks and is woken (§2.4.4).  "Ithread" means a Perl-level interpreter thread, the
+object `threads->create` returns on the ithreads compatibility surface; an ithread runs on some task/thread and is not
+itself one.  Module and function names keep Perl's spelling (`threads`, `threads::shared`, `threads->tid`).  Inside
+`compat/`, which describes Perl alone, "thread" is necessarily an ithread.  Coined terms are collected in the glossary
+(§25).
 
 **What the pieces are for.**  PerlOxide is one interpreter built from crates that are deliverables in their own right
 (§22.1): `perloxide-core` is a value, string and container library a native Rust application can use with no interpreter
@@ -1825,13 +1825,13 @@ Full:   32 + one extension allocation; payload and rare state
         objects never create Full scalar cells.
 ```
 
-The 24-byte cell — §2.4.3's two control words and the 16-byte `Scalar` — compares against perl 5 (head 24 + body ladder
-separate string buffers + 8-byte slot pointers; figures re-derived from the 5.42.2 reference sources): compact numbers
-beat perl's 32-bytes-plus-a-dereference array elements by 50% and all of the pointer chasing; short strings beat perl's
-three-allocation ~50 bytes with zero allocations; and the heavily aliased plain scalar matches perl's 24.  The cost
-ledger above is the shape as implemented today, with magic and the stash in a boxed `Full` body; under §2.4.3's ruling
-those move to the cell's record (§2.4.2), the `Full` box's remaining job is the numeric caches, and where they live
-under the 24-byte cell is the open item of §2.4.11.  (The staged backend — `HeapArc` as a newtype over std `Arc` —
+The 24-byte cell — §2.4.3's two control words and the 16-byte `Scalar` — compares against perl 5 (head 24 + body
+ladder + separate string buffers + 8-byte slot pointers; figures re-derived from the 5.42.2 reference sources): compact
+numbers beat perl's 32-bytes-plus-a-dereference array elements by 50% and all of the pointer chasing; short strings beat
+perl's three-allocation ~50 bytes with zero allocations; and the heavily aliased plain scalar matches perl's 24.  The
+cost ledger above is the shape as implemented today, with magic and the stash in a boxed `Full` body; under §2.4.3's
+ruling those move to the cell's record (§2.4.2), the `Full` box's remaining job is the numeric caches, and where they
+live under the 24-byte cell is the open item of §2.4.11.  (The staged backend — `HeapArc` as a newtype over std `Arc` —
 allocates into the 48-byte class today, a double-word `ArcInner` standing where the control words will; the figure
 converges when §2.4's custom node lands.)
 
@@ -3499,15 +3499,15 @@ the count cannot say whether foreign handles remain — is open (§2.4.11), and 
 access, which would be the storm generator.
 
 **The Rust boundary** [DECISION].  The public handle types of `perloxide-core` are `!Send + !Sync`; crossing a thread
-goes through `share()`, which sets the domain flag, converts everything reachable from the handle, and returns the `Send
-Sync` form.  That is what makes the domain flag sound for a program using the core crate without the interpreter: the
-compiler forbids the one path — `std::thread::spawn(move || value.clone())` — that no flag could see.  The runtime's
-interior holds the `Send` form in its frames, with the justification the domain flag already carries (only `spawn`
-creates a second task, and `spawn` sets the flag first; a lone task's migrations are ordered by the scheduler); that
-`unsafe impl` lives in the runtime and nowhere else.  A host that holds a local handle is an owner like any other, and a
-foreigner reaching its cells — an interpreter task adopting a ticket the host published, say — converts them through the
-barrier protocol, the host's `INSIDE` bracket telling the truth about whether it is mid-operation whether or not it ever
-parks.
+goes through `share()`, which sets the domain flag, converts everything reachable from the handle, and returns the
+`Send + Sync` form.  That is what makes the domain flag sound for a program using the core crate without the
+interpreter: the compiler forbids the one path — `std::thread::spawn(move || value.clone())` — that no flag could see.
+The runtime's interior holds the `Send` form in its frames, with the justification the domain flag already carries (only
+`spawn` creates a second task, and `spawn` sets the flag first; a lone task's migrations are ordered by the scheduler);
+that `unsafe impl` lives in the runtime and nowhere else.  A host that holds a local handle is an owner like any other,
+and a foreigner reaching its cells — an interpreter task adopting a ticket the host published, say — converts them
+through the barrier protocol, the host's `INSIDE` bracket telling the truth about whether it is mid-operation whether or
+not it ever parks.
 
 **What the tier does not change.**  The gate's and the sequence word's formats; the lifecycle protocol, whose
 transitions are the same CASes the owner performs plainly on its own cells; `DESTROY` timing; weak semantics; or any
@@ -11301,8 +11301,7 @@ The key architectural decisions in this design:
   weak count, and the `SHARED`, `blessed`, `readonly` and writer bits (§2.4.3).
 - **Task** — a Tokio task (§0).
 - **Task/thread** — a Tokio task or an OS thread, whichever is running the code; used wherever a sentence holds for
-  both.  It is the unit that owns a destruction lease, holds destruction privilege, and blocks and is woken (§0,
-  §2.4.4).
+  both.  It is the unit that executes a destruction episode, and that blocks and is woken (§0, §2.4.4).
 - **Thread** — an operating-system thread, what Rust's `std::thread` makes (§0).
 - **Tombstone** — a slot whose node is dead but whose control block is still retained by weak references (§2.4.2,
   §2.4.4).
