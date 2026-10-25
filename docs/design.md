@@ -17,8 +17,8 @@ means a Tokio task.  "Task/thread" means either one, and is used wherever a sent
 executes a destruction episode, blocks and is woken (§2.4.4).  "Ithread" means a Perl-level interpreter thread, the
 object `threads->create` returns on the ithreads compatibility surface; an ithread runs on some task/thread and is not
 itself one.  Module and function names keep Perl's spelling (`threads`, `threads::shared`, `threads->tid`).  Inside
-`compat/`, which describes Perl alone, "thread" is necessarily an ithread.  Coined terms are collected in the glossary
-(§25).
+`perl-conformance/`, which describes Perl alone, "thread" is necessarily an ithread.  Coined terms are collected in the
+glossary (§25).
 
 **What the pieces are for.**  PerlOxide is one interpreter built from crates that are deliverables in their own right
 (§22.1): `perloxide-core` is a value, string and container library a native Rust application can use with no interpreter
@@ -48,11 +48,11 @@ as documented by:
 
 When in doubt, match what `perl` does.
 
-**The target version is the newest Perl that `compat/` supports** [DECISION] — 5.44.0 at this writing
-(`compat/profile.md` defines support: the full build set and a complete blessing).  When a newer perl is released and
-`compat/` adds it, the target moves with it; nothing in this document is specific to 5.44.0 except where it says so.  An
-older version that an implementation might prefer to target is a `compat/` supported-version addition, not a design
-target, and the harness's selectable target is what serves it.
+**The target version is the newest Perl that `perl-conformance/` supports** [DECISION] — 5.44.0 at this writing
+(`perl-conformance/profile.md` defines support: the full build set and a complete blessing).  When a newer perl is
+released and `perl-conformance/` adds it, the target moves with it; nothing in this document is specific to 5.44.0
+except where it says so.  An older version that an implementation might prefer to target is a `perl-conformance/`
+supported-version addition, not a design target, and the harness's selectable target is what serves it.
 
 The design does diverge deliberately in a few places — NFC normalization of identifiers and heredoc tags (§5.8.2) is the
 landed example — and **bug-for-bug compatibility with `perl` is intended to be available** for programs that need it.
@@ -78,13 +78,14 @@ Each deliberate divergence is recorded where it is designed, so the set is enume
 
 #### 1.1.1 The Compatibility Reference
 
-What `perl` does is recorded, rather than remembered, in `compat/`: a Perl-only reference whose ground truth is perl
-itself — probes with blessed outputs, executable transcriptions of areas of the C validated by replaying perl's observed
-behavior through them, and a differential harness.  Its rules are `compat/README.md`; the build and environment every
-fact is relative to, `compat/profile.md`; the index of facts by area, `compat/facts.md`; what is verified and what is
-open, `compat/status.md`; and the windows where perl has no defined behavior, `compat/undefined.md`.  This document
-cites `compat/facts.md` entries rather than restating facts, and nothing under `compat/` names or depends on PerlOxide,
-so the reference stands on its own for any reimplementation.
+What `perl` does is recorded, rather than remembered, in `perl-conformance/`: a Perl-only reference whose ground truth
+is perl itself — probes with blessed outputs, executable transcriptions of areas of the C validated by replaying perl's
+observed behavior through them, and a differential harness.  Its rules are `perl-conformance/README.md`; the build and
+environment every fact is relative to, `perl-conformance/profile.md`; the index of facts by area,
+`perl-conformance/facts.md`; what is verified and what is open, `perl-conformance/status.md`; and the windows where perl
+has no defined behavior, `perl-conformance/undefined.md`.  This document cites `perl-conformance/facts.md` entries
+rather than restating facts, and nothing under `perl-conformance/` names or depends on PerlOxide, so the reference
+stands on its own for any reimplementation.
 
 PerlOxide's side of that relationship is three things.  The harness's `check` subcommand runs PerlOxide against the
 blessed outputs lane by lane; the adapter that satisfies the harness's interface (accepting `-I`/`-M` and writing the
@@ -96,17 +97,17 @@ reproduced: rows recorded `version-divergent` are followed at 5.44.0; `body-only
 `perl-nondeterministic` programs, address reuse, within-pass global-destruction order, and 32-bit `IV` builds are
 outside the comparison.
 
-Where `compat/undefined.md` records that perl crashes, reads freed memory, or has no defined behavior, PerlOxide's
-behavior is a decision, recorded here with its kind (fix, extension, or accepted difference) and its reason.  The
-harness rows marked `DIVERGES-defined` are the acceptance tests for these entries.
+Where `perl-conformance/undefined.md` records that perl crashes, reads freed memory, or has no defined behavior,
+PerlOxide's behavior is a decision, recorded here with its kind (fix, extension, or accepted difference) and its reason.
+The harness rows marked `DIVERGES-defined` are the acceptance tests for these entries.
 
-| Window (`compat/undefined.md`)                            | PerlOxide behavior                                                                                                        | Kind      | Reason                                                                                                                     |
-|-----------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|-----------|----------------------------------------------------------------------------------------------------------------------------|
-| W1: numeric replacement under an NV-converting outer op   | redispatch the interrupted conversion on the current holder kind; no additional warning                                   | fix       | perl segfaults                                                                                                             |
-| W2: reference replacement under the same                  | redispatch to reference numification; no flags cached                                                                     | fix       | perl reads the RV through the union                                                                                        |
-| W3: reference holder with an infinite NV in the IV window | the fill proceeds as slot arithmetic independent of holder kind                                                           | fix       | perl crashes on one referent shape                                                                                         |
-| `undef` replacement under `sprintf "%g"`                  | terminate after the second warning                                                                                        | fix       | perl loops or crashes                                                                                                      |
-| `shift @_` under held aliases                             | `@_` storage is refcounted; the aliases stay valid                                                                        | fix       | perl reads freed memory                                                                                                    |
+| Window (`perl-conformance/undefined.md`)                  | PerlOxide behavior                                                                                                        | Kind      | Reason                                                                                                                       |
+|-----------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|-----------|------------------------------------------------------------------------------------------------------------------------------|
+| W1: numeric replacement under an NV-converting outer op   | redispatch the interrupted conversion on the current holder kind; no additional warning                                   | fix       | perl segfaults                                                                                                               |
+| W2: reference replacement under the same                  | redispatch to reference numification; no flags cached                                                                     | fix       | perl reads the RV through the union                                                                                          |
+| W3: reference holder with an infinite NV in the IV window | the fill proceeds as slot arithmetic independent of holder kind                                                           | fix       | perl crashes on one referent shape                                                                                           |
+| `undef` replacement under `sprintf "%g"`                  | terminate after the second warning                                                                                        | fix       | perl loops or crashes                                                                                                        |
+| `shift @_` under held aliases                             | `@_` storage is refcounted; the aliases stay valid                                                                        | fix       | perl reads freed memory                                                                                                      |
 | `local` on a variable shared between native tasks/threads | binding-`local` is task/thread-local (the overlay); element `local` on a shared container is a cross-task/thread mutation | extension | native tasks/threads have no Perl counterpart; the `ithreads` surface reproduces `threads::shared` instead (§3.3.4, §23.1) |
 
 This table is the enumeration §1.1 promises, for the windows found so far; deliberate divergences outside those windows
@@ -978,9 +979,10 @@ reduces to density, where 16 wins outright.
 Why 16, against 24 and wider:
 
 - **The envelope is the one multiplier over every value slot** — array elements, hash values, pads, stacks, temporaries,
-  the release worklist.  Against perl 5.44.0's structures (`compat/profile.md`): a mixed array element is 16 vs 32
-  (element pointer + bodyless SV), a short-string element 16 vs ~48 + buffer, a plain scalar variable 16 vs 32 (SV + pad
-  pointer), a promoted cell node 40 vs 72 (PVMG).  A 24-byte envelope reads 1.33×/2×/1.33×/1.5× on the same rows.
+  the release worklist.  Against perl 5.44.0's structures (`perl-conformance/profile.md`): a mixed array element is 16
+  vs 32 (element pointer + bodyless SV), a short-string element 16 vs ~48 + buffer, a plain scalar variable 16 vs 32
+  (SV + pad pointer), a promoted cell node 40 vs 72 (PVMG).  A 24-byte envelope reads 1.33×/2×/1.33×/1.5× on the same
+  rows.
 - **16 is a power of two**: two values per cache line exactly, no element ever straddles a line (at 24, every third
   does), and index arithmetic is a shift.  Composes with the 4 KiB page geometry (§2.4).
 - **16 is the floor for this feature set**: a self-describing envelope carrying a full-width `f64` needs the payload
@@ -1832,14 +1834,14 @@ Full:   32 + one extension allocation; payload and rare state
 ```
 
 The 24-byte cell — §2.4.3's two control words and the 16-byte `Scalar` — compares against perl 5 (head 24 + body
-ladder + separate string buffers + 8-byte slot pointers; sizes measured on the 5.44.0 builds, `compat/profile.md`):
-compact numbers beat perl's 32-bytes-plus-a-dereference array elements by 50% and all of the pointer chasing; short
-strings beat perl's three-allocation ~50 bytes with zero allocations; and the heavily aliased plain scalar matches
-perl's 24.  The cost ledger above is the shape as implemented today, with magic and the stash in a boxed `Full` body;
-under §2.4.3's ruling those move to the cell's record (§2.4.2), the `Full` box's remaining job is the numeric caches,
-and where they live under the 24-byte cell is the open item of §2.4.11.  (The staged backend — `HeapArc` as a newtype
-over std `Arc` — allocates into the 48-byte class today, a double-word `ArcInner` standing where the control words will;
-the figure converges when §2.4's custom node lands.)
+ladder + separate string buffers + 8-byte slot pointers; sizes measured on the 5.44.0 builds,
+`perl-conformance/profile.md`): compact numbers beat perl's 32-bytes-plus-a-dereference array elements by 50% and all of
+the pointer chasing; short strings beat perl's three-allocation ~50 bytes with zero allocations; and the heavily aliased
+plain scalar matches perl's 24.  The cost ledger above is the shape as implemented today, with magic and the stash in a
+boxed `Full` body; under §2.4.3's ruling those move to the cell's record (§2.4.2), the `Full` box's remaining job is the
+numeric caches, and where they live under the 24-byte cell is the open item of §2.4.11.  (The staged backend — `HeapArc`
+as a newtype over std `Arc` — allocates into the 48-byte class today, a double-word `ArcInner` standing where the
+control words will; the figure converges when §2.4's custom node lands.)
 
 The lazy-cache slots exist because exact conversions of *shared* scalars are worth memoizing once at the identity rather
 than recomputed per reader.  The fill mechanism is ruled: atomics for the numeric slots, `OnceLock` for the string slot
@@ -1985,9 +1987,10 @@ only where the payload can warn.
 
 **Placement of the value-flag record by representation form.** The facts about the record itself — which forms exist,
 which transitions each perl operation applies, and what reaches stdout — are the value-flags area of the compatibility
-reference (`compat/models/VF/section.md`, `compat/facts.md`).  What follows is where this design stores that record in
-the 16-byte envelope.  The string family uses 198 of the discriminant byte's 256 values, leaving 58; taint and the UTF-8
-class are discriminant twins.  The record needs a 4-bit code for the eleven `Str` states and three bits for numbers.
+reference (`perl-conformance/models/ValueFlags/section.md`, `perl-conformance/facts.md`).  What follows is where this
+design stores that record in the 16-byte envelope.  The string family uses 198 of the discriminant byte's 256 values,
+leaving 58; taint and the UTF-8 class are discriminant twins.  The record needs a 4-bit code for the eleven `Str` states
+and three bits for numbers.
 
 | form                                                                  | free bits               | placement                                                                                                                                 | cost                                |
 |-----------------------------------------------------------------------|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|--------------|
@@ -2008,16 +2011,16 @@ Packed array pages carry one value-flag record bit per element in the trailing b
 pages, public-`I` for float pages. That is the whole stdout-observable state of a packed element (§6); the full three
 bits per element are a build option for `B`-level fidelity.
 
-**Constants and tasks/threads.** Perl's compiled constants are mutable flag cells (`compat/facts.md`, value flags:
-constants).  Here, a literal reached through an alias or reference site (`f("10")`, `for ("10")`, `\"10"`) is a READONLY
-cell per task/thread, so value flags left on it persist across calls of the same code in that task/thread; rvalue
-literal sites are immediates.  A constant sub's value is one cell per task/thread shared by every site that inlines it,
-and compile-time folding of an expression over it (`ZZ + 0`) leaves value flags on the compiling task/thread's cell
-before runtime — which is why a range `$lo .. ZZ` can be numeric on its first execution.  Task/thread creation copies
-the parent's materialized literal cells, as the ithreads clone does.  Shared-tier reads never write value flags.
-Because the nine partner-typed operators read a literal partner's public flags, per-task/thread constant cells are what
-keep one task/thread's string arithmetic through `0 + $x` from changing another task/thread's `Data::Dumper` output for
-an unrelated value.
+**Constants and tasks/threads.** Perl's compiled constants are mutable flag cells (`perl-conformance/facts.md`, value
+flags: constants).  Here, a literal reached through an alias or reference site (`f("10")`, `for ("10")`, `\"10"`) is a
+READONLY cell per task/thread, so value flags left on it persist across calls of the same code in that task/thread;
+rvalue literal sites are immediates.  A constant sub's value is one cell per task/thread shared by every site that
+inlines it, and compile-time folding of an expression over it (`ZZ + 0`) leaves value flags on the compiling
+task/thread's cell before runtime — which is why a range `$lo .. ZZ` can be numeric on its first execution.  Task/thread
+creation copies the parent's materialized literal cells, as the ithreads clone does.  Shared-tier reads never write
+value flags.  Because the nine partner-typed operators read a literal partner's public flags, per-task/thread constant
+cells are what keep one task/thread's string arithmetic through `0 + $x` from changing another task/thread's
+`Data::Dumper` output for an unrelated value.
 
 **What this design does not reproduce.** The private cache flags themselves, as seen by `B::svref_2object->FLAGS` or
 `Devel::Peek`, are reproduced by projection from the value-flag record (the projection is validated by the flag lane),
@@ -2389,8 +2392,8 @@ What remains open, each with what decides it:
    §2.3.9 backend private so the eventual choice touches no caller, and retires the standalone-API finding about
    `parking_lot` guard types on the public surface.
 7. **What an alias is.**  An alias is a second name for a location; identity is needed only when the program asks for it
-   (`\`, `refaddr`, `bless`, `weaken`, closure capture), and `compat/suites/aliasing` and `suites/readonly` pin that
-   `foreach`, `sort`, `grep`, `reverse` and `@_` hand out the very SV, writable or readonly as it was.  Two
+   (`\`, `refaddr`, `bless`, `weaken`, closure capture), and `perl-conformance/suites/aliasing` and `suites/readonly`
+   pin that `foreach`, `sort`, `grep`, `reverse` and `@_` hand out the very SV, writable or readonly as it was.  Two
    representations satisfy that.  *A cell handle*: aliasing promotes the slot, the alias arm is `Slot::Cell(r)`, every
    access is a pointer deref, and every element a `for` loop or a `sort` touches becomes a permanent 24-byte cell —
    which makes promoted cells the common case for iterated data and is what drove the cell-level numeric-face question.
@@ -2401,9 +2404,9 @@ What remains open, each with what decides it:
    index-following rather than SV-following where the container is mutated during the alias's life, which perlsyn
    declares undefined.  What decides it: the escape-route inventory (`\@_` reification, `goto &sub`, `local` on an
    aliased slot, a `for` alias stored anywhere other than through `\`), the per-access cost measured against promotion's
-   permanent cost, the hash-element arm's size, and the `compat/undefined.md` rows the deferred form would owe.
-   Monotonicity and the claim-free-read ruling hold under either, since both promote only forward.  The numeric-face
-   question (§2.4.11) waits on this one.
+   permanent cost, the hash-element arm's size, and the `perl-conformance/undefined.md` rows the deferred form would
+   owe.  Monotonicity and the claim-free-read ruling hold under either, since both promote only forward.  The
+   numeric-face question (§2.4.11) waits on this one.
 
 **A from-scratch candidate**, recorded because it dissolves questions 3, 4, and 5 rather than answering them, and
 because the comparison is cheap to keep:
@@ -2667,7 +2670,7 @@ Value-level state travels with copies and stays in the payload: taint, the coerc
 `numify_warned`, boolean-ness.
 
 **Size budget** (release, 64-bit; enforced by assertions at implementation, compared against perl 5.44.0's structures as
-measured in `compat/profile.md`) [DECISION]:
+measured in `perl-conformance/profile.md`) [DECISION]:
 
 ```text
 node                 control  sync  payload  total   perl
@@ -2806,12 +2809,12 @@ task/thread — copying, `defined`, `ref`, dereference — is a read of an unres
 resolve: death wakes it to read `undef`, resurrection wakes it to retry against an open gate.  Returning `undef` early
 would lie about an object that may be resurrected; a timeout would lie nondeterministically.  Blocking is the only
 answer the question has, and it costs the slow destructor alone.  Perl's ithreads cannot reach this situation — a weak
-reference there is per ithread and already `undef` before another ithread's `DESTROY` can begin (`compat/facts.md`,
-finalization; `probes/corpus/threads_03_shared_weak.pl`) — so this is a native-concurrency definition, not a
-compatibility surface.  **An episode with no executor is adopted, not waited on** [DECISION]: an interpreter-context
-task/thread that would park on a context-free ticket nobody has drained yet takes the ticket itself, becomes the
-executor, and resolves the episode before proceeding with its own access — a weak access is as good an interpreter
-boundary as any, and waiting on a ticket that only the waiter will ever drain would be a self-deadlock.
+reference there is per ithread and already `undef` before another ithread's `DESTROY` can begin
+(`perl-conformance/facts.md`, finalization; `probes/corpus/threads_03_shared_weak.pl`) — so this is a native-concurrency
+definition, not a compatibility surface.  **An episode with no executor is adopted, not waited on** [DECISION]: an
+interpreter-context task/thread that would park on a context-free ticket nobody has drained yet takes the ticket itself,
+becomes the executor, and resolves the episode before proceeding with its own access — a weak access is as good an
+interpreter boundary as any, and waiting on a ticket that only the waiter will ever drain would be a self-deadlock.
 
 The waiters are registered per episode, under one lock per domain taken only to register, deregister, and resolve; a
 waiter registers and rechecks the gate under that lock before parking, and the executor resolves and wakes under the
@@ -3188,7 +3191,7 @@ a §13 question.
 #### 2.4.8 `weaken`
 
 Perl's weak references are modeled with weak variants over `HeapWeak` (`Weak` on the std façade until the migration).
-Container-verified semantics, pinned as the contract (`compat/facts.md`, finalization; `models/FZ`):
+Container-verified semantics, pinned as the contract (`perl-conformance/facts.md`, finalization; `models/Finalization`):
 
 - `weaken` is per-reference-value, in place; earlier copies stay strong.  **Copies of weak refs are strong** — the copy
   rule lives in `copy_for_assignment` (upgrade; dead → clean undef) while Rust-level `Clone` stays a raw duplicate for
@@ -3208,9 +3211,9 @@ Container-verified semantics, pinned as the contract (`compat/facts.md`, finaliz
   holder (its unregistration trivially satisfied, the old referent being dead) followed by a strong store.
 - **A dereference upgrades for the extent of the operation; a predicate never does** [DECISION].  Perl dereferences a
   weak reference directly — the referent sits on the argument stack unrefcounted, which is one of the use-after-free
-  windows in `compat/undefined.md` — and we cannot: a borrow is sound only while something holds the referent, and a
-  weak slot holds nothing.  So `$$w`, `$w->{x}`, `$w->method` take a strong unit through the upgrade CAS, perform the
-  access, and release it — the mortal perl does not bother to make — at the cost of a clone/release pair per
+  windows in `perl-conformance/undefined.md` — and we cannot: a borrow is sound only while something holds the referent,
+  and a weak slot holds nothing.  So `$$w`, `$w->{x}`, `$w->method` take a strong unit through the upgrade CAS, perform
+  the access, and release it — the mortal perl does not bother to make — at the cost of a clone/release pair per
   dereference, plain arithmetic under the sharing tier when holder and referent are one task/thread's (§2.4.12).
   `defined`, `ref`, boolean context, `isweak` and `refaddr` read the gate once and touch no count.  Copying (`$x = $w`,
   `return $w`, pushing it into a container) upgrades permanently, since the copy is strong.
@@ -3221,8 +3224,8 @@ Container-verified semantics, pinned as the contract (`compat/facts.md`, finaliz
   dying is privileged for the destroying task/thread and blocks any other.
 - `weaken` on the last real strong edge is itself a last release (the referent may become finalizable).
 - Inside `DESTROY` every weak reference to the object is still defined, and copying one there creates a strong reference
-  and resurrects; after a resurrection the weak references survive and the next death runs `DESTROY` again (FZ rows
-  `undef.K`, `assign.K`, `cat.K`).
+  and resurrects; after a resurrection the weak references survive and the next death runs `DESTROY` again
+  (finalization-model rows `undef.K`, `assign.K`, `cat.K`).
 
 **The weak count.**  A referent counts its weak holders in the inline field of its sequence word, 0–14, and in the
 extent's lookaside once that spills (§2.4.3): the inline value 15 is sticky and says the lookaside entry is
@@ -3262,15 +3265,15 @@ holders are then cleared one at a time in registry order, each clearing followed
 rule applied to a hook that dies.  Perl's order differs: its backref array is appended by `weaken` and is unordered on
 removal (`sv_del_backref` moves the last entry into the hole), so the order it clears holders in is the weaken order
 permuted by every removal from the middle, and a hook on an earlier holder observes later holders — plain ones included
-— still defined and weak (`probes/research/value-model/25_kill_backrefs_reentry.pl`, FZ row `tiedweak.order`).  The
-documentation promises only that a weak reference "will be set to undef" when the count reaches zero; it promises no
-order, and no reasonable program can depend on one that an unordered list produces.  PerlOxide's order — all plain
-holders first, then the registered holders — is one of the orders such a list permits, and it is the expressly endorsed
-deviation: anything a hook sees through another weak reference during the walk is `undef`, and the `panic: del_backref`
-croak perl raises when such a hook modifies a later holder (a (P) internal error whose aftermath is a half-destroyed
-zombie) does not arise, since under this order nothing is later.  Every *upgrade* attempted from inside the walk is
-undefined in perl — a kept copy, a transient copy, a re-weaken and a rebless all read freed memory or crash
-(`compat/undefined.md`) — and reads `undef` here because death is terminal.
+— still defined and weak (`probes/research/value-model/25_kill_backrefs_reentry.pl`, finalization-model rows
+`tiedweak.order`).  The documentation promises only that a weak reference "will be set to undef" when the count reaches
+zero; it promises no order, and no reasonable program can depend on one that an unordered list produces.  PerlOxide's
+order — all plain holders first, then the registered holders — is one of the orders such a list permits, and it is the
+expressly endorsed deviation: anything a hook sees through another weak reference during the walk is `undef`, and the
+`panic: del_backref` croak perl raises when such a hook modifies a later holder (a (P) internal error whose aftermath is
+a half-destroyed zombie) does not arise, since under this order nothing is later.  Every *upgrade* attempted from inside
+the walk is undefined in perl — a kept copy, a transient copy, a re-weaken and a rebless all read freed memory or crash
+(`perl-conformance/undefined.md`) — and reads `undef` here because death is terminal.
 
 **Tied containers.**  An element of a tied array or hash is a weak holder only as a proxy cell (§2.5): `weaken $a[0]` on
 a temporary proxy has no lasting effect, and a proxy held through `\$a[0]`, read once so its slot is filled, then
@@ -3394,10 +3397,11 @@ arithmetic never reaches the `ALIVE` bit, the immortal sentinel, or the inline w
 conventions (downgrade, last-strong release, freelist return, immortals); the diagnostic, if any, on immortalization by
 saturation (§2.4.7); the ithreads representation of shared cells (per-ithread proxies or per-(ithread, cell) counts —
 §2.4.8); the policy for perl's memory-corruption crashes (a defined, memory-safe result per window, recorded in
-`compat/undefined.md`, or termination); debug-serial semantics (never an ownership proof, never a stable Perl identity);
-the release-context posture during Rust TLS teardown (leaked per-task/thread context, domain fallback worklist, or a
-handle-holding restriction); the per-page blessed bitmap as a measured sweep optimization (the `blessed` bit already
-keeps the sweep from reading any unblessed cell's record); exit-status semantics of a fatal sweep resurrection.
+`perl-conformance/undefined.md`, or termination); debug-serial semantics (never an ownership proof, never a stable Perl
+identity); the release-context posture during Rust TLS teardown (leaked per-task/thread context, domain fallback
+worklist, or a handle-holding restriction); the per-page blessed bitmap as a measured sweep optimization (the `blessed`
+bit already keeps the sweep from reading any unblessed cell's record); exit-status semantics of a fatal sweep
+resurrection.
 
 #### 2.4.12 Ownership: the sharing tier
 
@@ -3570,8 +3574,9 @@ task/thread (§13.2).
 Tied variables specifically dispatch to Perl-level `FETCH`/`STORE`/etc.  methods through a `TieMagic` implementation.
 Per the cardinal invariant (§13.11), magic callbacks never execute while any internal lock is held.
 
-**Tied-container elements [DECISION].**  Three rulings precede the magic design and bind it, each pinned by `compat/`
-(`facts.md`, `local` and the save stack; `probes/research/value-model/26`, `27`; `models/SS`):
+**Tied-container elements [DECISION].**  Three rulings precede the magic design and bind it, each pinned by
+`perl-conformance/` (`facts.md`, `local` and the save stack; `probes/research/value-model/26`, `27`;
+`models/SaveStack`):
 
 - **A proxy cell exists only where identity is taken.**  Perl reaches every element of a tied array or hash through a
   temporary proxy SV carrying `PERL_MAGIC_tiedelem`: its get magic `FETCH`es into the proxy's own slot and its set magic
@@ -4203,9 +4208,9 @@ global (`$/ = ","` without `local`) use the per-value `RwLock` from §13.5.
 #### 3.3.4 Why the overlay is sound for bindings and not for elements:
 
 The facts that license this design are the save-stack area of the compatibility reference
-(`compat/models/SS/section.md`): perl never mutates the saved SV, restores by site identity, re-fetches element sites
-through the container with a vivifying lookup, deletes absent elements on unwind, and lets tied containers observe every
-step.
+(`perl-conformance/models/SaveStack/section.md`): perl never mutates the saved SV, restores by site identity, re-fetches
+element sites through the container with a vivifying lookup, deletes absent elements on unwind, and lets tied containers
+observe every step.
 
 This design implements `local` on a *binding* site (package scalar, glob slot) as a per-task/thread overlay entry keyed
 by the site, consulted at symbol resolution: the shared cell is never touched, other tasks/threads see it unchanged, and
@@ -4222,18 +4227,18 @@ run.
 Everything above is the design for PerlOxide's native tasks/threads, which have no Perl counterpart: the per-task/thread
 overlay for binding sites is an extension (§1.1.1), and element `local` on a container shared between tasks/threads is
 the literal rebinding.  The `ithreads` surface is a compatibility surface and follows §23.1: `threads::shared` behavior
-is reproduced as the compatibility reference records it (`compat/facts.md`, save stack;
-`compat/probes/corpus/local_03_shared_elem_move.pl` and `threads_02_shared_local.pl`), and it differs from the native
-rule in four ways.  `local` on a shared variable, scalar or element, overwrites the shared cell in place, so every
-ithread sees the localized value while the scope lasts; `mg_localize` copies the shared-scalar magic onto the fresh
-proxy, and the overlay does not apply.  The save record for a shared element carries two addresses, the shared cell and
-the index, and the restore writes the saved value through both in that order, so that `local $a[1] = 99; shift @a` on
-`(10, 20, 30)` leaves `(20, 20)` whichever ithread did the shift, where one address would leave `(99, 20)`.  An absent
-shared element or key is never recorded as absent, because `threads::shared::tie` has `EXISTS` but no `DELETE` and
-`pp_aelem`/`pp_helem` consult `EXISTS` only when both exist, so the unwind stores the saved `undef` at the index and the
-slot or key exists afterward.  And two ithreads localizing the same shared element each write back their own saved value
-when their scope ends, in whatever order the scopes end: there is no save stack across ithreads.  Where the outcome
-depends on scheduling — restores racing with a structural change without a handshake — perl's own result is
+is reproduced as the compatibility reference records it (`perl-conformance/facts.md`, save stack;
+`perl-conformance/probes/corpus/local_03_shared_elem_move.pl` and `threads_02_shared_local.pl`), and it differs from the
+native rule in four ways.  `local` on a shared variable, scalar or element, overwrites the shared cell in place, so
+every ithread sees the localized value while the scope lasts; `mg_localize` copies the shared-scalar magic onto the
+fresh proxy, and the overlay does not apply.  The save record for a shared element carries two addresses, the shared
+cell and the index, and the restore writes the saved value through both in that order, so that `local $a[1] = 99; shift
+@a` on `(10, 20, 30)` leaves `(20, 20)` whichever ithread did the shift, where one address would leave `(99, 20)`.  An
+absent shared element or key is never recorded as absent, because `threads::shared::tie` has `EXISTS` but no `DELETE`
+and `pp_aelem`/`pp_helem` consult `EXISTS` only when both exist, so the unwind stores the saved `undef` at the index and
+the slot or key exists afterward.  And two ithreads localizing the same shared element each write back their own saved
+value when their scope ends, in whatever order the scopes end: there is no save stack across ithreads.  Where the
+outcome depends on scheduling — restores racing with a structural change without a handshake — perl's own result is
 `perl-nondeterministic` and nothing is specified.
 
 ---
@@ -11103,9 +11108,9 @@ testable library code, and a Rust application that embeds the interpreter depend
 one that wants only values depends on `perloxide-core`; a façade crate re-exporting the members would have no job, and
 tying a library's dependency graph to the CLI's would work against the standalone-crate goal in exactly the case it
 exists for.  The root package's `Cargo.toml` carries an `include` list (`src/**`, `Cargo.toml`, `README.md`, `LICENSE`)
-so that publishing sends the source and nothing else: `docs/`, `compat/` and the benchmarks live only in the repository,
-which is where the design document is read and reviewed.  The name the binary installs as is open; §22's diagram says
-`perl`, and installing a `perl` into `~/.cargo/bin` shadows the system perl for most Rust users.
+so that publishing sends the source and nothing else: `docs/`, `perl-conformance/` and the benchmarks live only in the
+repository, which is where the design document is read and reviewed.  The name the binary installs as is open; §22's
+diagram says `perl`, and installing a `perl` into `~/.cargo/bin` shadows the system perl for most Rust users.
 
 **The project name is PerlOxide.**  The GitHub organization is `perloxide` (https://github.com/perloxide/perloxide).
 Crate directories sit at the top level of the repository, not under a `crates/` subdirectory; the rename from
@@ -11119,7 +11124,7 @@ docs/
     ideas.md             # Candidates not yet ruled on
     benchmarking.md      # Measurements the design cites
 
-compat/                  # The Perl-only compatibility reference (its README.md is the index):
+perl-conformance/                  # The Perl-only compatibility reference (its README.md is the index):
     facts.md             #   what perl does, each entry naming its probe or model row
     undefined.md         #   windows where perl has no defined behavior
     probes/              #   one program per fact: corpus/ (harness-run, blessed per build) and research/
@@ -11299,12 +11304,12 @@ The key architectural decisions in this design:
 - **`HeapArc` / `HeapWeak`** — the private slab-backed reference-counted handle and its weak form (§2.4.2).
 - **Ithread** — a Perl-level interpreter thread: the object `threads->create` returns on the ithreads compatibility
   surface.  An ithread runs on some task/thread and is not itself one.  Module and function names keep Perl's spelling
-  (`threads`, `threads::shared`, `threads->tid`), and inside `compat/`, which describes Perl alone, "thread" is
-  necessarily an ithread (§0).
+  (`threads`, `threads::shared`, `threads->tid`), and inside `perl-conformance/`, which describes Perl alone, "thread"
+  is necessarily an ithread (§0).
 - **Lane A / lane B** — the oracle harness's verdict lanes: a lane-A test's exact output is a function of the program
   and the pinned hash seed alone, identical across the stock, no-reuse and descending builds; a lane-B test's content is
   stable but its line order depends on the allocator, address values, or the hash seed, so it is compared canonically
-  (`compat/harness/README.md`).
+  (`perl-conformance/harness/README.md`).
 - **Lifecycle** — alive, dying, dead: `ALIVE` set, or clear with a count, or clear with none, read off the gate
   (§2.4.4).
 - **Lookaside** — the extent's parallel array of 4-byte per-cell entries holding the spilled weak count and the record

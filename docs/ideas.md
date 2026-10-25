@@ -615,11 +615,11 @@ undefined when the comparator is inconsistent.  Two candidates: reproduce `S_mer
 hundred lines), which makes every comparator call sequence, every warning order and every inconsistent-comparator
 outcome bit-identical to the oracle, so the harness diffs stderr on sort tests without annotation; or use any stable
 sort — Rust's `slice::sort` on the memoized keys — accepting a different call order as an endorsed deviation, with no
-`compat/undefined.md` row owed because no promise is broken.  Under the standing rule that perl is the specification
-unless a deviation is expressly endorsed, the first is the default until ruled otherwise; with keys memoized the
-compares dominate either way, so the performance difference between the two is modest.  Perl also returns *aliases* into
-the sorted list (perlfunc: modifying an element of the returned list modifies the original), which ties `sort` to the
-alias representation question in design §2.3.8.
+`perl-conformance/undefined.md` row owed because no promise is broken.  Under the standing rule that perl is the
+specification unless a deviation is expressly endorsed, the first is the default until ruled otherwise; with keys
+memoized the compares dominate either way, so the performance difference between the two is modest.  Perl also returns
+*aliases* into the sorted list (perlfunc: modifying an element of the returned list modifies the original), which ties
+`sort` to the alias representation question in design §2.3.8.
 
 ## 7. Rejected, with reasons
 
