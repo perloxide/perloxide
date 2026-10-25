@@ -1,0 +1,24 @@
+$1 =                                     dies: Modification of a read-only value attempted
+$& =                                     dies: Modification of a read-only value attempted
+$` =                                     dies: Modification of a read-only value attempted
+$' =                                     dies: Modification of a read-only value attempted
+$+ =                                     dies: Modification of a read-only value attempted
+$-[0] =                                  dies: Modification of a read-only value attempted
+$+[0] =                                  dies: Modification of a read-only value attempted
+copy of $1, modify                       ok
+for ($1)                                 dies: Modification of a read-only value attempted
+sub arg $1                               dies: Modification of a read-only value attempted
+sub arg "$1"                             ok
+$0 =                                     ok
+$0 .=                                    ok
+$$ =                                     ok
+$] =                                     dies: Modification of a read-only value attempted
+$^V =                                    dies: Modification of a read-only value attempted
+$^O =                                    ok
+$^T =                                    ok
+$^W =                                    ok
+$; =                                     ok
+$ENV{X} =                                ok
+$ARGV[0]++                               ok
+for (@ARGV)                              ok
+exit=0

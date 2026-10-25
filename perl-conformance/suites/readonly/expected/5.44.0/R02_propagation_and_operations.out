@@ -1,0 +1,30 @@
+copy of readonly alias                   ok
+list-assign copy                         ok
+ref to readonly alias, deref write       dies: Modification of a read-only value attempted
+ref to literal, deref write              dies: Modification of a read-only value attempted
+ref to literal, deref copy               ok
+SvREADONLY on, assign                    dies: Modification of a read-only value attempted
+SvREADONLY on, copy then modify          ok
+SvREADONLY on then off, assign           ok
+SvREADONLY reads literal alias           ok
+SvREADONLY reads range element           ok
+assignment                               dies: Modification of a read-only value attempted
+++                                       dies: Modification of a read-only value attempted
++=                                       dies: Modification of a read-only value attempted
+.=                                       dies: Modification of a read-only value attempted
+s/// matching                            dies: Modification of a read-only value attempted
+s/// not matching                        dies: Modification of a read-only value attempted
+tr/// matching                           dies: Modification of a read-only value attempted
+tr/// not matching                       dies: Modification of a read-only value attempted
+tr///r                                   ok
+chop                                     dies: Modification of a read-only value attempted
+chomp with nothing to remove             dies: Modification of a read-only value attempted
+undef $_                                 dies: Modification of a read-only value attempted
+local $_                                 ok
+rvalue uses                              ok
+bless a ref to it                        dies: Modification of a read-only value attempted
+utf8::upgrade                            ok
+utf8::downgrade                          ok
+pos() assignment                         ok
+study                                    ok
+exit=0

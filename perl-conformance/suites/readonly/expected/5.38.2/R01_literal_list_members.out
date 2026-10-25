@@ -1,0 +1,34 @@
+for (1)                                  dies: Modification of a read-only value attempted
+for ('a')                                dies: Modification of a read-only value attempted
+for qw(a)                                dies: Modification of a read-only value attempted
+for (undef)                              dies: Modification of a read-only value attempted
+for (1==1)                               dies: Modification of a read-only value attempted
+for (!1)                                 dies: Modification of a read-only value attempted
+for (__PACKAGE__)                        dies: Modification of a read-only value attempted
+for (K)                                  dies: Modification of a read-only value attempted
+for (K())                                dies: Modification of a read-only value attempted
+for (&K)                                 dies: Modification of a read-only value attempted
+for (L) list constant                    ok
+for (constsub()) inlinable               ok
+for (plain())                            ok
+for ((1) x 2)                            dies: Modification of a read-only value attempted
+for (1..2)                               ok
+for ('a'..'b')                           ok
+for (1 + 1) folded                       ok
+for ('a' . 'b') folded                   ok
+for ("$h{a}") interpolated               ok
+for (keys %h)                            ok
+for (values %h)                          ok
+sub args: f(1); $_[0]++                  dies: Modification of a read-only value attempted
+sub args: f($v); $_[0]++                 ok
+sort { } (3, 1)                          dies: Modification of a read-only value attempted
+grep { 1 } (1)                           dies: Modification of a read-only value attempted
+reverse (1)                              dies: Modification of a read-only value attempted
+map { $_++ } (1)                         dies: Modification of a read-only value attempted
+map { $_ } (1) returns copies            ok
+sort over map copies                     ok
+grep over map copies                     ok
+reverse over map copies                  ok
+inlinable constant after three writes: 10
+folded constant across calls: 3,3,3
+exit=0

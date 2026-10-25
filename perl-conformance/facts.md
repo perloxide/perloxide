@@ -196,6 +196,39 @@ Entries:
   List assignment copies, which is where the aliasing stops.  Case `A28_returned_lists_alias` (identity by `refaddr`
   read through `@_`, and the write-through for each builtin and form).
 
+## Readonly values
+
+Suite: `suites/readonly` (4 cases, identical on both Perls).  A write to a readonly scalar croaks `Modification of a
+read-only value attempted`; the message is the same for every writing operation.
+
+- A foreach list hands out the readonly constant SV itself for a literal number or string, `qw()`, `undef`, the boolean
+  results `1==1` and `!1`, `__PACKAGE__`, a `use constant` scalar in every call form (`K`, `K()`, `&K`), the repetition
+  `(1) x 2`, and a literal passed as a sub argument; and `sort`, `grep` and `reverse` pass such SVs through (`pp_sort`
+  copies only pad temporaries).  It hands out a writable temporary for a range (`1..2`, `'a'..'b'`), a folded constant
+  (`1 + 1`, `'a' . 'b'`), an interpolated string, `keys`, a `use constant` list, an inlinable `sub () { 10 }`, the
+  return of an ordinary sub, and the copies `map` returns — so `$_++ for sort { $a <=> $b } map $_, 3, 1, 2` runs where
+  the same without `map` croaks.  A write to such a temporary never reaches the next execution of the same code.  Case
+  `R01_literal_list_members`.
+
+- The flag belongs to the SV, not the value: a copy by assignment or list assignment is writable; a reference to the
+  readonly SV (`\$_` under the alias, or `\1`) refuses a write through the dereference; `Internals::SvREADONLY($x, 1)`
+  makes a lexical refuse writes until `($x, 0)` clears it, and reads `1` on a literal alias and `0` on a range element.
+  Every mutating operation refuses — assignment, `++`, `+=`, `.=`, `chop`, `undef $_`, `s///` and `tr///` even when
+  nothing matches, `chomp` even with nothing to remove, and `bless` of a reference to it — while `tr///r`, `local $_`,
+  `pos($_) =`, `study`, `utf8::upgrade`, `utf8::downgrade` and every rvalue use are allowed.  Case
+  `R02_propagation_and_operations`.
+
+- Readonly special variables: `$1` and the other capture variables, `$&`, the prematch and postmatch variables, `$+`,
+  the elements of `@-` and `@+`, `$]` and `$^V`; a copy of `$1` is writable, an alias to it (`for ($1)`, `f($1)`) is
+  not, and `f("$1")` passes a copy.  Writable: `$0` (assignment and `.=`), `$$`, `$^O`, `$^T`, `$^W`, `$;`, `%ENV` and
+  `@ARGV` elements.  Case `R03_special_variables`.
+
+- A negative subscript below the array's first element is *non-creatable*: `$b[-3] = 1`, `$b[-3] //= 1`, `$e[-1] = 1` on
+  an empty array, `\$b[-3]`, `for ($b[-3])`, `f($b[-3])` and `splice(@b, -3)` all croak `Modification of non-creatable
+  array value attempted, subscript -3`, whereas the same routes with a subscript past the end grow the array, `$#b = -2`
+  and `$#b = -1` are accepted, and the rvalue, `exists` and `delete` forms are silent.  `pp_aelem`, `Perl_av_fetch` with
+  `lval`.  Case `R04_non_creatable_elements`.
+
 ## Address identity, literal cells, and global destruction
 
 Probes: `probes/corpus/addr_*`, `probes/corpus/consts_*`, `probes/corpus/gd_*`, `probes/research/value-model/` (14),
