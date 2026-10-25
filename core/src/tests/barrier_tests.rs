@@ -62,8 +62,10 @@ fn handshake(heavy: fn() -> Result<(), BarrierError>) {
     let counter = Arc::new(AtomicU64::new(0));
     let stop = Arc::new(AtomicBool::new(false));
 
+    let ops_seen = Arc::new(AtomicU64::new(0));
     let owner = {
         let (inside, converting, counter, stop) = (inside.clone(), converting.clone(), counter.clone(), stop.clone());
+        let ops_seen = ops_seen.clone();
         thread::spawn(move || {
             let mut ops = 0u64;
             while !stop.load(Ordering::Relaxed) {
@@ -80,15 +82,21 @@ fn handshake(heavy: fn() -> Result<(), BarrierError>) {
 
                 inside.store(false, Ordering::Release);
                 ops += 1;
+                ops_seen.store(ops, Ordering::Relaxed);
             }
             ops
         })
     };
 
-    let deadline = Instant::now() + Duration::from_millis(200);
+    // The owner holds `inside` for nearly its whole loop, so a foreigner's sample finds it outside only in a narrow
+    // window, and on a loaded two-core machine the owner may not be scheduled at all for a while.  The run therefore
+    // lasts at least 200 ms and continues, up to a bound, until the owner has run and the foreigner has held the cell
+    // at least once; the property under test is the equality asserted inside the loop.
+    let floor = Instant::now() + Duration::from_millis(200);
+    let bound = Instant::now() + Duration::from_secs(10);
     let mut observed = 0u64;
     let mut backed_off = 0u64;
-    while Instant::now() < deadline {
+    while Instant::now() < floor || (Instant::now() < bound && (observed == 0 || ops_seen.load(Ordering::Relaxed) == 0)) {
         converting.store(true, Ordering::SeqCst);
         heavy().unwrap();
 
