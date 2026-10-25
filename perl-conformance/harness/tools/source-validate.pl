@@ -211,6 +211,6 @@ for my $model (@ARGV) {
         }
     }
     printf "%-34s %-8s %-14s no C definition (label, arm or helper)\n", $_, '-', '-' for @absent;
-    printf "# %s: %d identical across %s, %d reordered or reviewed neutral, %d differ, %d without a C definition\n\n",
+    printf "# %s: %d identical across %s, %d reordered or reviewed neutral, %d differ, %d without a C definition\n",
         $label, scalar @same, join('/', @tags), scalar @reordered, scalar @differ, scalar @absent;
 }
