@@ -2308,8 +2308,8 @@ This subsection records the outcome of the slot-model design pass so the rulings
 that produced them.  Rulings are stated as design; questions still open are listed as open, with what each turns on.  It
 is the prerequisite for §21.1 step 6 and for §2.3.9.
 
-**Locations leave `Value`.**  `AliasMut` and `AliasConst` are location variants — a slot naming a promoted cell — and as
-members of `Value` they make `Clone` ambiguous: deriving it bumps the `HeapArc`, which creates a second *name* rather
+**Locations leave `Value`.**  `AliasMut` and `AliasConst` are location variants — a slot naming another location — and
+as members of `Value` they make `Clone` ambiguous: deriving it bumps the `HeapArc`, which creates a second *name* rather
 than a copy, and nothing in the type says which a given `Value` is.  They move to `Slot`.  `Value` is then purely an
 rvalue: `Clone` copies, and every read is the value it holds.  `Slot` is deliberately not `Clone`; copying a location is
 meaningless, and `load` (copy the value out) and `alias` (make a second name) stay separate verbs.
@@ -2324,10 +2324,14 @@ container guards across the caller's operation.
 arms — exactly as `Value` layers on `PString`.  Measured: 16 bytes, and `Option<Slot>` 16, because niche filling
 composes.  The invariant this buys: **a cell contains a `Value` and never a `Slot`**, so an alias chain is
 unrepresentable rather than merely forbidden, and `Slot::Value(Value::ScalarRef(r))` (holds a reference) is a different
-shape from `Slot::Cell(r)` (aliases the referent) by construction.
+shape from an alias arm (names the referent's location) by construction.  What the alias arm holds — a cell handle, or a
+deferred location — is open question 7 below.
 
 **Aliasing is a standalone-library capability**, not an ops-layer one.  Correct aliasing — `foreach` and `@_` semantics,
-`\$a[0]` — must work from `perloxide-core` alone; the verbs are public on `Slot`.
+`\$a[0]` — must work from `perloxide-core` alone; the verbs are public on `Slot`.  This rules where aliasing lives, not
+what an alias is: whether making a second name for a slot promotes that slot to a cell was never ruled, and the
+`Slot::Cell(r)` shape the first draft of this section inherited from the implementation-era `AliasMut` variant is one
+candidate, not a decision (open question 7).
 
 **The slot→cell edge is monotonic.**  Un-promoting would invalidate every outstanding reference, so a slot that names a
 cell names it until the slot dies; taking a reference is an initialization-only operation.  This is perl's `sv_upgrade`
@@ -2378,6 +2382,22 @@ What remains open, each with what decides it:
 6. **The scalar API shape**: `snapshot()`/`update()` rather than `read()`/`write()` guards.  No prerequisites; keeps the
    §2.3.9 backend private so the eventual choice touches no caller, and retires the standalone-API finding about
    `parking_lot` guard types on the public surface.
+7. **What an alias is.**  An alias is a second name for a location; identity is needed only when the program asks for it
+   (`\`, `refaddr`, `bless`, `weaken`, closure capture), and `compat/suites/aliasing` and `suites/readonly` pin that
+   `foreach`, `sort`, `grep`, `reverse` and `@_` hand out the very SV, writable or readonly as it was.  Two
+   representations satisfy that.  *A cell handle*: aliasing promotes the slot, the alias arm is `Slot::Cell(r)`, every
+   access is a pointer deref, and every element a `for` loop or a `sort` touches becomes a permanent 24-byte cell —
+   which makes promoted cells the common case for iterated data and is what drove the cell-level numeric-face question.
+   *A deferred location*: the arm names `(container, index|key)` and re-resolves on access — perl's own `defelem`, and
+   what `pp_iter` does when it re-fetches `AvARRAY(av)[ix]` each iteration — promoting only when identity is asked for;
+   a few nanoseconds per array access, a lookup per hash access unless the arm caches the entry pointer behind a
+   structural generation stamp (24 bytes rather than 16), the container's guard on every access in the shared tier, and
+   index-following rather than SV-following where the container is mutated during the alias's life, which perlsyn
+   declares undefined.  What decides it: the escape-route inventory (`\@_` reification, `goto &sub`, `local` on an
+   aliased slot, a `for` alias stored anywhere other than through `\`), the per-access cost measured against promotion's
+   permanent cost, the hash-element arm's size, and the `compat/undefined.md` rows the deferred form would owe.
+   Monotonicity and the claim-free-read ruling hold under either, since both promote only forward.  The numeric-face
+   question (§2.4.11) waits on this one.
 
 **A from-scratch candidate**, recorded because it dissolves questions 3, 4, and 5 rather than answering them, and
 because the comparison is cheap to keep:
@@ -3351,9 +3371,10 @@ croak; which pure-Perl shapes reach the forced sweep rather than the checked pas
 sequence achieves fixed-point coverage for recursively created objects (probe matrix); the measured cost of a blessed
 scalar's dispatch through its record against the container body's inline class; the owning-payload lock for a shared
 mutable scalar cell (the wordless lock in the sequence word with address-keyed parking, or an external body attached at
-sharing — §2.4.3) and where the numeric caches of `FullScalar` live under the 24-byte cell; final weak-release ordering
-against page reassignment; the `DESTROY` exception-reporting matrix (`G_KEEPERR` interaction with active exceptions, by
-phase); the dynamic environment (`$_`, `$@`, caller) installed for channel-drained `DESTROY` and for the sweep (§13);
+sharing — §2.4.3) and where the numeric caches of `FullScalar` live under the 24-byte cell (decided after §2.3.8's
+question 7, since whether aliasing promotes decides how common a promoted cell is); final weak-release ordering against
+page reassignment; the `DESTROY` exception-reporting matrix (`G_KEEPERR` interaction with active exceptions, by phase);
+the dynamic environment (`$_`, `$@`, caller) installed for channel-drained `DESTROY` and for the sweep (§13);
 drain-task/thread selection and wake mechanism (§13); cross-task/thread last-drop of an object whose class lives in
 another interpreter (§13; perl's ithreads cannot reach this state); ticket posture under exceptional shutdown, and the
 full fatal-cleanup specification (whether cleanup continues for other objects, whether remaining tickets drain or
@@ -10760,7 +10781,7 @@ expensive to fix later.  The internal ordering follows the dependency structure 
 
 6. Containers — `Array`/`Hash` with their handle types (the ordered-map ruling is recorded in §2.2.11, and the scanning
    kernels `char_len` needs in §2.2.10), exists/delete semantics against the slot model.  Gated on §2.3.8's open
-   questions 1 and 2, which decide the element type.
+   questions 1, 2 and 7, which decide the element type and what an alias to an element is.
 
 7. Iterative teardown — the runtime-owned mechanical release worklist (§2.4.9), fixing the measured drop-glue stack
    overflow on deep ownership chains.  Independent of everything below and permanent.
