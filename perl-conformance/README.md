@@ -2,7 +2,7 @@
 
 An executable record of how Perl 5 actually behaves, with `perl` itself as the ground truth.  It exists because prose
 about Perl's semantics drifts, and a rule stated as a probe with a blessed output, or as a transcription of the C code
-validated by enumeration, does not.  Perl 5.44.0 is the current pinned target version.
+validated by enumeration, does not.  Perl 5.44.0 is the only supported version at this writing (`profile.md`).
 
 Everything under this directory is about **Perl**, not about any particular reimplementation of Perl.  This is meant to
 be used as a reference and guide for the actual behavior of the traditional `perl` implementation, to be used as a
@@ -19,7 +19,7 @@ implementation's own documentation.
 | `undefined.md`   | windows where `perl` itself crashes, reads freed memory, or otherwise has no defined behavior; facts only         |
 | `facts.md`       | the prose index of every fact, by area, each linked to the probe or model row that demonstrates it                |
 | `harness/`       | the differential oracle: runner, normalizer, verdict rules, probe projector, citation index                       |
-| `perls/`         | the build script for the pinned Perl and its two allocator-instrumented variants, with the patches                |
+| `perls/`         | the build script for a supported Perl's six builds, with the allocator patches; the structure-size tool           |
 | `probes/`        | one program per fact: `corpus/` (harness-run, blessed per build and hash mode) and `research/` (as recorded)      |
 | `models/<NAME>/` | executable transcriptions of one area of the C, with their generators, tables, reports, and section text          |
 | `suites/`        | scenario suites from the design research, with blessed outputs                                                    |
@@ -27,8 +27,8 @@ implementation's own documentation.
 
 ## Rules
 
-**Admission.** A fact enters the reference only with a probe or a model row that demonstrates it on the pinned Perl.  A
-fact without one is not a fact yet.
+**Admission.** A fact enters the reference only with a probe or a model row that demonstrates it on a supported Perl
+(`profile.md`).  A fact without one is not a fact yet.
 
 **Blessed output never ends a line in whitespace.**  Editors and git strip trailing whitespace, so a blessed file that
 depends on it is corrupted the first time anyone touches it.  A probe that would print a trailing space — an empty list
@@ -68,6 +68,8 @@ generations.
 **Tooling.** One driver with subcommands per harness; no Makefiles.  Lane staleness is decided by a content hash of the
 model, observer, generator, start set, and oracle recorded in each report header, not by timestamps or a rerun flag.
 
-**Versions.** The models transcribe the pinned Perl only.  Older and newer Perls are run as difference detectors: the
-path-based version-divergence rule dates each behavior, and a behavior that changed recently is flagged as likely to
-change again.  No model of another version is kept.
+**Versions.** A Perl is supported only with its full build set and a complete blessing (`profile.md`); the newest
+supported version is the default target, and the harness and the suites take another supported version as the target
+where a user asks for one.  The models transcribe a supported Perl; where supported versions differ on a path the row is
+`version-divergent` and the model follows the target.  A Perl that is not supported is run only as an implementation
+under `check`, never as an oracle, whatever its version; nothing in the reference rests on such a run.

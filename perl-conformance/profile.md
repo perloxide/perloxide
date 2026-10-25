@@ -3,17 +3,31 @@
 Every fact in this reference is relative to the following.  A fact that depends on a parameter not listed here says so
 where it is stated.
 
-## Pinned Perl
+## Supported versions
 
-- **Target:** Perl 5.44.0, built from the `v5.44.0` tag of https://github.com/Perl/perl5 with `perls/build-perls.sh`.
-  Unthreaded unless a probe states otherwise (`# oracle-requires: threads`), in which case the oracle is the same tag
-  built with `-Dusethreads`.  Every lane-A probe of the corpus produces identical normalized output on both; the builds
-  differ in the `Perl interpreter: 0x...` suffix of some diagnostics, which normalization removes.
-- **Second oracle:** Perl 5.38.2 (the Ubuntu 24.04 system Perl, threaded).  Its observations are recorded beside the
-  target's; where they differ, the model follows 5.44.0 and the row is `version-divergent`.
-- **Instrumented variants of 5.44.0:** `noreuse` (`plant_SV` never returns freed SV heads to `PL_sv_root`) and
-  `descending` (arenas threaded from the highest slot down).  A program whose output is not identical across stock,
-  `noreuse`, and `descending` after address bijection is `allocator-sensitive` and is not an exact-comparison oracle.
+A version of Perl is *supported* by this reference when it has the full build set — the stock build, the `noreuse` and
+`descending` allocator-instrumented variants, and the same three built with `-Dusethreads` — and every corpus probe and
+suite case that exists on the day it is added is blessed on it.  Nothing less counts: without the instrumented variants
+a program's allocator sensitivity cannot be classified, and without the blessing a version cannot be a target.  Probes
+added later may be blessed on the newest version only, so an older supported version can lag; `status.md` states each
+version's gap, and closing it is the documented procedure of running and blessing the unblessed probes on that version's
+builds — legwork a user who needs an older target fully current may have to do, but never redesign.  A version never
+becomes less useful than on the day it was added.  The newest supported version is the default target for the harness's
+lane-A comparison; a user selects another supported version as their target where the harness and the suites take one.
+A Perl that is not supported — a system's stock `perl`, say — is an *implementation to check* against the blessed
+outputs with `harness/bin/oracle check`, not an oracle, whatever its version.
+
+- **5.44.0**, built from the `v5.44.0` tag of https://github.com/Perl/perl5 with `perls/build-perls.sh`, is the only
+  supported version at this writing, and so the default target.  Unthreaded unless a probe states otherwise (`#
+  oracle-requires: threads`), in which case the oracle is the same tag built with `-Dusethreads`.  Every lane-A probe of
+  the corpus produces identical normalized output on both; the builds differ in the `Perl interpreter: 0x...` suffix of
+  some diagnostics, which normalization removes.
+- **Instrumented variants:** `noreuse` (`plant_SV` never returns freed SV heads to `PL_sv_root`) and `descending`
+  (arenas threaded from the highest slot down).  A program whose output is not identical across stock, `noreuse`, and
+  `descending` after address bijection is `allocator-sensitive` and is not an exact-comparison oracle.
+- **5.38.2** (the Ubuntu 24.04 system Perl, threaded) is not a supported version: it has no instrumented variants and
+  was never blessed as a target.  Its observations appear in the reference only where they were recorded during the
+  research as a cross-check beside 5.44.0's; they demonstrate nothing on their own, and no fact rests on them.
 
 ## Widths and numeric configuration
 
@@ -22,6 +36,21 @@ where it is stated.
   `S_sv_2iuv_common`, `sv_2iv_flags`, and `sv_2nv_flags`.  A 32-bit Perl (`ivsize=4`) defines `NV_PRESERVES_UV` and runs
   the other branches; it is outside this profile.
 - `d_double_has_nan=define`.  NaN payload spellings and long-double or quadmath builds are not covered.
+
+## Structure sizes
+
+Measured with `perls/sizes.sh` against the supported builds (`perls/sizes.c` compiled against each build's `CORE`),
+identical for the unthreaded and threaded 5.44.0 builds on x86-64:
+
+```text
+SV head 24
+XPV 32  XPVIV 40  XPVNV 48  XPVMG 48  XPVLV 80  XPVGV 48  XPVCV 104
+XPVAV 40  XPVHV 32  HE 24  HEK header 12
+```
+
+So a bodyless scalar is 24 bytes, a `PVIV` scalar 64, a `PVNV` or `PVMG` scalar 72, an array 64 plus its `SV*` table (8
+per element), and a hash 56 plus its bucket table and 24 bytes per entry plus the shared key.  String buffers are
+separate allocations in every case.
 
 ## Allocator
 

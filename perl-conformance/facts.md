@@ -1,7 +1,7 @@
 # Facts
 
 The prose index of the reference: every established fact about Perl's behavior, grouped by area, each entry naming the
-rule, the Perl function that fixes it, and the probe or model row that demonstrates it on the pinned Perl
+rule, the Perl function that fixes it, and the probe or model row that demonstrates it on a supported Perl
 (`profile.md`).  A fact appears here only with that demonstration; a rule without one is not admitted.  Dense areas
 point at their model's section text instead of restating the transition function.
 
