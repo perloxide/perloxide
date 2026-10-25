@@ -3175,15 +3175,38 @@ Container-verified semantics, pinned as the contract (`compat/facts.md`, finaliz
   death never visits an unregistered holder.  Weakening is therefore off the promotion lists of §2.2 and §2.2.7.
 - A dead weak reference is observationally plain undef: `defined` false, `ref` "", false, numifies 0, stringifies "",
   and `isweak` returns **false**.  The dead-weak variant is a tombstone; every observable predicate routes through
-  liveness.  No lazy slot rewriting (reads cannot take write locks; `Const` cells cannot be rewritten at all).
-- Upgrade and every other access interact with the lifecycle per the §2.4.4 table: `ALIVE` upgrades, `DEAD` reads undef,
-  `DESTROYING` is privileged for the destroying task/thread and blocks any other.
+  liveness.  No lazy slot rewriting [DECISION]: reads cannot take write locks, `Const` cells cannot be rewritten at all,
+  and the only gain would be freeing a tombstone slightly earlier.  The one rewrite perl itself performs is the lvalue
+  case: `$w->{x} = 1` on a dead holder is `$w->{x} = 1` on `undef`, which autovivifies — a fresh anonymous hash, a
+  strong reference to it stored in `$w`, which is thereafter not weak.  For us that is an ordinary overwrite of the
+  holder (its unregistration trivially satisfied, the old referent being dead) followed by a strong store.
+- **A dereference upgrades for the extent of the operation; a predicate never does** [DECISION].  Perl dereferences a
+  weak reference directly — the referent sits on the argument stack unrefcounted, which is one of the use-after-free
+  windows in `compat/undefined.md` — and we cannot: a borrow is sound only while something holds the referent, and a
+  weak slot holds nothing.  So `$$w`, `$w->{x}`, `$w->method` take a strong unit through the upgrade CAS, perform the
+  access, and release it — the mortal perl does not bother to make — at the cost of a clone/release pair per
+  dereference, plain arithmetic under the sharing tier when holder and referent are one task/thread's (§2.4.12).
+  `defined`, `ref`, boolean context, `isweak` and `refaddr` read the gate once and touch no count.  Copying (`$x = $w`,
+  `return $w`, pushing it into a container) upgrades permanently, since the copy is strong.
+- `unweaken` (Scalar::Util 1.47; core `sv_rvunweaken`) turns a holder strong in place: a strong unit through the upgrade
+  first, so the referent cannot die between, then the weak unit released and the registration dropped if there was one;
+  on a dead holder it is `unweaken(undef)`, which perl refuses ("Can't unweaken a nonreference") and so do we.
+- Upgrade and every other access interact with the lifecycle per the §2.4.4 table: alive upgrades, dead reads undef,
+  dying is privileged for the destroying task/thread and blocks any other.
 - `weaken` on the last real strong edge is itself a last release (the referent may become finalizable).
 - Inside `DESTROY` every weak reference to the object is still defined, and copying one there creates a strong reference
   and resurrects; after a resurrection the weak references survive and the next death runs `DESTROY` again (FZ rows
   `undef.K`, `assign.K`, `cat.K`).
 
-`FullScalar` carries no weakref bookkeeping — control-block nulling is automatic.
+**The weak count.**  A referent counts its weak holders in the inline field of its sequence word, 0–14, and in the
+extent's lookaside once that spills (§2.4.3): the inline value 15 is sticky and says the lookaside entry is
+authoritative, and the entry saturates at 65,535 — a count that cannot be trusted leaves the slot a permanent tombstone
+and costs nothing else.  Real fan-in is extremely skewed: almost every referent has zero to two weak holders (a parent
+back-link, an observer or two), and the few with thousands are the wide nodes of trees whose children each hold a weak
+parent reference (`HTML::Element` weakens its parent link by default; a table body with fifty thousand rows is a
+referent with fifty thousand weak holders), which is also the shape behind perl's own quadratic `sv_del_backref` report.
+A weak upgrade never consults the count — it is a gate CAS — so the count's only reader is slot reuse (§2.4.4), and
+`weaken`, weak drop and the referent's death stay O(1) in the number of plain holders.
 
 **The registry, for holders with set magic [DECISION].**  Everything above is answered at read time from the referent's
 state, so no list of plain holders is kept and `weaken`, weak drop and the referent's death are O(1) in the number of
@@ -3193,19 +3216,21 @@ tied-element proxy whose set magic is the container's `STORE` — runs that magi
 `STORE` that dies propagates out of the operation that killed the referent and leaves the later holders uncleared (FZ
 rows `tiedweak.T`, `tiedweak.TX`; `probes/research/value-model/26_weaken_tied_elem.pl`).  Eager invalidation where set
 magic is involved is a compatibility requirement: a program may rely on the timing.  No read-time check can produce that
-store, because nothing is reading.  So the referent's live body carries a registry of exactly those holders, under one
-invariant: *a cell is registered with the referent its slot currently points to weakly, for as long as it carries set
-magic*.  Every operation that changes either side restores it — `weaken` on a magical holder registers; attaching a set
-hook (`tie`, a magic cast) to a holder that is already weak registers; removing the last set hook (`untie`) unregisters;
-overwriting the slot (assignment, `undef`, `unweaken`), the holder's death, and re-weakening toward another referent
-unregister from the old referent, exactly as perl's `sv_setsv` and `sv_unref` call `sv_del_backref` before installing
-the new value.  Nothing is ever registered at a distance: the attaching or weakening operation has the holder cell in
-hand and reaches the referent through the holder's own `HeapWeak`.  The registry is lazily allocated (none / one pointer
-/ a `Vec`, mirroring perl's single-backref optimization), lives in the live body and not in the tombstone, and removes
-by swap-remove; holder drop takes its lock and the death walk releases that lock around each set-magic call, since a
-hook may remove or overwrite another holder.
+store, because nothing is reading.  So the referent carries a registry of exactly those holders — in its record
+(§2.4.2), the one kind of extension a plain unblessed referent can acquire — under one invariant: *a cell is registered
+with the referent its slot currently points to weakly, for as long as it carries set magic*.  Every operation that
+changes either side restores it — `weaken` on a magical holder registers; attaching a set hook (`tie`, a magic cast) to
+a holder that is already weak registers; removing the last set hook (`untie`) unregisters; overwriting the slot
+(assignment, `undef`, `unweaken`), the holder's death, and re-weakening toward another referent unregister from the old
+referent, exactly as perl's `sv_setsv` and `sv_unref` call `sv_del_backref` before installing the new value.  Nothing is
+ever registered at a distance: the attaching or weakening operation has the holder cell in hand and reaches the referent
+through the holder's own `HeapWeak`.  The registry word in the record is none, one pointer, or a `Vec` (mirroring perl's
+single-backref optimization), is released with the record when the referent dies, and removes by swap-remove; holder
+drop takes its lock and the death walk releases that lock around each set-magic call, since a hook may remove or
+overwrite another holder.  Registering a holder is one of the things that gives the referent a record, and the
+referent's `weak = 15` or record index is what tells the death walk to look.
 
-**The death walk, and the invalidation order [DECISION].**  Once `DEAD` is committed (§2.4.4: after `curse`'s marker, so
+**The death walk, and the invalidation order [DECISION].**  Once death is committed (§2.4.4: after `curse`'s marker, so
 the walk can resurrect nothing), every plain holder is dead at once — a read answers `undef` — and the registered
 holders are then cleared one at a time in registry order, each clearing followed by its set magic, with the FZ unwind
 rule applied to a hook that dies.  Perl's order differs: its backref array is appended by `weaken` and is unordered on
@@ -3219,7 +3244,7 @@ deviation: anything a hook sees through another weak reference during the walk i
 croak perl raises when such a hook modifies a later holder (a (P) internal error whose aftermath is a half-destroyed
 zombie) does not arise, since under this order nothing is later.  Every *upgrade* attempted from inside the walk is
 undefined in perl — a kept copy, a transient copy, a re-weaken and a rebless all read freed memory or crash
-(`compat/undefined.md`) — and reads `undef` here because `DEAD` is terminal.
+(`compat/undefined.md`) — and reads `undef` here because death is terminal.
 
 **Tied containers.**  An element of a tied array or hash is a weak holder only as a proxy cell (§2.5): `weaken $a[0]` on
 a temporary proxy has no lasting effect, and a proxy held through `\$a[0]`, read once so its slot is filled, then
@@ -3234,7 +3259,8 @@ drops the last proxy (`probes/corpus/threads_03_shared_weak.pl`).  Reproducing t
 accounting on shared cells; whether the ithreads emulation keeps per-ithread proxies or a per-(ithread, cell) count is
 an ithreads design item, listed in §2.4.11 and not decided here.
 
-The implementation as first written had only the read-time scheme; the registry is owed.
+The implementation as first written had only the read-time scheme; the registry, the spilled count, and the dereference
+upgrade are owed.
 
 #### 2.4.9 Mechanical iterative teardown
 
