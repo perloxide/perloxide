@@ -72,6 +72,12 @@ model, observer, generator, start set, and oracle recorded in each report header
 
 **Versions.** A Perl is supported only with its full build set and a complete blessing (`profile.md`); the newest
 supported version is the default target, and the harness and the suites take another supported version as the target
-where a user asks for one.  The models transcribe a supported Perl; where supported versions differ on a path the row is
-`version-divergent` and the model follows the target.  A Perl that is not supported is run only as an implementation
-under `check`, never as an oracle, whatever its version; nothing in the reference rests on such a run.
+where a user asks for one.  A model transcribes one tag's C, but is not single-version by nature:
+`harness/tools/source-validate.pl` compares every routine it transcribes against other tags' source, and a routine whose
+definition is unchanged is transcribed equally validly for those versions, while one that changed is read — ending in a
+recorded functionally-neutral equivalence or in a version check inside the model, after the change and the version it
+landed in are established — so one model reflects every supported version.  Each model's README names the tag it was
+transcribed from and the tags it was source-validated against, and its `source-validation.txt` lists the routines by
+outcome.  Where supported versions differ on a path the row is `version-divergent` and the model follows the target.  A
+Perl that is not supported is run only as an implementation under `check`, never as an oracle, whatever its version;
+nothing in the reference rests on such a run.

@@ -1,0 +1,5 @@
+rotl64	ROTL64
+rotl32	ROTL32
+rotr32	ROTR32
+u8to64	U8TO64_LE
+perl_hash_siphash_1_3_with_state	PERL_SIPHASH_FNC,SIPROUND

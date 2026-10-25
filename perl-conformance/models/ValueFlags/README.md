@@ -2,11 +2,15 @@
 
 **Source.**  Transcribed from the perl5 repository at tag `v5.44.0`: sv.c (`sv_2iv_flags`, `sv_2nv_flags`,
 `sv_2pv_flags`, `S_sv_2iuv_common`, `sv_setsv_flags`, `sv_grow`), numeric.c and the operators' pp.c/pp_hot.c arms.
-Validated by replay against the supported 5.44.0 builds; results in `reports/*.5.44.0.txt`, and `reports/*.5.38.2.txt`
-from the unsupported 5.38.2 (`../../unsupported-perls.md`).  A transcription is of one version's C, so a replay mismatch
-on a supported version is either a model gap or a change in perl's own implementation between the transcribed tag and
-that version; `version-divergent` rows name the second kind, and the tag above is what a reader diffs against when one
-appears.
+Validated by replay against the supported 5.44.0 builds; results in `reports/*.5.44.0.txt`, with `reports/*.5.38.2.txt`
+from the unsupported 5.38.2 beside them (`../../unsupported-perls.md`).  Source-validated with
+`harness/tools/source-validate.pl` against v5.38.2, v5.40.2, v5.42.0, v5.44.0 (`source-validation.txt`): of the routines
+with a C definition, 4 are identical across all four tags and so transcribed equally validly for each, 5 differ only by
+moved declarations or added assertions, and 33 differ in code at one or more of the tags and must be read before any of
+those versions can be supported by this model — each such reading ends either in a `source-equivalences.tsv` line
+(functionally neutral) or in a version check inside the model; 24 names are the model's own labels, arms and helpers.  A
+replay mismatch on a supported version is therefore either a model gap or a change in perl's own implementation since
+the transcribed tag, and the validation record says which routines could carry the second kind.
 
 Terminology: string form / numeric form; value flags (int_form, num_form: 0 none, 1 private, 2 public; is_uv;
 stringified; private); Dual.  Models: VF.pm (package VF, was M.pm), FZ.pm, HV.pm, PV.pm.  A snake_case routine in a

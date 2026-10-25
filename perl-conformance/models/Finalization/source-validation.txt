@@ -1,0 +1,18 @@
+# FZ.pm: 16 routines against v5.38.2 v5.40.2 v5.42.0 v5.44.0
+sv_clear                           function sv.c           differs at v5.40.2 v5.42.0 v5.44.0
+curse                              function sv.c           differs at v5.42.0 v5.44.0
+sv_kill_backrefs                   function sv.c           differs at v5.42.0 v5.44.0
+sv_setsv_flags                     function sv.c           differs at v5.42.0 v5.44.0
+sv_set_undef                       function sv.c           differs at v5.42.0 v5.44.0
+sv_del_backref                     function sv.c           differs at v5.42.0 v5.44.0
+sv_rvweaken                        function sv.c           differs at v5.42.0 v5.44.0
+sv_force_normal_flags              function sv.c           differs at v5.42.0 v5.44.0
+free_tmps                          function scope.c        reordered at v5.44.0
+cx_pushblock                       function inline.h       differs at v5.40.2 v5.42.0 v5.44.0
+cx_popblock                        function inline.h       identical
+leave_scope                        function scope.c        differs at v5.40.2 v5.42.0 v5.44.0
+leave_adjust_stacks                function pp_hot.c       differs at v5.40.2 v5.42.0 v5.44.0
+pp_entersub                        function pp_hot.c       differs at v5.40.2 v5.42.0 v5.44.0
+pp_nextstate                       function pp_hot.c       differs at v5.40.2 v5.42.0 v5.44.0
+sv_clean_objs                      function sv.c           reordered at v5.44.0
+# FZ.pm: 1 identical across v5.38.2/v5.40.2/v5.42.0/v5.44.0, 2 reordered or reviewed neutral, 13 differ, 0 without a C definition

@@ -30,6 +30,7 @@ The seed corpus is every probe from the value/type design research that produced
 | `tools/gd_predict.pl`                        | arena-walk predictor for global destruction order (`gd_01_order.pl`)                                                      |
 | `tools/impl-wrong-seed.sh`                   | a deliberately wrong implementation, for exercising `check`                                                               |
 | `tools/lint-blessed.sh`                      | fails if any blessed output, corpus or suite, ends a line in whitespace                                                   |
+| `tools/source-validate.pl`                   | which tags a model's transcribed routines are unchanged across, from the C source; per-model records             |
 | `tools/sources.tsv`, `tools/make-sources.pl` | citation table and the generator for `sources.md`                                                                         |
 | `oracle.conf`                                | one `[VERSION]` section of build paths per supported version; the target's keys overridable by `PERL_COMPAT_STOCK`, ...       |
 

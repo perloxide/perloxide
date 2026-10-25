@@ -1,0 +1,68 @@
+# VF.pm: 66 routines against v5.38.2 v5.40.2 v5.42.0 v5.44.0
+cast_iv                            function numeric.c      reordered at v5.44.0
+cast_uv                            function numeric.c      reordered at v5.44.0
+grok_number_flags                  function numeric.c      differs at v5.44.0
+looks_like_number                  function sv.c           reordered at v5.44.0
+my_atof3                           function numeric.c      reordered at v5.44.0
+sv_setnv                           function sv.c           differs at v5.42.0 v5.44.0
+sv_2iuv_non_preserve               function sv.c           identical
+sv_2iuv_common                     function sv.c           differs at v5.40.2 v5.42.0 v5.44.0
+sv_2iv_flags                       function sv.c           differs at v5.42.0 v5.44.0
+sv_2nv_flags                       function sv.c           differs at v5.42.0 v5.44.0
+uiv_2buf                           function sv.c           differs at v5.42.0 v5.44.0
+sv_2pv_flags                       function sv.c           reordered at v5.44.0
+sv_inc_nomg                        function sv.c           differs at v5.42.0 v5.44.0
+sv_dec_nomg                        function sv.c           differs at v5.42.0 v5.44.0
+pp_add                             function pp_hot.c       differs at v5.40.2 v5.42.0 v5.44.0
+pp_bit_or                          function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+pp_sbit_or                         function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+pp_flop                            function pp_ctl.c       differs at v5.40.2 v5.42.0 v5.44.0
+sv_utf8_upgrade_flags_grow         function sv.c           identical
+pp_multiconcat                     function pp_hot.c       differs at v5.40.2 v5.42.0 v5.44.0
+sv_grow                            function sv.c           differs at v5.44.0
+sv_setsv_flags                     function sv.c           differs at v5.42.0 v5.44.0
+pp_int                             function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+pp_abs                             function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+pp_negate                          function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+do_ncmp                            function pp.c           differs at v5.44.0
+pp_null                            function pp_hot.c       identical
+pp_chr                             function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+pp_length                          function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+pp_complement                      function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+sv_pvn_force_flags                 function sv.c           differs at v5.42.0 v5.44.0
+sv_insert_flags                    function sv.c           differs at v5.42.0 v5.44.0
+do_vecset                          function doop.c         differs at v5.40.2 v5.42.0 v5.44.0
+pp_subst                           function pp_hot.c       differs at v5.40.2 v5.42.0 v5.44.0
+do_trans_count                     function doop.c         differs at v5.42.0 v5.44.0
+do_chomp                           function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+sv_set_undef                       function sv.c           differs at v5.42.0 v5.44.0
+isinfnansv                         function numeric.c      identical
+expected_size                      function long_names.c   absent at v5.38.2 v5.40.2 v5.42.0
+pp_undef                           function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+sv_chop                            function sv.c           differs at v5.42.0 v5.44.0
+sv_backoff                         function sv.c           differs at v5.44.0
+isnan                              -        -              no C definition (label, arm or helper)
+nvof                               -        -              no C definition (label, arm or helper)
+got_nv                             -        -              no C definition (label, arm or helper)
+sv_2pv_flags_nv                    -        -              no C definition (label, arm or helper)
+sv_inc_nomg_integer                -        -              no C definition (label, arm or helper)
+sv_dec_nomg_integer                -        -              no C definition (label, arm or helper)
+sv_vcatpvfn_flags_g                -        -              no C definition (label, arm or helper)
+pp_bit_or_string_other             -        -              no C definition (label, arm or helper)
+uncow                              -        -              no C definition (label, arm or helper)
+sv_setsv_cowable                   -        -              no C definition (label, arm or helper)
+do_ncmp_nv_partner                 -        -              no C definition (label, arm or helper)
+pp_subst_nomatch                   -        -              no C definition (label, arm or helper)
+do_chop                            -        -              no C definition (label, arm or helper)
+pp_repeat_count                    -        -              no C definition (label, arm or helper)
+pp_pack_w                          -        -              no C definition (label, arm or helper)
+pp_sort_numeric                    -        -              no C definition (label, arm or helper)
+isinfnan_nvx                       -        -              no C definition (label, arm or helper)
+sv_vcatpvfn_flags_d                -        -              no C definition (label, arm or helper)
+pp_pack_j                          -        -              no C definition (label, arm or helper)
+pp_add_with_partner                -        -              no C definition (label, arm or helper)
+pp_add_partner_gate                -        -              no C definition (label, arm or helper)
+cow_drop                           -        -              no C definition (label, arm or helper)
+body_type                          -        -              no C definition (label, arm or helper)
+upgrade                            -        -              no C definition (label, arm or helper)
+# VF.pm: 4 identical across v5.38.2/v5.40.2/v5.42.0/v5.44.0, 5 reordered or reviewed neutral, 33 differ, 24 without a C definition

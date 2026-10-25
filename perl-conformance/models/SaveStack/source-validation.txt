@@ -1,0 +1,42 @@
+# SS.pm: 40 routines against v5.38.2 v5.40.2 v5.42.0 v5.44.0
+newSV                              function sv.c           differs at v5.44.0
+sv_2mortal                         function sv.c           differs at v5.44.0
+free_tmps                          function scope.c        reordered at v5.44.0
+pp_nextstate                       function pp_hot.c       differs at v5.40.2 v5.42.0 v5.44.0
+mg_find                            function mg.c           reordered at v5.44.0
+mg_get                             function mg.c           reordered at v5.44.0
+mg_set                             function mg.c           reordered at v5.44.0
+newAV                              function mathoms.c      differs at v5.44.0
+newHV                              function mathoms.c      differs at v5.44.0
+av_fetch                           function av.c           differs at v5.44.0
+hv_fetch_ent                       function mathoms.c      differs at v5.44.0
+av_exists                          function av.c           reordered at v5.44.0
+hv_exists                          function mathoms.c      differs at v5.44.0
+av_delete                          function av.c           differs at v5.42.0 v5.44.0
+hv_delete                          function mathoms.c      differs at v5.44.0
+av_clear                           function av.c           differs at v5.40.2 v5.42.0 v5.44.0
+hv_clear                           function hv.c           differs at v5.42.0 v5.44.0
+av_shift                           function av.c           differs at v5.40.2 v5.42.0 v5.44.0
+av_pop                             function av.c           differs at v5.42.0 v5.44.0
+pp_unshift                         function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+pp_push                            function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+av_fill                            function av.c           differs at v5.44.0
+pp_splice                          function pp.c           differs at v5.40.2 v5.42.0 v5.44.0
+gv_fetchpv                         function gv.c           identical
+gp_free                            function gv.c           differs at v5.42.0 v5.44.0
+save_scalar_at                     function scope.c        reordered at v5.44.0
+mg_localize                        function mg.c           reordered at v5.44.0
+save_scalar                        function scope.c        reordered at v5.44.0
+save_aelem_flags                   function scope.c        reordered at v5.44.0
+save_helem_flags                   function scope.c        reordered at v5.44.0
+save_adelete                       function scope.c        reordered at v5.44.0
+save_hdelete                       function scope.c        reordered at v5.44.0
+save_gp                            function scope.c        identical
+save_clearsv                       function scope.c        differs at v5.42.0 v5.44.0
+pp_gvsv                            function pp_hot.c       differs at v5.40.2 v5.42.0 v5.44.0
+pp_aelem                           function pp_hot.c       differs at v5.40.2 v5.42.0 v5.44.0
+pp_helem                           function pp_hot.c       differs at v5.40.2 v5.42.0 v5.44.0
+leave_scope                        function scope.c        differs at v5.40.2 v5.42.0 v5.44.0
+pp_aassign_av                      -        -              no C definition (label, arm or helper)
+restore_sv                         -        -              no C definition (label, arm or helper)
+# SS.pm: 2 identical across v5.38.2/v5.40.2/v5.42.0/v5.44.0, 12 reordered or reviewed neutral, 24 differ, 2 without a C definition

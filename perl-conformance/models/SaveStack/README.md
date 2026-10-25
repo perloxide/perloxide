@@ -1,11 +1,15 @@
 # SS: `local` and the save stack
 
 **Source.**  Transcribed from the perl5 repository at tag `v5.44.0`: scope.c, mg.c (`mg_localize`) and the localizing
-arms of pp_hot.c and pp.c.  Validated by replay against the supported 5.44.0 builds; results in `reports/`; the matching
-5.38.2 observation lines beside them are from the unsupported 5.38.2 (`../../unsupported-perls.md`).  A transcription is
-of one version's C, so a replay mismatch on a supported version is either a model gap or a change in perl's own
-implementation between the transcribed tag and that version; `version-divergent` rows name the second kind, and the tag
-above is what a reader diffs against when one appears.
+arms of pp_hot.c and pp.c.  Validated by replay against the supported 5.44.0 builds; results in `reports/`, with the
+5.38.2 observation lines beside them from the unsupported 5.38.2 (`../../unsupported-perls.md`).  Source-validated with
+`harness/tools/source-validate.pl` against v5.38.2, v5.40.2, v5.42.0, v5.44.0 (`source-validation.txt`): of the routines
+with a C definition, 2 are identical across all four tags and so transcribed equally validly for each, 12 differ only by
+moved declarations or added assertions, and 24 differ in code at one or more of the tags and must be read before any of
+those versions can be supported by this model — each such reading ends either in a `source-equivalences.tsv` line
+(functionally neutral) or in a version check inside the model; 2 names are the model's own labels, arms and helpers.  A
+replay mismatch on a supported version is therefore either a model gap or a change in perl's own implementation since
+the transcribed tag, and the validation record says which routines could carry the second kind.
 
 `SS.pm` transcribes scope.c's `local` machinery -- `save_scalar_at`, `save_scalar`, `save_aelem_flags`,
 `save_helem_flags`, `save_adelete`/`save_hdelete`, `save_gp`, `save_clearsv`, `mg_localize`, `restore_sv`, `leave_scope`

@@ -1,0 +1,20 @@
+# HV.pm: 18 routines against v5.38.2 v5.40.2 v5.42.0 v5.44.0
+rotl64                             macro    hv_macro.h     identical
+rotl32                             macro    hv_macro.h     identical
+rotr32                             macro    hv_macro.h     identical
+u8to64                             macro    hv_macro.h     identical
+perl_siphash_seed_state            function perl_siphash.h identical
+perl_hash_siphash_1_3_with_state   composite perl_siphash.h differs at v5.42.0 v5.44.0
+sbox32_seed_state128               function sbox32_hash.h  identical
+sbox32_hash_with_state             function sbox32_hash.h  identical
+hv_auxinit                         function hv.c           reordered at v5.44.0
+hv_common                          function hv.c           differs at v5.42.0 v5.44.0
+hsplit                             function hv.c           reordered at v5.44.0
+hv_iternext_flags                  function hv.c           differs at v5.42.0 v5.44.0
+hv_delete_common                   function hv.c           differs at v5.42.0 v5.44.0
+hv_clear                           function hv.c           differs at v5.42.0 v5.44.0
+hv_undef_flags                     function hv.c           differs at v5.40.2 v5.42.0 v5.44.0
+add64                              -        -              no C definition (label, arm or helper)
+hv_common_key_normalize            -        -              no C definition (label, arm or helper)
+hfree_next_entry_all               -        -              no C definition (label, arm or helper)
+# HV.pm: 7 identical across v5.38.2/v5.40.2/v5.42.0/v5.44.0, 2 reordered or reviewed neutral, 6 differ, 3 without a C definition
