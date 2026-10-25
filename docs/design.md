@@ -48,6 +48,12 @@ as documented by:
 
 When in doubt, match what `perl` does.
 
+**The target version is the newest Perl that `compat/` supports** [DECISION] — 5.44.0 at this writing
+(`compat/profile.md` defines support: the full build set and a complete blessing).  When a newer perl is released and
+`compat/` adds it, the target moves with it; nothing in this document is specific to 5.44.0 except where it says so.  An
+older version that an implementation might prefer to target is a `compat/` supported-version addition, not a design
+target, and the harness's selectable target is what serves it.
+
 The design does diverge deliberately in a few places — NFC normalization of identifiers and heredoc tags (§5.8.2) is the
 landed example — and **bug-for-bug compatibility with `perl` is intended to be available** for programs that need it.
 Which of the two is the *default*, and how a program or its environment selects the other, are open questions on which
@@ -818,7 +824,7 @@ in the tag (§2.2.9); the heap lattice holds it as a terminal state, and the dis
 variants (§2.2.3).  For character-sequence equality and hashing, extended and malformed regions need only be
 *distinguishable from all Latin-1 characters* (code points above 0xFF can never equal an unflagged byte), so the
 comparison iterator tokenizes them; a full extended decoder arrives with the character-operations design.  Cross-check
-against 5.42's `utf8.c` remains a listed chore.
+against 5.44.0's `utf8.c` remains a listed chore.
 
 **The character count rides the same pass.**  Perl's `length()` on a flagged string is a character count — a fact the
 classification decode walks right past, so under the single-pass fusion law it is counted then and cached in the buffer
@@ -972,9 +978,9 @@ reduces to density, where 16 wins outright.
 Why 16, against 24 and wider:
 
 - **The envelope is the one multiplier over every value slot** — array elements, hash values, pads, stacks, temporaries,
-  the release worklist.  Against perl 5.42 fixed structures: a mixed array element is 16 vs 32 (element pointer +
-  bodyless SV), a short-string element 16 vs ~48 + buffer, a plain scalar variable 16 vs 32 (SV + pad pointer), a
-  promoted cell node 40 vs 72 (PVMG).  A 24-byte envelope reads 1.33×/2×/1.33×/1.5× on the same rows.
+  the release worklist.  Against perl 5.44.0's structures (`compat/profile.md`): a mixed array element is 16 vs 32
+  (element pointer + bodyless SV), a short-string element 16 vs ~48 + buffer, a plain scalar variable 16 vs 32 (SV + pad
+  pointer), a promoted cell node 40 vs 72 (PVMG).  A 24-byte envelope reads 1.33×/2×/1.33×/1.5× on the same rows.
 - **16 is a power of two**: two values per cache line exactly, no element ever straddles a line (at 24, every third
   does), and index arithmetic is a shift.  Composes with the 4 KiB page geometry (§2.4).
 - **16 is the floor for this feature set**: a self-describing envelope carrying a full-width `f64` needs the payload
@@ -1826,14 +1832,14 @@ Full:   32 + one extension allocation; payload and rare state
 ```
 
 The 24-byte cell — §2.4.3's two control words and the 16-byte `Scalar` — compares against perl 5 (head 24 + body
-ladder + separate string buffers + 8-byte slot pointers; figures re-derived from the 5.42.2 reference sources): compact
-numbers beat perl's 32-bytes-plus-a-dereference array elements by 50% and all of the pointer chasing; short strings beat
-perl's three-allocation ~50 bytes with zero allocations; and the heavily aliased plain scalar matches perl's 24.  The
-cost ledger above is the shape as implemented today, with magic and the stash in a boxed `Full` body; under §2.4.3's
-ruling those move to the cell's record (§2.4.2), the `Full` box's remaining job is the numeric caches, and where they
-live under the 24-byte cell is the open item of §2.4.11.  (The staged backend — `HeapArc` as a newtype over std `Arc` —
-allocates into the 48-byte class today, a double-word `ArcInner` standing where the control words will; the figure
-converges when §2.4's custom node lands.)
+ladder + separate string buffers + 8-byte slot pointers; sizes measured on the 5.44.0 builds, `compat/profile.md`):
+compact numbers beat perl's 32-bytes-plus-a-dereference array elements by 50% and all of the pointer chasing; short
+strings beat perl's three-allocation ~50 bytes with zero allocations; and the heavily aliased plain scalar matches
+perl's 24.  The cost ledger above is the shape as implemented today, with magic and the stash in a boxed `Full` body;
+under §2.4.3's ruling those move to the cell's record (§2.4.2), the `Full` box's remaining job is the numeric caches,
+and where they live under the 24-byte cell is the open item of §2.4.11.  (The staged backend — `HeapArc` as a newtype
+over std `Arc` — allocates into the 48-byte class today, a double-word `ArcInner` standing where the control words will;
+the figure converges when §2.4's custom node lands.)
 
 The lazy-cache slots exist because exact conversions of *shared* scalars are worth memoizing once at the identity rather
 than recomputed per reader.  The fill mechanism is ruled: atomics for the numeric slots, `OnceLock` for the string slot
@@ -2297,7 +2303,7 @@ Deleted from the previous design: `ScalarFlags` (no flag matrix exists), the `Sv
 constant).
 
 Open items awaiting rulings or container work, marked here rather than scattered: the perl-extended-UTF-8 representation
-subsection (§2.2.3); which 5.42 constant-declaration surfaces map to `Const` construction; and the slot-model questions
+subsection (§2.2.3); which 5.44 constant-declaration surfaces map to `Const` construction; and the slot-model questions
 collected in §2.3.8.  (Closed since first marked: the would-warn predicate table is container-mapped in §2.3.4; the
 cache-fill mechanism is ruled in §2.3.2 — atomics for the numeric slots, `OnceLock` for the string slot.)  (The buffer
 ruling is settled: custom `CowBuffer`, no new required dependencies; `memchr` optional for scan acceleration.)
@@ -2660,8 +2666,8 @@ blessed in the sequence word; class and magic in the record; finalization state 
 Value-level state travels with copies and stays in the payload: taint, the coercion caches and their validity,
 `numify_warned`, boolean-ness.
 
-**Size budget** (release, 64-bit; enforced by assertions at implementation, compared against perl 5.42 fixed structures)
-[DECISION]:
+**Size budget** (release, 64-bit; enforced by assertions at implementation, compared against perl 5.44.0's structures as
+measured in `compat/profile.md`) [DECISION]:
 
 ```text
 node                 control  sync  payload  total   perl
@@ -3671,7 +3677,7 @@ capture is tainted **even from clean input** — locale is itself a taint source
 is hint-conditional (`use locale` branches skip it and mark results tainted; the hints machinery of §2.2.3/§8 again).
 The 2003 commit also softened propagation from "will itself be tainted" to "may be considered tainted" — perl reserves
 the right to over-taint conservatively, and the §10 propagation table inherits that latitude.  Residual container
-chores: keys-under-`use locale`, and cross-checking the perlsec wording against the 5.42 reference documentation.
+chores: keys-under-`use locale`, and cross-checking the perlsec wording against the 5.44.0 reference documentation.
 
 ### 2.7 The Rust API Surface
 
@@ -6444,7 +6450,7 @@ interpretation and the sole-aggregate-flattens-vs-multi-item-each-whole rule liv
 
 > Note on verification status.  The refgen rule above is confirmed against Perl 5.38 behavior and the op.c
 > `OPf_PARENS`/SREFGEN paths for the cases enumerated here.  The finer corners — empty `\()`, deeply mixed operands,
-> nested derefs — should be re-verified against Perl 5.42 before the refgen lowering is implemented; the rule is
+> nested derefs — should be re-verified against Perl 5.44.0 before the refgen lowering is implemented; the rule is
 > intricate enough that the verify-against-real-Perl discipline applies to those corners specifically.
 
 **What persists in the AST.**  The entire parenthesization investigation adds *no* new structural node beyond the small
@@ -6646,8 +6652,8 @@ either initiates heredoc scanning or returns `ShiftLeft`.  No callback needed.
 
 **The problem.** When the parser encounters `{` at statement level, it could be a block (`{ print 1; print 2 }`) or an
 anonymous hash constructor (`{ key => "value" }`).  In Perl 5, the LALR(1) parser requires a distinct token type before
-it can select a grammar production, so `toke.c` runs a ~200-line byte-level heuristic (`yyl_leftcurly`, lines 6304–6507
-in v5.42.2) that scans ahead through the raw source, manually skipping whitespace, comments, string literals, q-quotes
+it can select a grammar production, so `toke.c` runs a ~200-line byte-level heuristic (`yyl_leftcurly`, lines 6643–6850
+in v5.44.0) that scans ahead through the raw source, manually skipping whitespace, comments, string literals, q-quotes
 with paired/unpaired delimiters, and barewords.  It then checks whether the first term is followed by `,` or `=>` to
 guess hash vs block.  This heuristic is fragile, cannot see past the current line reliably, and disagrees with
 programmer intent in edge cases (e.g. `{@pairs}` at statement level is classified as a block even when a hash
