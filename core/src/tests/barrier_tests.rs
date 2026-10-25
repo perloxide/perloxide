@@ -37,11 +37,17 @@ fn light_is_free_to_call() {
     }
 }
 
-/// The owner/foreigner handshake the sharing tier uses, as a mutual-exclusion check: an owner brackets a plain
-/// increment with `inside` and light barriers; a foreigner sets `converting`, issues a heavy barrier, and proceeds only
-/// when it sees `inside` clear.  While the foreigner holds `converting` the owner must be excluded, so two reads of the
-/// counter must agree.  Any violation is a lost or interleaved update, which is exactly what the heavy barrier exists
-/// to rule out.
+/// The owner/foreigner handshake the sharing tier uses (design.md §2.4), as a mutual-exclusion check.  An owner
+/// brackets a plain increment with `inside` and light barriers, and withdraws — stores `inside` clear and waits — when
+/// its entry finds `converting` set.  A foreigner sets `converting`, issues one heavy barrier, waits until it sees
+/// `inside` clear, and then holds the cell: the barrier made the owner's executed stores visible, and an owner that
+/// enters afterward sees `converting` and withdraws.  While the foreigner holds the cell the owner must be excluded, so
+/// two reads of the counter must agree.  Any violation is a lost or interleaved update, which is exactly what the heavy
+/// barrier exists to rule out.
+///
+/// The roles are asymmetric on purpose: only the owner ever backs off.  A foreigner that backed off whenever it saw the
+/// owner inside would phase-lock with an owner that waits inside, each yielding to the other, and the test would then
+/// pass or fail on scheduling noise.
 #[test]
 fn asymmetric_handshake_excludes_the_owner() {
     if !is_available() {
@@ -68,43 +74,53 @@ fn handshake(heavy: fn() -> Result<(), BarrierError>) {
         let ops_seen = ops_seen.clone();
         thread::spawn(move || {
             let mut ops = 0u64;
+            let mut withdrawals = 0u64;
             while !stop.load(Ordering::Relaxed) {
+                // Entry: announce, then look for a converter; on finding one, withdraw and wait outside.
                 inside.store(true, Ordering::Relaxed);
                 light();
+                if converting.load(Ordering::SeqCst) {
+                    inside.store(false, Ordering::Release);
+                    withdrawals += 1;
+                    while converting.load(Ordering::Acquire) {
+                        std::hint::spin_loop();
+                    }
 
-                while converting.load(Ordering::Acquire) {
-                    std::hint::spin_loop();
+                    continue;
                 }
 
+                // The operation: plain, non-atomic in spirit (a load and a store rather than a locked increment).
                 let v = counter.load(Ordering::Relaxed);
                 counter.store(v + 1, Ordering::Relaxed);
-                light();
 
+                // Exit.
+                light();
                 inside.store(false, Ordering::Release);
                 ops += 1;
                 ops_seen.store(ops, Ordering::Relaxed);
             }
-            ops
+            (ops, withdrawals)
         })
     };
 
-    // The owner holds `inside` for nearly its whole loop, so a foreigner's sample finds it outside only in a narrow
-    // window, and on a loaded two-core machine the owner may not be scheduled at all for a while.  The run therefore
-    // lasts at least 200 ms and continues, up to a bound, until the owner has run and the foreigner has held the cell
-    // at least once; the property under test is the equality asserted inside the loop.
+    // Each round converts once and then lets the owner complete at least one operation before the next round, so that
+    // the rounds interleave with the owner rather than starving it.  The run lasts at least 200 ms; every wait in it is
+    // bounded so that a protocol that stops making progress fails rather than hangs.
     let floor = Instant::now() + Duration::from_millis(200);
     let bound = Instant::now() + Duration::from_secs(10);
     let mut observed = 0u64;
-    let mut backed_off = 0u64;
-    while Instant::now() < floor || (Instant::now() < bound && (observed == 0 || ops_seen.load(Ordering::Relaxed) == 0)) {
+    let mut found_inside = 0u64;
+    while Instant::now() < floor {
         converting.store(true, Ordering::SeqCst);
         heavy().unwrap();
 
+        // The owner may be mid-operation; it finishes that one, and its next entry withdraws.
         if inside.load(Ordering::Acquire) {
-            converting.store(false, Ordering::Release);
-            backed_off += 1;
-            std::hint::spin_loop();
-            continue;
+            found_inside += 1;
+            while inside.load(Ordering::Acquire) {
+                assert!(Instant::now() < bound, "the owner never left: observed={observed} found_inside={found_inside}");
+                std::hint::spin_loop();
+            }
         }
 
         let first = counter.load(Ordering::Relaxed);
@@ -117,11 +133,18 @@ fn handshake(heavy: fn() -> Result<(), BarrierError>) {
 
         assert_eq!(first, second, "the owner ran while the foreigner held the cell");
         observed += 1;
+
+        let seen = ops_seen.load(Ordering::Relaxed);
+        while ops_seen.load(Ordering::Relaxed) == seen {
+            assert!(Instant::now() < bound, "the owner made no progress after a conversion: ops={seen} observed={observed}");
+            std::hint::spin_loop();
+        }
     }
 
     stop.store(true, Ordering::Relaxed);
-    let ops = owner.join().unwrap();
-    assert!(ops > 0 && observed > 0, "ops={ops} observed={observed} backed_off={backed_off}");
+    let (ops, withdrawals) = owner.join().unwrap();
+    eprintln!("handshake: ops={ops} observed={observed} withdrawals={withdrawals} found_inside={found_inside}");
+    assert!(ops > 0 && observed > 0, "ops={ops} observed={observed} withdrawals={withdrawals} found_inside={found_inside}");
 }
 
 #[test]
