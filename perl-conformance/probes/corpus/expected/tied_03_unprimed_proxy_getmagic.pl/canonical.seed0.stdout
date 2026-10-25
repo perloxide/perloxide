@@ -1,0 +1,35 @@
+  DESTROY
+  DESTROY
+  DESTROY
+  FETCH[0]
+  FETCH[0]
+  FETCH[0]
+  FETCH[1]
+  FETCH[1]
+  FETCH[1]
+  FETCH[1]
+  FETCH[1]
+  FETCH[1]
+  FETCH[1]
+  STORE[0] ref
+  STORE[0] ref
+  STORE[0] undef
+  STORE[1] ref
+  after: defined via proxy = 0
+  after: defined via proxy = 1
+  blessed:
+  defined:
+  drop the proxy:
+  isweak:
+  readonly:
+  ref:
+  refaddr:
+  reftype:
+  undef $t2:
+  undef $t:
+  unweaken:
+  weaken:
+end
+primed held proxy: read, weaken, undef the referent:
+unprimed held proxy: weaken (no-op on an undef slot), read (primes a strong copy), undef the referent:
+which predicates FETCH (one call each on a fresh unprimed proxy):

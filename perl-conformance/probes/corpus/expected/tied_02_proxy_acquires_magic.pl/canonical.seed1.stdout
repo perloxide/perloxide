@@ -1,0 +1,34 @@
+   read $a[0] afresh: w
+   read $a[0] afresh: x
+   read 1:   TS::FETCH
+   read 2:   TS::FETCH
+   read 3:   TS::FETCH
+   read 4:   TS::FETCH
+   read after the kill: undef
+   undef the referent:
+   weaken:
+   write 'w':
+  DESTROY
+  TA::FETCH[0]
+  TA::FETCH[0]
+  TA::FETCH[0]
+  TA::FETCH[0]
+  TA::FETCH[0]
+  TA::STORE[0] ref
+  TA::STORE[0] undef
+  TA::STORE[0] w
+  TA::STORE[0] x
+  TS::FETCH
+  TS::STORE ref
+  TS::STORE undef
+  TS::STORE w
+  TS::TIESCALAR
+  TS::TIESCALAR
+1. tie the temporary proxy $a[0]:
+2. tie a held proxy, then three reads, a write, a read:
+3. weaken the held, doubly magical proxy, then kill the referent (both ties keep weak copies):
+end
+from-TS
+from-TS
+w
+x

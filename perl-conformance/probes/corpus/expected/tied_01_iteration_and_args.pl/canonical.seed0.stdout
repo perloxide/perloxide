@@ -1,0 +1,128 @@
+    FETCHSIZE=1
+    FETCHSIZE=1
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=3
+    FETCHSIZE=4
+    FETCHSIZE=4
+    FETCHSIZE=4
+    FETCHSIZE=5
+    FETCHSIZE=5
+    FETCHSIZE=5
+    FETCHSIZE=5
+    FETCHSIZE=5
+    FETCHSIZE=5
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[0]
+    FETCH[1]
+    FETCH[1]
+    FETCH[1]
+    FETCH[1]
+    FETCH[1]
+    FETCH[1]
+    FETCH[1]
+    FETCH[2]
+    FETCH[2]
+    FETCH[2]
+    FETCH[2]
+    FETCH[2]
+    FETCH[2]
+    FETCH[2]
+    FETCH[2]
+    FETCH[3]
+    FETCH[3]
+    FETCH[4]
+    FETCH[4]
+    FETCH{k}
+    FETCH{k}
+    FIRSTKEY
+    FIRSTKEY
+    FIRSTKEY
+    FIRSTKEY
+    NEXTKEY
+    NEXTKEY
+    NEXTKEY
+    NEXTKEY
+    PUSH 50
+    SHIFT
+    STORESIZE 1
+  (reads nothing)
+  (reads nothing)
+  (reads nothing)
+  (reads nothing)
+  iter: e=10
+  iter: e=10
+  iter: e=10
+  iter: e=10
+  iter: e=10
+  iter: e=10
+  iter: e=20
+  iter: e=20
+  iter: e=30
+  iter: e=30
+  iter: e=30
+  iter: e=30
+  iter: e=40
+  iter: e=40
+  iter: e=40
+  iter: e=40
+  iter: e=50
+  iter: e=50
+  left: 10
+  left: 10
+  left: 10 20 30 40 50
+  left: 10 20 30 40 50
+  left: 20 30 40
+  left: 20 30 40
+  read $_[2] twice: 30 30
+  scalar(@_) = 3
+\$a[0] twice in one statement: different proxy
+concat $a[0] . $a[0]:
+f($a[0]), reading nothing:
+f($a[0], $a[0]) reading each twice:
+f($h{k}), reading nothing:
+f(%h), reading nothing:
+f(@a), only counting:
+f(@a), reading $_[2] twice:
+f(@a), reading nothing:
+for (@a) reading $_ twice:
+for (@a) reading nothing:
+for (values %h) reading $_ twice:
+for (values %h) reading nothing:
+interpolation "@a":
+list ($a[0], $a[0]):
+my @copy = %h:
+my @copy = @a:
+plain: push during the loop
+plain: shift during the loop
+plain: truncate during the loop
+tied: push during the loop
+tied: shift during the loop
+tied: truncate during the loop

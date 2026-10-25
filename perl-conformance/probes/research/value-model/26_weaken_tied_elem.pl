@@ -12,7 +12,8 @@
 #      through the proxy clears it (mg.c 287), so later reads return the cached value and the weakened proxy stays
 #      weak; reading `$a[0]` afresh makes a new proxy, which FETCHes and is not weak.
 # The tie class below keeps its own slot weak so the referent can die at all.  The extra FETCHes in the
-# 5.44.0 output (weaken in A, isweak in C) are the bundled Scalar::Util's get-magic calls, not perl's.
+# 5.44.0 output (the isweak calls in A and C) are get-magic from builtin::is_weak, which Scalar::Util aliases
+# isweak to since 5.40; weaken itself never runs get-magic (corpus probe tied_03_unprimed_proxy_getmagic.pl).
 use strict; use warnings;
 use Scalar::Util qw(weaken isweak);
 {

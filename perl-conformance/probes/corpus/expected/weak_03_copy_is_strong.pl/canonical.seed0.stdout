@@ -1,0 +1,22 @@
+  DESTROY
+  DESTROY
+  DESTROY
+  DESTROY
+  DESTROY
+  after death: held element defined=0 strong
+  after undef $t: holder defined=1, copy defined=1
+  after undef copy: holder defined=0
+  copy strong
+  copy strong, values copy strong
+  element defined=1
+  held element weak same_sv=1, shifted copy strong
+  holder defined=1
+  holder defined=1
+  holder weak, copy strong
+  returned strong
+assignment copy:
+end
+hash value copied out:
+list assignment copy:
+shift of a weak element (the element SV itself leaves the array):
+sub return of a weak lexical:

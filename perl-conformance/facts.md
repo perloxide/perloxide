@@ -80,6 +80,28 @@ Entries:
   inside the scope, it keeps reporting the localized value after the scope ends.  The tied rows read their captured
   reference once, after the scope.  Probes: `probes/research/value-model/27_tied_elem_proxy_cache.pl`,
   `26_weaken_tied_elem.pl` (C).
+- A tied array under `foreach` is read by index with `FETCHSIZE` consulted before every iteration and once more at exit,
+  so `shift`, `push` and `$#a = 0` in the body give the same visible element sequence as on a plain array (`pp_iter`
+  calls `av_fetch(av, ix, FALSE)` on a magical array).  Flattening `@a` into a sub call or a `foreach` list is one
+  `FETCHSIZE` and one proxy per element with no `FETCH` until a read, and a read of `$_[2]` twice is one `FETCH`; `my
+  @copy = @a` and `"@a"` `FETCH` every element; `f($a[0])` runs nothing.  Every syntactic `$a[0]`, two in one list, one
+  expression or one argument list included, is its own proxy with its own once-only `FETCH` and a different address.  A
+  tied hash flattened into a call or into `foreach (values %h)` is a key walk (`FIRSTKEY`, `NEXTKEY`) with one value
+  proxy per key and no `FETCH` until a read; `my @copy = %h` `FETCH`es every value; `f($h{k})` runs nothing.  Probe:
+  `probes/corpus/tied_01_iteration_and_args.pl` (lane A).
+- A tied-element proxy can acquire a second magic.  `tie $a[0], ...` on the temporary proxy is lost with it and a fresh
+  `$a[0]` goes to the array's class alone.  On a held proxy the magics chain in attachment order and `MGf_GSKIP` is per
+  magic (`Perl_mg_get` tests it on each entry, mg.c 188): a scalar tie's `FETCH` runs on every read while the element's
+  `FETCH` runs once, a write runs both `STORE`s (scalar tie first) and re-arms the element `FETCH`, and the kill of a
+  weakened doubly magical proxy runs both `STORE(undef)`s.  Probe: `probes/corpus/tied_02_proxy_acquires_magic.pl` (lane
+  A).
+- `weaken` on a held proxy whose slot has never been read is a silent no-op (`Perl_sv_rvweaken` returns on `!SvOK`), so
+  a later read primes the proxy with a *strong* copy and the referent cannot die while the proxy lives; primed first,
+  the same proxy is a weak holder cleared at death.  Which `Scalar::Util` functions `FETCH` an unprimed proxy is
+  version-conditioned: `blessed`, `reftype`, `refaddr` and `readonly` do on both Perls; `isweak` does on 5.44.0 — it is
+  `builtin::is_weak`, whose `pp_is_weak` runs `SvGETMAGIC` — and not on 5.38.2 (Scalar::Util 1.63); `weaken` and
+  `unweaken` never do (`pp_weaken` calls `sv_rvweaken` with no get-magic).  Probe:
+  `probes/corpus/tied_03_unprimed_proxy_getmagic.pl` (lane A; 5.38.2 differs on the `isweak` row).
 - `weaken` on a tied element acts on the proxy's own slot and runs no set magic: `weaken $a[0]` has no lasting effect
   (the proxy dies with the statement and the tie's slot stays strong), and a proxy held through `\$a[0]`, read once so
   its slot is filled, then weakened, is a weak holder whose set magic is the tie's `STORE`: when the referent dies the
@@ -89,6 +111,11 @@ Entries:
   never grows (`tied/aeA/bare/unshift1`: `7, 10, 20, 30`), while the assigned form stores `50` at 5 and a later `shift`
   or `unshift` moves it like any element (`tied/aeA/assign/shift1`: at index 4).  `Perl_save_adelete`, `Perl_av_delete`
   on a tied array (av.c 1071).
+- A proxy taken before `local` and written through inside the scope changes nothing about the unwind: on a present index
+  or key the `STORE` reaches the tie and the restore writes the saved value over it (the held proxy keeps reporting what
+  it last stored); on an index past the end or an absent key the `STORE` reaches the tie too, the unwind still
+  `DELETE`s, because `local` recorded the element's absence when it ran (`SAVEADELETE`/`SAVEHDELETE` on `!preeminent`,
+  pp_hot.c), and the held proxy reads undef afterward.  Probe: `probes/corpus/local_04_tied_absent_preref.pl` (lane A).
 - On a `threads::shared` array the restore writes the saved value twice.  The element proxy carries tied-element magic
   addressing the aggregate by index and shared-scalar magic pointing at the shared element SV itself, and the exit
   `mg_set` runs both: the scalar magic stores into that SV wherever a `shift` or `unshift` has moved it, then the
@@ -132,22 +159,32 @@ Entries (the transition function is the section text; these are the weak-referen
   false when the count is still positive and `sv_clear` stops before the kill, so the weak references keep pointing at
   the live object and the next death runs `DESTROY` again.  Model rows `undef.K`, `assign.K`, `cat.K` (class `K` copies
   `$_[0]` into a global; the second `Da:K[1]` is the weak holder still defined at the next death).
+- The weak flag belongs to the holder SV, never to the value: a copy of a weak reference by assignment, list assignment,
+  `shift` or `pop` of a weak element, a sub's return, or a hash value read out is a strong reference that keeps the
+  referent alive, while the holder it was copied from stays weak and is cleared at death wherever it has moved to (the
+  element SV `shift` returns keeps its flag).  `Perl_sv_setsv_flags` sets the new RV without `SvWEAKREF`.  Probe:
+  `probes/corpus/weak_03_copy_is_strong.pl` (lane A).
 - The clearing is a store with set magic: for each weak referrer, in backref-array order, `SvRV_set(referrer, 0)`,
   `SvROK_off`, `SvWEAKREF_off`, then `SvSETMAGIC`.  The array order is weaken order permuted by removals: `weaken`
   appends, and a holder that dies or is overwritten is removed by advancing the array start if it is first, shortening
   the array if it is last, and otherwise moving the last entry into its place (`Perl_sv_del_backref`; five holders with
-  the second undefined are cleared first, fifth, third, fourth; FZ row `tiedweak.order`).  A tied holder therefore runs
-  its `STORE(undef)` at the moment the referent dies, and a `STORE` that dies propagates out of the operation that
-  killed the object, leaving the later referrers uncleared.  This is the only way the moment of clearing is observable
-  from Perl; without set magic a weak reference is observed only when read.  `Perl_sv_kill_backrefs` (sv.c 6987-6990).
-  Model rows `tiedweak.T`, `tiedweak.TX`.
+  the second undefined are cleared first, fifth, third, fourth; FZ row `tiedweak.order`, and every arm in
+  `probes/corpus/weak_02_backref_order.pl`: removing the first clears `b c d e`, the last `a b c d`, a middle one `a e c
+  d`, two middles `a e d`, and all but the middle leaves `c`).  A tied holder therefore runs its `STORE(undef)` at the
+  moment the referent dies, and a `STORE` that dies propagates out of the operation that killed the object, leaving the
+  later referrers uncleared.  This is the only way the moment of clearing is observable from Perl; without set magic a
+  weak reference is observed only when read.  `Perl_sv_kill_backrefs` (sv.c 6987-6990).  Model rows `tiedweak.T`,
+  `tiedweak.TX`.
 - The clearing is visible in progress: a tied holder's `STORE(undef)` runs before the later holders are cleared, so from
   inside it a later weak reference to the same dying object is still defined and `isweak`; after the kill it is undef.
-  The destructor has already run and committed (`S_curse` before the kill), and nothing rechecks the count after the
-  kill: every way of reaching the object through that later holder from inside the `STORE`, a kept or transient strong
-  copy, a new weak reference, a rebless, is a crash or a leaked freed SV, and undefining the later holder there croaks
-  `panic: del_backref` (undefined window, `undefined.md`).  Probe:
-  `probes/research/value-model/25_kill_backrefs_reentry.pl` (identical on 5.38.2 and 5.44.0).
+  The destructor has already run and committed (`S_curse` before the kill, which also runs `SvOBJECT_off`), and nothing
+  rechecks the count after the kill.  Reads through that later holder from inside the `STORE` are defined: `ref`,
+  `reftype`, `refaddr` and the elements are intact, the elements are writable, and the object is already unblessed —
+  `blessed` is undef and a method call dies `Can't call method ... on unblessed reference`.  Every *upgrade* of the
+  holder — a kept or transient strong copy, a new weak reference, a rebless — is a crash or a leaked freed SV, and
+  undefining the later holder there croaks `panic: del_backref` (undefined window, `undefined.md`).  Probes:
+  `probes/corpus/weak_01_death_window_reads.pl` (the defined side; lane A),
+  `probes/research/value-model/25_kill_backrefs_reentry.pl` (the upgrades; identical on 5.38.2 and 5.44.0).
 - Under ithreads a weak reference to a `threads::shared` object is per thread: each thread reaches the shared referent
   through its own proxy SV, the weak reference is to that proxy, and it is cleared when the thread's last strong
   reference dies even though the referent lives on in another thread.  The referent dies, and `DESTROY` runs, in

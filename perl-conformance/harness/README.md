@@ -168,6 +168,7 @@ allocator-sensitive or nondeterministic test records only its verdict.
 | `local_01_tied_elem.pl`                | lane-A-eligible       |
 | `local_02_fresh_sv.pl`                 | lane-A-eligible       |
 | `local_03_shared_elem_move.pl`         | lane-A-eligible       |
+| `local_04_tied_absent_preref.pl`       | lane-A-eligible       |
 | `local_elem_sv_identity.pl`            | lane-A-eligible       |
 | `locale_01_setlocale_after_cache.pl`   | lane-A-eligible       |
 | `locale_02_copy_across.pl`             | lane-A-eligible       |
@@ -183,9 +184,15 @@ allocator-sensitive or nondeterministic test records only its verdict.
 | `probe_01_face_trace.pl`               | lane-A-eligible       |
 | `threads_01_const_marks.pl`            | lane-A-eligible       |
 | `threads_02_shared_local.pl`           | lane-A-eligible       |
+| `tied_01_iteration_and_args.pl`        | lane-A-eligible       |
+| `tied_02_proxy_acquires_magic.pl`      | lane-A-eligible       |
+| `tied_03_unprimed_proxy_getmagic.pl`   | lane-A-eligible       |
 | `value_01_stale_search.pl`             | lane-A-eligible       |
 | `value_02_locale_radix.pl`             | lane-A-eligible       |
 | `value_03_handler_reassign_by_path.pl` | lane-A-eligible       |
+| `weak_01_death_window_reads.pl`        | lane-A-eligible       |
+| `weak_02_backref_order.pl`             | lane-A-eligible       |
+| `weak_03_copy_is_strong.pl`            | lane-A-eligible       |
 | `destroy_01_weak.pl`                   | lane-B-only           |
 | `gd_01_order.pl@plain`                 | lane-B-only           |
 | `gd_01_order.pl@prime`                 | lane-B-only           |
@@ -195,6 +202,8 @@ allocator-sensitive or nondeterministic test records only its verdict.
 blessed in the threaded family (`expected/<test>/family`).  Every lane-A test of the unthreaded family agrees exactly
 with the threaded stock build (`agrees_with_xconfig=1`); the only disagreements are `gd_01_order.pl@prime` (lane B) and
 `addr_02_observable.pl` (nondeterministic), whose outputs are not functions of the program to begin with.
+`tied_03_unprimed_proxy_getmagic.pl` is blessed from 5.44.0 and disagrees with the 5.38.2 cross-check
+(`agrees_with_xcheck=0`) on one row, where `isweak` runs get-magic on 5.44.0 and not on 5.38.2.
 
 ## Provisional choices
 

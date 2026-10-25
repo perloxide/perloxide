@@ -217,3 +217,42 @@ source.
   element is treated as present and restored by STORE
 - `pp_hot.c:4627` pp_multideref, and pp_aelem below it with the same block: without SvCANEXISTDELETE the element is
   preeminent and save_aelem records the fresh proxy's undef
+
+## tied_01_iteration_and_args.pl
+
+- `pp_hot.c:5103` pp_iter: a magical array is read by index each iteration through av_fetch, which hands out a
+  tied-element proxy without FETCHing it
+- `av.c:285` Perl_av_fetch on a tied array: the element is a fresh PVLV proxy carrying tiedelem magic, one per fetch
+
+## tied_02_proxy_acquires_magic.pl
+
+- `mg.c:188` Perl_mg_get: the get-skip flag is tested per magic entry, so one magic on a proxy can be skipped while
+  another runs
+- `mg.c:287` Perl_mg_set: a set through the proxy clears the skip flag on each entry, re-arming the element FETCH
+
+## tied_03_unprimed_proxy_getmagic.pl
+
+- `sv.c:6649` Perl_sv_rvweaken: weakening an undef (an unprimed proxy's slot) is a silent no-op
+- `pp.c:8374` pp_is_weak runs SvGETMAGIC on its argument, so builtin::is_weak (Scalar::Util's isweak since 5.40) FETCHes
+  a tied-element proxy
+- `pp.c:8384` pp_weaken calls sv_rvweaken on the stack SV with no get-magic
+
+## weak_01_death_window_reads.pl
+
+- `sv.c:7813` S_curse: the object is unblessed after DESTROY and before the weak references are cleared
+
+## weak_02_backref_order.pl
+
+- `sv.c:6901` Perl_sv_del_backref: a removed first holder advances the array start
+- `sv.c:6929` Perl_sv_del_backref: the array is shortened by one whether the removed holder was last or was replaced by
+  the last
+
+## weak_03_copy_is_strong.pl
+
+- `sv.c:4593` Perl_sv_setsv_flags: a copied reference takes a new strong count and no weak flag
+
+## local_04_tied_absent_preref.pl
+
+- `pp_hot.c:4415` pp_helem: a key absent when local runs is recorded for deletion on unwind, whatever is stored under it
+  later
+- `pp_hot.c:4663` pp_aelem: the same for an array index past the end

@@ -1,0 +1,43 @@
+    DELETE[5]
+    DELETE{new}
+    FETCH[1]
+    FETCH[1]
+    FETCH[1]
+    FETCH[1]
+    FETCH[1]
+    FETCH[5]
+    FETCH[5]
+    FETCH{k}
+    FETCH{k}
+    FETCH{k}
+    FETCH{k}
+    FETCH{new}
+    FETCH{new}
+    STORE[0]=10
+    STORE[1]=20
+    STORE[1]=20
+    STORE[1]=7
+    STORE[1]=99
+    STORE[1]=undef
+    STORE[2]=30
+    STORE[5]=7
+    STORE[5]=99
+    STORE{k}=L
+    STORE{k}=X
+    STORE{k}=v
+    STORE{k}=v
+    STORE{new}=L
+    STORE{new}=X
+  after the scope: exists = 0, via r = undef
+  after the scope: fresh $a[1] = 20; via r = 7
+  after the scope: fresh $h{k} = v; via r = X
+  after the scope: size = 3, exists = 0, via r = undef
+  inside after: fresh $a[1] = 7; via r = 7
+  inside after: fresh $h{k} = X; via r = X
+  inside before: fresh $a[1] = 99
+  inside: fresh $a[5] = 7
+  inside: fresh $h{new} = X
+array, absent index: hold \$a[5], local $a[5] = 99, store 7 through the proxy inside
+array, present index: hold \$a[1], local $a[1] = 99, store 7 through the proxy inside
+hash, absent key: hold \$h{new}, local $h{new} = 'L', store 'X' through the proxy inside
+hash, present key: hold \$h{k}, local $h{k} = 'L', store 'X' through the proxy inside
