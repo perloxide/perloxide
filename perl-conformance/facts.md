@@ -166,7 +166,7 @@ Section: `models/PV/section.md`.  Model: `models/PV/PV.pm` (in progress; `status
 
 ## Element aliasing
 
-Suite: `suites/aliasing` (27 cases, 25 identical on both Perls, 2 undefined in Perl).
+Suite: `suites/aliasing` (28 cases, 26 identical on both Perls, 2 undefined in Perl).
 
 ## Arrays
 
@@ -187,6 +187,14 @@ Entries:
   a store past the end all leave holes, which `exists` reports as absent while `scalar(@a)` counts them. Lvalue-context
   access -- `\$a[i]`, `\(@a)`, `foreach` aliasing, passing `$a[i]` to a sub -- vivifies a hole into a fresh SV
   (`Perl_av_fetch` with `lval`). The same probe.
+- The lists returned by `sort` (bare, with a block, a named sub or a sub reference, and under `reverse`), by `reverse`,
+  and by `grep` in both its block and expression forms are the argument SVs themselves, so a `for`, `map` or `grep` over
+  such a list writes through to the originals.  The list returned by `map` is copies in every form — `map { $_ }`, `map
+  {; $_ }`, `map($_, ...)` — because `pp_mapwhile` copies every result that is not already a temporary
+  (`sv_mortalcopy`), while `$_` inside the block or expression still aliases the element.  `pp_sort` copies only pad
+  temporaries, and only when a sort block is present (`copytmps`); `pp_grepwhile` and `pp_reverse` keep the stack SVs.
+  List assignment copies, which is where the aliasing stops.  Case `A28_returned_lists_alias` (identity by `refaddr`
+  read through `@_`, and the write-through for each builtin and form).
 
 ## Address identity, literal cells, and global destruction
 
