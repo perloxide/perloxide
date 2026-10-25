@@ -1,9 +1,9 @@
 #!/usr/bin/perl
-use lib ($ENV{VF_ROOT} || '.'); our $ROOT = $ENV{VF_ROOT} || '.';
+our $ROOT = $ENV{MODEL_ROOT} || '.';
 # gen_copycheck.pl -- for every state of the 12-op core lane (bare ops, fresh holder, depth D): Dump the original, Dump the copy
 # `my $c = $x` and the original again (COW share), run the consumers on the copy, then run them DESTRUCTIVELY on the original.
 use strict; use warnings;
-my $PERL = $ENV{ORACLE} || 'perl'; my $DEPTH = $ENV{DEPTH} || 2; my $TAG = $ENV{TAG} || 'cc';
+my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl'; my $DEPTH = $ENV{DEPTH} || 2; my $TAG = $ENV{TAG} || 'cc';
 my %starts = ( s10=>q{"10"}, sUV=>q{"18446744073709551615"}, s1_5=>q{"1.5"}, s1e19=>q{"1e19"}, sabc=>q{"abc"}, s12x=>q{"12x"}, sInf=>q{"Inf"}, sNaN=>q{"NaN"},
   sInfx=>q{"Infx"}, sEmpty=>q{""}, sNeg0=>q{"-0"}, s09=>q{"09"}, sAz=>q{"Az"}, i10=>q{10}, iMax=>q{9223372036854775807}, f3=>q{3.0}, f3_5=>q{3.5}, f1e19=>q{1e19},
   s0but=>q{"0 but true"}, s00=>q{"0.0"}, sdot5=>q{".5"}, i0=>q{0}, f0=>q{0.0}, sLong=>q{"abcdefghijklmnopqrstuvwxyz0123456789"} );
@@ -14,7 +14,7 @@ my $head = <<'H';
 use strict; no warnings; use Devel::Peek (); use B; use Scalar::Util qw(isdual); use Data::Dumper; use JSON::PP; use Storable qw(freeze);
 use builtin qw(created_as_number created_as_string); no warnings 'experimental::builtin'; binmode STDOUT, ":utf8";
 $Data::Dumper::Indent=0; $Data::Dumper::Terse=1; our @WARN; $SIG{__WARN__} = sub { my $m=$_[0]; $m =~ s/ at .*//s; $m =~ s/\n//; push @WARN, $m };
-use lib ($ENV{VF_ROOT}||'.'); use VF::Observe; sub peek { my $r=shift; join("|", VF::Observe::peek($r)->{text}, VF::Observe::key($r)) }
+require(($ENV{MODEL_ROOT} || ".") . "/Observe.pm"); sub peek { my $r=shift; join("|", Perl::Conformance::Model::ValueFlags::Observe::peek($r)->{text}, Perl::Conformance::Model::ValueFlags::Observe::key($r)) }
 sub cons_on { my $r = shift; my @o; local @WARN=(); my $c = $$r;   # runs the consumer chain on the scalar behind $r, in place
   push @o, "$$r"; push @o, sprintf("%.17g", 0.0+$$r); push @o, sprintf("%.17g", $$r); push @o, (isdual($$r)?1:0); push @o, (created_as_number($$r)?"N":"-").(created_as_string($$r)?"S":"-");
   push @o, Dumper($$r); { local $Data::Dumper::Useperl=1; push @o, Dumper($$r) } push @o, encode_json([$$r]); push @o, unpack("H*", substr(freeze([$$r]),12)); push @o, (eval { unpack("H*", pack("j",$$r)) } // "croak"); push @o, ($$r ? 1 : 0);

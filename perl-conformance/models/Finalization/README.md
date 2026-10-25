@@ -12,11 +12,12 @@ those versions can be supported by this model — each such reading ends either 
 replay mismatch on a supported version is therefore either a model gap or a change in perl's own implementation since
 the transcribed tag, and the validation record says which routines could carry the second kind.
 
-`FZ.pm` transcribes the lifetime machinery over a scenario IR: `SvREFCNT_dec` -> `sv_clear` -> `curse` (S_curse, with
-resurrection epochs and rebless), `sv_kill_backrefs`, `sv_setsv_flags` / `sv_set_undef` / `sv_del_backref` /
-`sv_rvweaken` / `sv_force_normal_flags`, the tmps stack (`free_tmps`, `cx_pushblock`, `cx_popblock`, `leave_scope`,
-`leave_adjust_stacks`), `pp_entersub`, `pp_nextstate`, and `sv_clean_objs`. Harness glue (the IR walker, trace emitter)
-is `FZ::Harness::*`, CamelCase, in the same file pending the split into `FZ/Harness.pm`.
+`Finalization.pm` transcribes the lifetime machinery over a scenario IR: `SvREFCNT_dec` -> `sv_clear` -> `curse`
+(S_curse, with resurrection epochs and rebless), `sv_kill_backrefs`, `sv_setsv_flags` / `sv_set_undef` /
+`sv_del_backref` / `sv_rvweaken` / `sv_force_normal_flags`, the tmps stack (`free_tmps`, `cx_pushblock`, `cx_popblock`,
+`leave_scope`, `leave_adjust_stacks`), `pp_entersub`, `pp_nextstate`, and `sv_clean_objs`. Harness glue (the IR walker,
+trace emitter) is `Perl::Conformance::Model::Finalization::Harness::*`, CamelCase, in the same file pending the split
+into `FZ/Harness.pm`.
 
 `generators/fz_gen.pl` emits 115 scenarios as perl programs and as IR: five destructor variants (plain, `$_[0]` copied
 to a global, weak copy, rebless, dies) x death triggers (scope exit with and without a trailing statement, `undef`,
@@ -25,8 +26,8 @@ two-statement `if` bodies, `while`, postfix `while`, `do`-`while`, C-style `for`
 void/list/scalar returns, `grep` block, `local`, `eval`), plus tied weak holders (two, two with a dying `STORE`, five
 with one removed before the kill) and global-destruction rows compared as sets.
 
-    ORACLE=/path/to/perl TAG=<tag> perl generators/fz_gen.pl   # scenarios=115 ok=... bad=...
+    PERL_CONFORMANCE_PERL=/path/to/perl TAG=<tag> perl generators/fz_gen.pl   # scenarios=115 ok=... bad=...
 
 Recorded: 115/115 on 5.38.2 and 5.44.0, traces identical (`reports/`). Section text: `section.md`.  Coverage is the
-generator's scenario set; the program-level oracle is `suites/finalization`.  Open: the key has not been audited against
-the context and tmps stacks (`status.md`).
+generator's scenario set; the program-level reference is `suites/finalization`.  Open: the key has not been audited
+against the context and tmps stacks (`status.md`).

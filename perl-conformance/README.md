@@ -12,20 +12,20 @@ implementation's own documentation.
 
 ## Layout
 
-| Path             | Contents                                                                                                          |
-|------------------|-------------------------------------------------------------------------------------------------------------------|
-| `profile.md`     | the build and environment the facts are relative to: Perl version, widths, allocator, hash function, locale, libc |
-| `status.md`      | one row per model and suite: what is verified, on which Perls, under which key generation, and what is open       |
-| `undefined.md`   | windows where `perl` itself crashes, reads freed memory, or otherwise has no defined behavior; facts only         |
-| `unsupported-perls.md` | observations from Perls that are not supported versions, kept in one place and resting on nothing          |
-| `supported-versions` | the supported versions, oldest first; the last is the harness's and the suites' default target                |
-| `facts.md`       | the prose index of every fact, by area, each linked to the probe or model row that demonstrates it                |
-| `harness/`       | the differential oracle: runner, normalizer, verdict rules, probe projector, citation index                       |
-| `perls/`         | the build script for a supported Perl's six builds, with the allocator patches; the structure-size tool           |
-| `probes/`        | one program per fact: `corpus/` (harness-run, blessed per build and hash mode) and `research/` (as recorded)      |
-| `models/<NAME>/` | executable transcriptions of one area of the C, with their generators, tables, reports, and section text          |
-| `suites/`        | scenario suites from the design research, with blessed outputs                                                    |
-| `measurements/`  | benchmarks and graph walks from the design research: costs on a particular machine, not facts about Perl          |
+| Path                   | Contents                                                                                                          |
+|------------------------|-------------------------------------------------------------------------------------------------------------------|
+| `profile.md`           | the build and environment the facts are relative to: Perl version, widths, allocator, hash function, locale, libc |
+| `status.md`            | one row per model and suite: what is verified, on which Perls, under which key generation, and what is open       |
+| `undefined.md`         | windows where `perl` itself crashes, reads freed memory, or otherwise has no defined behavior; facts only         |
+| `unsupported-perls.md` | observations from Perls that are not supported versions, kept in one place and resting on nothing                 |
+| `supported-versions`   | the supported versions, oldest first; the last is the harness's and the suites' default target                    |
+| `facts.md`             | the prose index of every fact, by area, each linked to the probe or model row that demonstrates it                |
+| `harness/`             | the differential harness: runner, normalizer, verdict rules, probe projector, citation index                      |
+| `perls/`               | the build script for a supported Perl's six builds, with the allocator patches; the structure-size tool           |
+| `probes/`              | one program per fact: `corpus/` (harness-run, blessed per build and hash mode) and `research/` (as recorded)      |
+| `models/<NAME>/`       | executable transcriptions of one area of the C, with their generators, tables, reports, and section text          |
+| `suites/`              | scenario suites from the design research, with blessed outputs                                                    |
+| `measurements/`        | benchmarks and graph walks from the design research: costs on a particular machine, not facts about Perl          |
 
 ## Rules
 
@@ -34,8 +34,8 @@ implementation's own documentation.
 
 **Blessed output never ends a line in whitespace.**  Editors and git strip trailing whitespace, so a blessed file that
 depends on it is corrupted the first time anyone touches it.  A probe that would print a trailing space — an empty list
-interpolated at the end of a line, say — is rewritten to delimit what it prints; `harness/bin/oracle bless` refuses such
-output, and `harness/tools/lint-blessed.sh` checks the hand-blessed suite files.
+interpolated at the end of a line, say — is rewritten to delimit what it prints; `harness/bin/perl-conformance bless`
+refuses such output, and `harness/tools/lint-blessed.sh` checks the hand-blessed suite files.
 
 **Models.** A model is a transcription of one area of Perl's C source into Perl, validated by replaying Perl's own
 observed behavior through it.  Every snake_case routine in a model package mirrors the Perl function of the same name
@@ -61,14 +61,15 @@ a future observable, for every holder kind, whether or not the field is itself v
 5. never copy the holder between operations -- the copy's COW arm marks the holder for the next op; observe through `B`
    and `Devel::Peek` per step, and run consumers once, destructively, at the end.
 
-**Verdicts.** `match`; `open` (a model or blessed-output mismatch on rows where the oracle Perls agree, listed with its
-recipe and the governing source line); `version-divergent` (the oracle Perls differ on this path; the model follows the
-pinned version); `body-only` (differs only in a field the profile declares consumer-invisible); `allocator-sensitive`;
-`perl-nondeterministic`; `undefined-in-perl`.  Counts are stated per key generation and never compared across
-generations.
+**Verdicts.** `match`; `open` (a model or blessed-output mismatch on rows where the supported versions agree, listed
+with its recipe and the governing source line); `version-divergent` (the supported versions differ on this path; the
+model follows the pinned version); `body-only` (differs only in a field the profile declares consumer-invisible);
+`allocator-sensitive`; `perl-nondeterministic`; `undefined-in-perl`.  Counts are stated per key generation and never
+compared across generations.
 
 **Tooling.** One driver with subcommands per harness; no Makefiles.  Lane staleness is decided by a content hash of the
-model, observer, generator, start set, and oracle recorded in each report header, not by timestamps or a rerun flag.
+model, observer, generator, start set, and reference perl recorded in each report header, not by timestamps or a rerun
+flag.
 
 **Versions.** A Perl is supported only with its full build set and a complete blessing (`profile.md`); the newest
 supported version is the default target, and the harness and the suites take another supported version as the target
@@ -79,5 +80,5 @@ recorded functionally-neutral equivalence or in a version check inside the model
 landed in are established — so one model reflects every supported version.  Each model's README names the tag it was
 transcribed from and the tags it was source-validated against, and its `source-validation.txt` lists the routines by
 outcome.  Where supported versions differ on a path the row is `version-divergent` and the model follows the target.  A
-Perl that is not supported is run only as an implementation under `check`, never as an oracle, whatever its version;
+Perl that is not supported is run only as an implementation under `check`, never as a reference, whatever its version;
 nothing in the reference rests on such a run.

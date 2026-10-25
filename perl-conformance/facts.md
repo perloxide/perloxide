@@ -21,17 +21,18 @@ The string and numeric forms of a scalar, the per-value flags recording which fo
 private, `IsUV`, derived-from-integer, private-only, stringified), the copy-on-write state and buffer length that decide
 later transitions, and the `Dual` case.
 
-Section: `models/VF/section.md`.  Model: `models/VF/VF.pm`.  Verification: `models/VF/reports/coverage.txt`.  Probes:
-`probes/research/value-flags/`, `probes/research/value-model/` (01, 07-11, 15, 17, 18, 22, 23).  Suites:
-`suites/reentry-matrix`, `suites/reentry-matrix-864`, `suites/reentry-6840`, `suites/transitions`.
+Section: `models/ValueFlags/section.md`.  Model: `models/ValueFlags/ValueFlags.pm`.  Verification:
+`models/ValueFlags/reports/coverage.txt`.  Probes: `probes/research/value-flags/`, `probes/research/value-model/` (01,
+07-11, 15, 17, 18, 22, 23).  Suites: `suites/reentry-matrix`, `suites/reentry-matrix-864`, `suites/reentry-6840`,
+`suites/transitions`.
 
 Entries: to be filled from the section text.
 
 ## `local` and the save stack
 
-Section: `models/SS/section.md`.  Model: `models/SS/SS.pm` (488 cells; the 176 structural cells are the
-`models/SS/reports/table.*.tsv` rows whose mutation is `keep`, `shift1`, `shift2`, `unshift1`, `pop1`, `push1`,
-`splice_rm`, `splice_ins`, `fill_neg1`, `fill0` or `refill`).  Probes: `probes/research/value-model/` (01-03),
+Section: `models/SaveStack/section.md`.  Model: `models/SaveStack/SaveStack.pm` (488 cells; the 176 structural cells are
+the `models/SaveStack/reports/table.*.tsv` rows whose mutation is `keep`, `shift1`, `shift2`, `unshift1`, `pop1`,
+`push1`, `splice_rm`, `splice_ins`, `fill_neg1`, `fill0` or `refill`).  Probes: `probes/research/value-model/` (01-03),
 `probes/corpus/local_*`, `probes/corpus/tie_*`.
 
 Entries:
@@ -154,15 +155,15 @@ Entries:
 
 ## Finalization and temporary lifetime
 
-Section: `models/FZ/section.md`.  Model: `models/FZ/FZ.pm` (114 scenarios).  Probes: `probes/research/value-model/`
-(04-06, 16, 19, 21), `probes/corpus/destroy_*`, `probes/corpus/gd_*`.
+Section: `models/Finalization/section.md`.  Model: `models/Finalization/Finalization.pm` (114 scenarios).  Probes:
+`probes/research/value-model/` (04-06, 16, 19, 21), `probes/corpus/destroy_*`, `probes/corpus/gd_*`.
 
 Entries (the transition function is the section text; these are the weak-reference facts a reader looks for by name):
 
 - Weak references to a dying object are cleared after its `DESTROY` returns, not before: inside the destructor every
   weak reference to the object is still defined.  `Perl_sv_clear` runs `S_curse` first and `Perl_sv_kill_backrefs` after
   it.  Probe: `probes/corpus/destroy_01_weak.pl`; model rows `undef.*`, `assign.*`, `cat.*` in
-  `models/FZ/reports/traces.*.txt` (the `[1]` after each `D` is the weak holder, defined). [5.44.0]
+  `models/Finalization/reports/traces.*.txt` (the `[1]` after each `D` is the weak holder, defined). [5.44.0]
 - If `DESTROY` resurrects the object (stores `$_[0]` somewhere), its weak references are not cleared: `S_curse` returns
   false when the count is still positive and `sv_clear` stops before the kill, so the weak references keep pointing at
   the live object and the next death runs `DESTROY` again.  Model rows `undef.K`, `assign.K`, `cat.K` (class `K` copies
@@ -176,12 +177,12 @@ Entries (the transition function is the section text; these are the weak-referen
   `SvROK_off`, `SvWEAKREF_off`, then `SvSETMAGIC`.  The array order is weaken order permuted by removals: `weaken`
   appends, and a holder that dies or is overwritten is removed by advancing the array start if it is first, shortening
   the array if it is last, and otherwise moving the last entry into its place (`Perl_sv_del_backref`; five holders with
-  the second undefined are cleared first, fifth, third, fourth; FZ row `tiedweak.order`, and every arm in
-  `probes/corpus/weak_02_backref_order.pl`: removing the first clears `b c d e`, the last `a b c d`, a middle one `a e c
-  d`, two middles `a e d`, and all but the middle leaves `c`).  A tied holder therefore runs its `STORE(undef)` at the
-  moment the referent dies, and a `STORE` that dies propagates out of the operation that killed the object, leaving the
-  later referrers uncleared.  This is the only way the moment of clearing is observable from Perl; without set magic a
-  weak reference is observed only when read.  `Perl_sv_kill_backrefs` (sv.c 6987-6990).  Model rows `tiedweak.T`,
+  the second undefined are cleared first, fifth, third, fourth; finalization model row `tiedweak.order`, and every arm
+  in `probes/corpus/weak_02_backref_order.pl`: removing the first clears `b c d e`, the last `a b c d`, a middle one `a
+  e c d`, two middles `a e d`, and all but the middle leaves `c`).  A tied holder therefore runs its `STORE(undef)` at
+  the moment the referent dies, and a `STORE` that dies propagates out of the operation that killed the object, leaving
+  the later referrers uncleared.  This is the only way the moment of clearing is observable from Perl; without set magic
+  a weak reference is observed only when read.  `Perl_sv_kill_backrefs` (sv.c 6987-6990).  Model rows `tiedweak.T`,
   `tiedweak.TX`. [5.44.0]
 - The clearing is visible in progress: a tied holder's `STORE(undef)` runs before the later holders are cleared, so from
   inside it a later weak reference to the same dying object is still defined and `isweak`; after the kill it is undef.
@@ -202,12 +203,12 @@ Entries (the transition function is the section text; these are the weak-referen
 
 ## The hash engine
 
-Section: `models/HV/section.md`.  Model: `models/HV/HV.pm` (bucket-level and program-level lanes).  Probes:
-`probes/research/value-model/` (12, 13), `probes/corpus/each_*`, `probes/corpus/order_*`.
+Section: `models/HashEngine/section.md`.  Model: `models/HashEngine/HashEngine.pm` (bucket-level and program-level
+lanes).  Probes: `probes/research/value-model/` (12, 13), `probes/corpus/each_*`, `probes/corpus/order_*`.
 
 ## The UTF-8 flag and taint
 
-Section: `models/PV/section.md`.  Model: `models/PV/PV.pm` (in progress; `status.md`).
+Section: `models/StringFlags/section.md`.  Model: `models/StringFlags/StringFlags.pm` (in progress; `status.md`).
 
 ## Element aliasing
 
@@ -220,8 +221,8 @@ Entries:
 - `shift` and `pop` return the element's SV itself, not a copy: a reference taken to the returned value has the address
   the element had in the array.  So does `splice` in list context for every element it removes; in scalar context it
   returns the last removed one and frees the rest at once.  `Perl_av_shift`, `Perl_av_pop`, `pp_splice`.  Probe:
-  `probes/corpus/local_elem_sv_identity.pl`; model rows `models/SS/reports/table.*.tsv` with mutation `shift1`, `pop1`,
-  `splice_rm` (the second `E=` reference). [5.44.0]
+  `probes/corpus/local_elem_sv_identity.pl`; model rows `models/SaveStack/reports/table.*.tsv` with mutation `shift1`,
+  `pop1`, `splice_rm` (the second `E=` reference). [5.44.0]
 - What `unshift`, `push` and `splice` insert are fresh copies of their arguments (`newSVsv` in `pp_unshift`, `pp_push`
   and `pp_splice`), never the argument SVs.  The same rows with mutation `unshift1`, `push1`, `splice_ins`. [5.44.0]
 - `pop` of the top element does not trim holes below it (`Perl_av_pop` only clears the top slot), whereas `delete` of

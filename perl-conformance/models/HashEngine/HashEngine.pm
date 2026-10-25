@@ -1,4 +1,4 @@
-package HV;
+package Perl::Conformance::Model::HashEngine;
 # Executable transcription of perl 5.44.0's hash engine on a 64-bit build configured with
 # PERL_HASH_FUNC_SIPHASH13 + SBOX32 (SBOX32_MAX_LEN 24), PERL_HASH_RANDOMIZE_KEYS, PERL_HASH_DEFAULT_HvMAX 7.
 # Every routine names the C function or macro it mirrors.
@@ -41,18 +41,18 @@ sub sbox32_seed_state128 { my $seed=shift; my @sd = unpack("V4", $seed);
 sub sbox32_hash_with_state { my ($st,$key)=@_; my $h = $st->{s0}; my $t=$st->{t};
   for my $i (0 .. length($key)-1) { $h ^= $t->[ 256*$i + ord(substr($key,$i,1)) ] } $h }
 # ---- hv_func.h PVT_PERL_HASH_SEED_STATE / PVT_PERL_HASH_WITH_STATE; util.c Perl_get_hash_seed ----
-sub HV::Harness::NewProcess { my ($seedhex,$perturb)=@_; my $seed = "\0" x 32;
+sub Perl::Conformance::Model::HashEngine::Harness::NewProcess { my ($seedhex,$perturb)=@_; my $seed = "\0" x 32;
   if (defined $seedhex && $seedhex ne '') { my $h = $seedhex; $h =~ s/^0x//i; my $n=0; for my $i (0..31) { last unless length $h; my $byte = substr($h,0,2,''); $byte .= '0' if length($byte)==1; substr($seed,$i,1,chr(hex $byte)) } }
   my $mode = defined $perturb ? $perturb : ($seedhex eq '0' ? 0 : 1);           # PERL_HASH_SEED=0 implies PERL_PERTURB_KEYS=0 unless overridden
   my $bits = 0xbe49d17f;                                                            # "I just picked a number"
   for my $i (0..7) { $bits ^= ord(substr($seed, $i % 32, 1)); $bits = rotl64($bits, 8) }   # mix in the leading seed bytes
   $bits = 0x0000ffff if !$bits;
-  return bless { seed=>$seed, sip=>perl_siphash_seed_state(substr($seed,0,16)), sbox=>sbox32_seed_state128(substr($seed,16,16)), mode=>$mode, rand_bits=>$bits }, 'HV::Process' }
-sub HV::Process::PERL_HASH_WITH_STATE { my ($p,$key)=@_; length($key) <= 24 ? sbox32_hash_with_state($p->{sbox},$key) : perl_hash_siphash_1_3_with_state($p->{sip},$key) }   # SBOX32_MAX_LEN
-sub HV::Process::UPDATE_HASH_RAND_BITS { my $p=shift; return unless $p->{mode}; my $x=$p->{rand_bits};                          # PERL_XORSHIFT64_A
+  return bless { seed=>$seed, sip=>perl_siphash_seed_state(substr($seed,0,16)), sbox=>sbox32_seed_state128(substr($seed,16,16)), mode=>$mode, rand_bits=>$bits }, 'Perl::Conformance::Model::HashEngine::Process' }
+sub Perl::Conformance::Model::HashEngine::Process::PERL_HASH_WITH_STATE { my ($p,$key)=@_; length($key) <= 24 ? sbox32_hash_with_state($p->{sbox},$key) : perl_hash_siphash_1_3_with_state($p->{sip},$key) }   # SBOX32_MAX_LEN
+sub Perl::Conformance::Model::HashEngine::Process::UPDATE_HASH_RAND_BITS { my $p=shift; return unless $p->{mode}; my $x=$p->{rand_bits};                          # PERL_XORSHIFT64_A
   $x ^= ($x << 13) & $M64; $x ^= $x >> 7; $x ^= ($x << 17) & $M64; $p->{rand_bits} = $x & $M64 }
 # ---- an HV: HvARRAY / HvMAX / xhv_keys / HvAUX (riter, eiter, rand, last_rand) ----
-sub HV::Harness::NewHV { my $p=shift; bless { p=>$p, max=>7, a=>[ map { [] } 1..8 ], keys=>0, aux=>undef, lazydel=>undef, order=>[] }, 'HV' }
+sub Perl::Conformance::Model::HashEngine::Harness::NewHV { my $p=shift; bless { p=>$p, max=>7, a=>[ map { [] } 1..8 ], keys=>0, aux=>undef, lazydel=>undef, order=>[] }, 'HV' }
 sub hv_auxinit { my $hv=shift; return $hv->{aux} if $hv->{aux};                                # S_hv_auxinit
   $hv->{aux} = { riter=>-1, eiter=>undef, rand=>$hv->{p}{rand_bits} & $M32 }; $hv->{aux}{last_rand} = $hv->{aux}{rand}; $hv->{aux} }
 sub hv_common_key_normalize { my $k=shift; if (utf8::is_utf8($k)) { my $c=$k; if (utf8::downgrade($c,1)) { return ($c,'WASUTF8') } return ($k,'UTF8') } return ($k,'') }   # hv_common: bytes_from_utf8, HVhek_WASUTF8
@@ -83,7 +83,7 @@ sub hv_iternext_flags { my ($hv,$warn)=@_; my $aux = hv_auxinit($hv); my $old = 
     $entry = $hv->{a}[ PERL_HASH_ITER_BUCKET($hv,$aux) ][0] }
   if ($old && $hv->{lazydel} && $hv->{lazydel} == $old) { $hv->{lazydel} = undef; push @{$hv->{order}}, "free:$old->{k}" }             # HvLAZYDEL: free the deferred entry now
   $aux->{eiter} = $entry; return $entry }
-sub HV::Harness::Keys { my $hv=shift; my $aux=hv_auxinit($hv); $aux->{riter}=-1; $aux->{eiter}=undef; my @k; while (my $e = hv_iternext_flags($hv)) { push @k, $e->{k} } @k }   # keys/values reset the iterator
+sub Perl::Conformance::Model::HashEngine::Harness::Keys { my $hv=shift; my $aux=hv_auxinit($hv); $aux->{riter}=-1; $aux->{eiter}=undef; my @k; while (my $e = hv_iternext_flags($hv)) { push @k, $e->{k} } @k }   # keys/values reset the iterator
 sub hv_delete_common { my ($hv,$key)=@_; my ($k,$kf)=hv_common_key_normalize($key); my $h=$hv->{p}->PERL_HASH_WITH_STATE($k); my $chain=$hv->{a}[$h & $hv->{max}];
   for my $i (0..$#$chain) { my $e=$chain->[$i]; next unless $e->{k} eq $k && $e->{kf} eq $kf;
     $e->{next_after_delete} = $chain->[$i+1]; splice(@$chain,$i,1); $hv->{keys}--;
@@ -92,5 +92,5 @@ sub hv_delete_common { my ($hv,$key)=@_; my ($k,$kf)=hv_common_key_normalize($ke
 sub hfree_next_entry_all { my $hv=shift; my @gone; for my $i (0..$hv->{max}) { for my $e (@{$hv->{a}[$i]}) { push @gone, $e->{k} } $hv->{a}[$i]=[] } $hv->{keys}=0; $hv->{lazydel}=undef; if ($hv->{aux}) { $hv->{aux}{riter}=-1; $hv->{aux}{eiter}=undef } @gone }   # Perl_hfree_next_entry: raw bucket order, chain order
 sub hv_clear { my $hv=shift; hfree_next_entry_all($hv) }                                                                                                # Perl_hv_clear: entries freed, bucket array kept
 sub hv_undef_flags { my $hv=shift; my @g = hfree_next_entry_all($hv); $hv->{a} = [ map { [] } 1..8 ]; $hv->{max}=7; $hv->{aux}=undef; @g }                  # Perl_hv_undef_flags: array released, next fill starts at HvMAX 7
-sub HV::Harness::BucketArray { my $hv=shift; my @out; my $empty=0; for my $i (0..$hv->{max}) { my $c=$hv->{a}[$i]; if (@$c) { push @out, $empty if $empty; $empty=0; push @out, [ map { $_->{k} } @$c ] } else { $empty++ } } push @out, $empty if $empty; \@out }   # Hash::Util::bucket_array encoding
+sub Perl::Conformance::Model::HashEngine::Harness::BucketArray { my $hv=shift; my @out; my $empty=0; for my $i (0..$hv->{max}) { my $c=$hv->{a}[$i]; if (@$c) { push @out, $empty if $empty; $empty=0; push @out, [ map { $_->{k} } @$c ] } else { $empty++ } } push @out, $empty if $empty; \@out }   # Hash::Util::bucket_array encoding
 1;

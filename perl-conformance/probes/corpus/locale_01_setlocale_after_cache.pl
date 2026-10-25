@@ -1,4 +1,4 @@
-# oracle-requires: locale radix_comma.UTF-8
+# perl-conformance-requires: locale radix_comma.UTF-8
 # A numeric cache made under one LC_NUMERIC radix, read after a runtime setlocale to the other radix.
 use strict; use warnings; no warnings 'numeric';
 use POSIX qw(setlocale LC_NUMERIC);

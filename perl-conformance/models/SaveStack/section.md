@@ -1,19 +1,19 @@
 # `local` and the save stack
 
-Validation: every rule below is transcribed into `SS.pm` and replayed by `generators/ss_gen.pl` over 488 cells.  The
-first block is 312 cells — {plain, tied, magical (`$/`, `$0`), glob-aliased} × {package scalar, element present, element
-absent, whole glob} × {bare, assignment, self-assignment} × {no mutation, pre-`local`-ref mutation, container clear,
-delete} × {normal exit, die in body, die in a restoration `STORE`, die in the displaced value's `DESTROY`} × nesting
-depth 1–2 — observing the callback trace, first-appearance-normalized addresses at three points, final values, `exists`,
-and `$@` at the catch and at the following statement boundary.  The second block is 176 structural cells — {plain array,
-tied array} × {element present, element absent} × {bare, assignment} × {no change, `shift`, `shift` twice, `unshift`,
-`pop`, `push`, `splice` removing, `splice` inserting, `$#a = -1`, `$#a = 0`, clear-and-refill} × {normal exit, die in
-body} — observing per-index (identity, `exists`, value) over indices 0–6 after the scope, the final `$#a`, and
-references captured inside the scope to the SV `local` installed and to the SV a removing operation returned.  perl
-5.38.2 and 5.44.0 produce byte-identical observation lines on all 488 cells, and `SS.pm` matches both on all 488.  Zero
-mismatches, zero crashes. Address triples on tied-container elements are masked in both columns: a held reference always
-yields a distinct mirror address, and the cross-statement equalities perl exhibits are reuse of a freed mirror's memory
-— an allocator artifact, excluded under the freed-memory rule. Source citations are perl 5.44.0.
+Validation: every rule below is transcribed into `SaveStack.pm` and replayed by `generators/ss_gen.pl` over 488 cells.
+The first block is 312 cells — {plain, tied, magical (`$/`, `$0`), glob-aliased} × {package scalar, element present,
+element absent, whole glob} × {bare, assignment, self-assignment} × {no mutation, pre-`local`-ref mutation, container
+clear, delete} × {normal exit, die in body, die in a restoration `STORE`, die in the displaced value's `DESTROY`} ×
+nesting depth 1–2 — observing the callback trace, first-appearance-normalized addresses at three points, final values,
+`exists`, and `$@` at the catch and at the following statement boundary.  The second block is 176 structural cells —
+{plain array, tied array} × {element present, element absent} × {bare, assignment} × {no change, `shift`, `shift` twice,
+`unshift`, `pop`, `push`, `splice` removing, `splice` inserting, `$#a = -1`, `$#a = 0`, clear-and-refill} × {normal
+exit, die in body} — observing per-index (identity, `exists`, value) over indices 0–6 after the scope, the final `$#a`,
+and references captured inside the scope to the SV `local` installed and to the SV a removing operation returned.  perl
+5.38.2 and 5.44.0 produce byte-identical observation lines on all 488 cells, and `SaveStack.pm` matches both on all 488.
+Zero mismatches, zero crashes. Address triples on tied-container elements are masked in both columns: a held reference
+always yields a distinct mirror address, and the cross-statement equalities perl exhibits are reuse of a freed mirror's
+memory — an allocator artifact, excluded under the freed-memory rule. Source citations are perl 5.44.0.
 
 ## 1. `local` is slot rebinding, never value mutation
 

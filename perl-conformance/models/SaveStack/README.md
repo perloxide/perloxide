@@ -11,7 +11,7 @@ those versions can be supported by this model — each such reading ends either 
 replay mismatch on a supported version is therefore either a model gap or a change in perl's own implementation since
 the transcribed tag, and the validation record says which routines could carry the second kind.
 
-`SS.pm` transcribes scope.c's `local` machinery -- `save_scalar_at`, `save_scalar`, `save_aelem_flags`,
+`SaveStack.pm` transcribes scope.c's `local` machinery -- `save_scalar_at`, `save_scalar`, `save_aelem_flags`,
 `save_helem_flags`, `save_adelete`/`save_hdelete`, `save_gp`, `save_clearsv`, `mg_localize`, `restore_sv`, `leave_scope`
 and its record types -- plus the `pp_gvsv`/`pp_aelem`/`pp_helem` localizing arms that decide the entry `mg_set`, and the
 structural operations the restore can land on (`av_shift`, `av_pop`, `av_fill`, `pp_unshift`, `pp_push`, `pp_splice`,
@@ -33,20 +33,20 @@ array the methods a structural operation calls (`SHIFT`, `UNSHIFT`, `PUSH`, `POP
 the trace, and the tie class's own semantics for them -- a store keyed by index that `SHIFT`, `UNSHIFT` and `SPLICE`
 renumber -- are part of the test, transcribed into the model beside perl's.
 
-    ORACLE=/path/to/perl perl generators/ss_gen.pl        # prints cells=488 ok=... mismatch=... crash=...
-    ORACLE=... TABLE=reports/table.<ver>.tsv perl generators/ss_gen.pl
+    PERL_CONFORMANCE_PERL=/path/to/perl perl generators/ss_gen.pl        # prints cells=488 ok=... mismatch=... crash=...
+    PERL_CONFORMANCE_PERL=... TABLE=reports/table.<ver>.tsv perl generators/ss_gen.pl
 
 Recorded: 488/488 on 5.38.2 and 5.44.0, byte-identical observation lines (`reports/`).  The section text is
-`section.md`.  A snake_case routine in `SS.pm` mirrors the perl function or macro of that name (`Perl_`/`S_` removed:
-`SvREFCNT_inc`, `sv_2mortal`, `av_fetch`, `mg_find`, `pp_nextstate`, `pp_aelem`); what has no C counterpart is harness
-glue in `SS::Harness` (`Read`, `Store`, `StoreRef`, `RetainPayload`, `ReleasePayload`, `Trace`, `Show`, `Reset`).  The
-key is audited below.
+`section.md`.  A snake_case routine in `SaveStack.pm` mirrors the perl function or macro of that name (`Perl_`/`S_`
+removed: `SvREFCNT_inc`, `sv_2mortal`, `av_fetch`, `mg_find`, `pp_nextstate`, `pp_aelem`); what has no C counterpart is
+harness glue in `Perl::Conformance::Model::SaveStack::Harness` (`Read`, `Store`, `StoreRef`, `RetainPayload`,
+`ReleasePayload`, `Trace`, `Show`, `Reset`).  The key is audited below.
 
 ## Key
 
 The model's state is derived from the structs it covers, field by field, as the reference requires (`README.md`, Keys).
-Source citations are perl 5.44.0.  "Modeled" names the `SS.pm` field; an exclusion gives the reason a field cannot
-decide a future observable within the lane, or the lane assertion that keeps it constant.
+Source citations are perl 5.44.0.  "Modeled" names the `SaveStack.pm` field; an exclusion gives the reason a field
+cannot decide a future observable within the lane, or the lane assertion that keeps it constant.
 
 **Save-stack records** (`scope_types.h`, `scope.c`).  Every record the lane can push, with the slots `SS_ADD` writes:
 
@@ -75,7 +75,7 @@ delete (scope.c 1640-1650); the container refcount it releases is excluded below
 | `SVs_OBJECT`                       | `obj`; read by the `SAVEt_CLEARSV` arm (scope.c 1505) and by `S_curse` on the last release                                                                                                                                                                                                                                 |
 | `SVs_TEMP`                         | excluded: set by `sv_2mortal`, which the model tracks as membership of `@TMPS`; nothing in the lane reads the flag                                                                                                                                                                                                         |
 | `SVs_PADTMP`, `SVs_PADSTALE`       | excluded: `SvPADSTALE_on` in the clear arm (scope.c 1581) is read only by pad.c for closure capture, outside the lane                                                                                                                                                                                                      |
-| `SvANY` (the body, value flags)    | opaque payload; the value side is `models/VF`                                                                                                                                                                                                                                                                              |
+| `SvANY` (the body, value flags)    | opaque payload; the value side is `models/ValueFlags`                                                                                                                                                                                                                                                                      |
 | `SvMAGIC` chain, order             | `mag`, in list order; `mg_get`/`mg_set` walk it in order as mg.c 283 does                                                                                                                                                                                                                                                  |
 | `MAGIC.mg_type`                    | `t`, as `tied`, `tiedelem`, `sv`                                                                                                                                                                                                                                                                                           |
 | `MAGIC.mg_obj`, `mg_ptr`, `mg_len` | `o` (tie object), `cont`/`key`/`kind` (tied element's container and key)                                                                                                                                                                                                                                                   |

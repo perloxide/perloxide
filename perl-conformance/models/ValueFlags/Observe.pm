@@ -1,4 +1,4 @@
-package VF::Observe;
+package Perl::Conformance::Model::ValueFlags::Observe;
 # The one observation module for the value-flags lanes.  The KEY is the SV head and body, field by field, audited against
 # sv.h (5.44.0, struct STRUCT_SV / SV_HEAD_UNION_ / XPV_HEAD_ / xivu_ / xnvu_ / the buffer):
 #   sv_flags   -> the value flags (IOK NOK POK pIOK pNOK pPOK IsUV ROK UTF8 IsCOW) and SvTYPE (T:), the low byte;
@@ -18,8 +18,8 @@ package VF::Observe;
 # destructively, at the block's end on the original.  The key is identical under both projections.
 use strict; use warnings; no warnings qw(experimental::builtin); use B; require Devel::Peek;
 our $PROJ = $ENV{PROJ} || 'flags';
-sub child_head { my $proj = shift || $PROJ; my $root = $ENV{VF_ROOT} || '.'; return <<"H" }
-use strict; no warnings; use lib '$root'; use VF::Observe; binmode STDOUT, ":utf8"; \$VF::Observe::PROJ = '$proj';
+sub child_head { my $proj = shift || $PROJ; my $root = $ENV{MODEL_ROOT} || '.'; return <<"H" }
+use strict; no warnings; require '$root/Observe.pm'; binmode STDOUT, ":utf8"; \$Perl::Conformance::Model::ValueFlags::Observe::PROJ = '$proj';
 our \@WARN; \$SIG{__WARN__} = sub { my \$m=\$_[0]; \$m =~ s/ at .*//s; \$m =~ s/\\n//; push \@WARN, \$m };
 H
 my @F=(IOK=>B::SVf_IOK(),NOK=>B::SVf_NOK(),POK=>B::SVf_POK(),pIOK=>B::SVp_IOK(),pNOK=>B::SVp_NOK(),pPOK=>B::SVp_POK(),IsUV=>B::SVf_IVisUV(),ROK=>B::SVf_ROK(),UTF8=>B::SVf_UTF8(),IsCOW=>B::SVf_IsCOW());
@@ -30,8 +30,8 @@ sub slots { my $r=shift; my $o=B::svref_2object($r); my $f=$o->FLAGS;   # side-e
   ($f & B::SVf_POK()) ? "P:".$o->PV."|L:".$o->LEN : ($f & B::SVf_IOK()) ? "N:" . ($f & B::SVf_IVisUV() ? $o->UVX : $o->IV) : ($f & (B::SVf_NOK()|B::SVp_NOK())) ? sprintf("N:%.17g",$o->NV) : ($f & B::SVp_IOK()) ? "N:" . ($f & B::SVf_IVisUV() ? $o->UVX : $o->IV) : "-" }
 sub peek { my $r=shift; my $buf=''; open my $save,'>&',\*STDERR; close STDERR; open STDERR,'>',\$buf; Devel::Peek::Dump($$r); close STDERR; open STDERR,'>&',$save;
   my ($type)=$buf=~/^SV = (\w+)/; my ($fl)=$buf=~/FLAGS = \(([^)]*)\)/; my ($cur)=$buf=~/CUR = (\d+)/; my ($len)=$buf=~/LEN = (\d+)/; my ($cow)=$buf=~/COW_REFCNT = (\d+)/; my ($off)=$buf=~/OFFSET = (\d+)/;
-  for my $bad (@FORBIDDEN) { die "VF::Observe: forbidden flag $bad on the holder (lane design violated): $buf" if defined $fl && $fl =~ /\b$bad\b/ }
-  die "VF::Observe: magic on the holder (lane design violated): $buf" if $buf =~ /^\s*MAGIC = /m;
+  for my $bad (@FORBIDDEN) { die "Perl::Conformance::Model::ValueFlags::Observe: forbidden flag $bad on the holder (lane design violated): $buf" if defined $fl && $fl =~ /\b$bad\b/ }
+  die "Perl::Conformance::Model::ValueFlags::Observe: magic on the holder (lane design violated): $buf" if $buf =~ /^\s*MAGIC = /m;
   return { type=>$type//'?', flags=>$fl//'', cur=>$cur, len=>$len, cow=>$cow, off=>$off, text=>join("|", $type//'?', $fl//'', $cur//'-', $len//'-', $cow//'-') } }
 sub key { my $r=shift; my $o = B::svref_2object($r); my $f = $o->FLAGS; my $p = peek($r);
   my $b = (!($f & B::SVf_POK()) && $p->{len}) ? "|B:" . ($p->{cur}//0) . "/" . $p->{len} : "";

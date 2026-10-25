@@ -11,4 +11,4 @@ core, and its sha256 is recorded here so a regeneration can be checked:
     raw_transitions.tsv  sha256 67232099dce498895241b7c3bb0483e71b45557f854ac94dcd4af6496bb37722
 
 `abstract_table.tsv.gz` is the abstracted table (identical for both Perls).  Counts under the struct-audited key are in
-`models/VF/reports/coverage.txt`; the two key generations are not comparable.
+`models/ValueFlags/reports/coverage.txt`; the two key generations are not comparable.

@@ -1,4 +1,4 @@
-package Oracle::Normalize;
+package Perl::Conformance::Normalize;
 
 # Output normalization for comparing runs.
 #

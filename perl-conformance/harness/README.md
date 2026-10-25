@@ -1,38 +1,38 @@
-# oracle: a differential oracle harness for Perl
+# perl-conformance: a differential conformance harness for Perl
 
-`oracle` runs Perl programs through a supported version of Perl — its stock build and two allocator-instrumented builds
-of it, in three hash modes — and classifies each program by what kind of comparison against Perl is meaningful.  The
-three builds come in two families, unthreaded and `-Dusethreads`; a program runs in the unthreaded family unless it
-requires ithreads, and the other family's stock build is its configuration cross-check.  It then checks an
-implementation under test against the stored expected outputs, lane by lane.  Every run, verdict and blessing is per
-version: the *target* is selected with `--target VERSION` or `PERL_COMPAT_TARGET` and defaults to the newest line of
-`../supported-versions` (5.44.0, the only one at this writing).  A Perl that is not a supported version
-(`../profile.md`) is never an oracle; it is run only as the implementation under `check`.
+`perl-conformance` runs Perl programs through a supported version of Perl — its stock build and two
+allocator-instrumented builds of it, in three hash modes — and classifies each program by what kind of comparison
+against Perl is meaningful.  The three builds come in two families, unthreaded and `-Dusethreads`; a program runs in the
+unthreaded family unless it requires ithreads, and the other family's stock build is its configuration cross-check.  It
+then checks an implementation under test against the stored expected outputs, lane by lane.  Every run, verdict and
+blessing is per version: the *target* is selected with `--target VERSION` or `PERL_CONFORMANCE_TARGET` and defaults to
+the newest line of `../supported-versions` (5.44.0, the only one at this writing).  A Perl that is not a supported
+version (`../profile.md`) is never a reference; it is run only as the implementation under `check`.
 
 The seed corpus is every probe from the value/type design research that produced this reference, with expected outputs.
 `sources.md` lists the Perl source behind each probe's rule.
 
 ## Layout
 
-| Path                                         | Contents                                                                                                                  |
-|----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| `bin/oracle`                                 | driver: `list`, `run`, `verdict`, `bless`, `selftest`, `check`                                                            |
-| `lib/Oracle/Run.pm`                          | runs one program: pinned environment, stdout, stderr, fd 3, exit record, timeout                                          |
-| `lib/Oracle/Normalize.pm`                    | address bijection (`exact`) and line-order canonicalization (`canonical`)                                                 |
-| `lib/Oracle/Verdict.pm`                      | the classification rules below                                                                                            |
-| `probe-lib/Probe.pm`                         | `__PROBE__($scalar, $label)`: flag projection written to fd 3                                                             |
-| `lib/Oracle/Locales.pm`, `locales/`          | compiles the harness's own locales (`radix_comma`: comma radix, else POSIX; `ctype_utf8`: i18n ctype, else POSIX)         |
-| `../perls/build-perls.sh`                    | builds the six Perls (two families of three) from the GitHub tag; `--prepare-only` stops before compiling                 |
-| `../perls/noreuse.patch`                     | `plant_SV` never returns freed SV heads to `PL_sv_root`                                                                   |
-| `../perls/descending.patch`                  | `S_sv_add_arena` threads each new arena's free list from the highest slot down                                            |
-| `../probes/corpus/*.pl`                      | seed corpus                                                                                                               |
-| `../probes/corpus/expected/<test>/`          | blessed verdict and normalized outputs per test                                                                           |
-| `tools/gd_predict.pl`                        | arena-walk predictor for global destruction order (`gd_01_order.pl`)                                                      |
-| `tools/impl-wrong-seed.sh`                   | a deliberately wrong implementation, for exercising `check`                                                               |
-| `tools/lint-blessed.sh`                      | fails if any blessed output, corpus or suite, ends a line in whitespace                                                   |
-| `tools/source-validate.pl`                   | which tags a model's transcribed routines are unchanged across, from the C source; per-model records             |
-| `tools/sources.tsv`, `tools/make-sources.pl` | citation table and the generator for `sources.md`                                                                         |
-| `oracle.conf`                                | one `[VERSION]` section of build paths per supported version; the target's keys overridable by `PERL_COMPAT_STOCK`, ...       |
+| Path                                          | Contents                                                                                                                     |
+|-----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| `bin/perl-conformance`                        | driver: `list`, `run`, `verdict`, `bless`, `selftest`, `check`                                                               |
+| `lib/Perl/Conformance/Run.pm`                 | runs one program: pinned environment, stdout, stderr, fd 3, exit record, timeout                                             |
+| `lib/Perl/Conformance/Normalize.pm`           | address bijection (`exact`) and line-order canonicalization (`canonical`)                                                    |
+| `lib/Perl/Conformance/Verdict.pm`             | the classification rules below                                                                                               |
+| `probe-lib/Perl/Conformance/Probe.pm`         | `__PROBE__($scalar, $label)`: flag projection written to fd 3                                                                |
+| `lib/Perl/Conformance/Locales.pm`, `locales/` | compiles the harness's own locales (`radix_comma`: comma radix, else POSIX; `ctype_utf8`: i18n ctype, else POSIX)            |
+| `../perls/build-perls.sh`                     | builds the six Perls (two families of three) from the GitHub tag; `--prepare-only` stops before compiling                    |
+| `../perls/noreuse.patch`                      | `plant_SV` never returns freed SV heads to `PL_sv_root`                                                                      |
+| `../perls/descending.patch`                   | `S_sv_add_arena` threads each new arena's free list from the highest slot down                                               |
+| `../probes/corpus/*.pl`                       | seed corpus                                                                                                                  |
+| `../probes/corpus/expected/<test>/`           | blessed verdict and normalized outputs per test                                                                              |
+| `tools/gd_predict.pl`                         | arena-walk predictor for global destruction order (`gd_01_order.pl`)                                                         |
+| `tools/impl-wrong-seed.sh`                    | a deliberately wrong implementation, for exercising `check`                                                                  |
+| `tools/lint-blessed.sh`                       | fails if any blessed output, corpus or suite, ends a line in whitespace                                                      |
+| `tools/source-validate.pl`                    | which tags a model's transcribed routines are unchanged across, from the C source; per-model records                         |
+| `tools/sources.tsv`, `tools/make-sources.pl`  | citation table and the generator for `sources.md`                                                                            |
+| `perl-conformance.conf`                       | one `[VERSION]` section of build paths per supported version; the target's keys overridable by `PERL_CONFORMANCE_STOCK`, ... |
 
 ## Requirements
 
@@ -50,10 +50,10 @@ The seed corpus is every probe from the value/type design research that produced
 ## Quick start
 
     ../perls/build-perls.sh                                  # once; 15-30 minutes per build on one core
-    bin/oracle run ../probes/corpus --results results        # run the corpus on the builds
-    bin/oracle verdict ../probes/corpus --results results    # print per-test verdicts
-    bin/oracle selftest ../probes/corpus --results results   # confirm this machine reproduces ../probes/corpus/expected
-    bin/oracle check ../probes/corpus --results results --impl /path/to/implementation
+    bin/perl-conformance run ../probes/corpus --results results        # run the corpus on the builds
+    bin/perl-conformance verdict ../probes/corpus --results results    # print per-test verdicts
+    bin/perl-conformance selftest ../probes/corpus --results results   # confirm this machine reproduces ../probes/corpus/expected
+    bin/perl-conformance check ../probes/corpus --results results --impl /path/to/implementation
 
 ## What happens to each test
 
@@ -79,10 +79,10 @@ it is, and `RESULTS/<version>/<test>/family` says which:
   variables.  Nothing else is inherited.  The program runs with its own directory as the working directory and its base
   name as the script name, so warnings read `at file.pl line N`.  stdin is `/dev/null`.
 - **Channels.** stdout, stderr, fd 3, and an exit record (`exit N`, `signal N`, or `timeout`).
-- **fd 3.** Programs that mention `__PROBE__` run with `-I probe-lib -MProbe`.  Each call writes `PROBE line=N label=L
-  flags=CODE created_as=n|s|-`, where CODE uses I/N/P for public flags (always with the private one), i/n/p for
-  private-only flags, then U (IVisUV), 8 (UTF8), R (ROK), RO (READONLY).  The implementation under test must accept `-I`
-  and `-M` and produce the same projection.
+- **fd 3.** Programs that mention `__PROBE__` run with `-I probe-lib -MPerl::Conformance::Probe`.  Each call writes
+  `PROBE line=N label=L flags=CODE created_as=n|s|-`, where CODE uses I/N/P for public flags (always with the private
+  one), i/n/p for private-only flags, then U (IVisUV), 8 (UTF8), R (ROK), RO (READONLY).  The implementation under test
+  must accept `-I` and `-M` and produce the same projection.
 - **Exact normalization.** Hex tokens of six or more digits after `0x` become `ADDR1`, `ADDR2`, ... in order of first
   appearance across stdout, stderr, fd 3.  Equal addresses stay equal.  The threaded-build warning suffix `, Perl
   interpreter: 0x...` is removed.
@@ -115,8 +115,8 @@ program twice writes the same files.
 
 ## What an implementer does with a result
 
-`bin/oracle check ... --impl` runs the implementation at seed 0 and seed 1 and reports per test.  Mismatched channels
-are written to `results/check-diffs/<test>.<comparison>.<channel>.{expected,actual}`.
+`bin/perl-conformance check ... --impl` runs the implementation at seed 0 and seed 1 and reports per test.  Mismatched
+channels are written to `results/check-diffs/<test>.<comparison>.<channel>.{expected,actual}`.
 
 | Verdict                 | Comparison                                                                                            | A failure means                                                                                                                                                                  |
 |-------------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -135,24 +135,24 @@ seed-1 output differs from their seed-0 output.
 
 Comment lines anywhere in a test file:
 
-    # oracle-requires: threads
-    # oracle-requires: locale radix_comma.UTF-8   one of the harness's compiled locales (locales/)
-    # oracle-variant: NAME VAR=VALUE ...     one test per variant; a file with variants has no default run
-    # oracle-timeout: SECONDS
+    # perl-conformance-requires: threads
+    # perl-conformance-requires: locale radix_comma.UTF-8   one of the harness's compiled locales (locales/)
+    # perl-conformance-variant: NAME VAR=VALUE ...     one test per variant; a file with variants has no default run
+    # perl-conformance-timeout: SECONDS
 
-After adding or changing tests: `bin/oracle run ../probes/corpus --only RE`, `bin/oracle bless ../probes/corpus --only
-RE`, review `git diff ../probes/corpus/expected`, commit.  `expected/<test>/<version>/` holds the verdict, the family,
-`also_lane_b`, and only the channels a comparison uses: the exact seed0 channels (with the `xconfig` ones beside them)
-for a lane-A test, and the canonical seed0 and seed1 channels for a lane-B test or a lane-A test with `also_lane_b`.  An
-allocator-sensitive or nondeterministic test records only its verdict.  `bless` refuses a channel with a line ending in
-whitespace.
+After adding or changing tests: `bin/perl-conformance run ../probes/corpus --only RE`, `bin/perl-conformance bless
+../probes/corpus --only RE`, review `git diff ../probes/corpus/expected`, commit.  `expected/<test>/<version>/` holds
+the verdict, the family, `also_lane_b`, and only the channels a comparison uses: the exact seed0 channels (with the
+`xconfig` ones beside them) for a lane-A test, and the canonical seed0 and seed1 channels for a lane-B test or a lane-A
+test with `also_lane_b`.  An allocator-sensitive or nondeterministic test records only its verdict.  `bless` refuses a
+channel with a line ending in whitespace.
 
 **Bringing a supported version up to date.**  A version is blessed on every test that exists when it is added; tests
-added later may be blessed on the newest version only.  `bin/oracle gaps ../probes/corpus --target VERSION` lists the
-tests that version lacks (exit status 1 if any); closing the gap is `bin/oracle run ../probes/corpus --target VERSION
---only RE` and `bin/oracle bless ../probes/corpus --target VERSION --only RE` for those tests, against that version's
-six builds, then commit `expected/`.  `check --target VERSION` reports a test the target lacks as `UNBLESSED` rather
-than comparing it.
+added later may be blessed on the newest version only.  `bin/perl-conformance gaps ../probes/corpus --target VERSION`
+lists the tests that version lacks (exit status 1 if any); closing the gap is `bin/perl-conformance run ../probes/corpus
+--target VERSION --only RE` and `bin/perl-conformance bless ../probes/corpus --target VERSION --only RE` for those
+tests, against that version's six builds, then commit `expected/`.  `check --target VERSION` reports a test the target
+lacks as `UNBLESSED` rather than comparing it.
 
 ## Seed corpus verdicts (target 5.44.0)
 

@@ -1,10 +1,10 @@
 #!/usr/bin/perl
-use lib ($ENV{VF_ROOT} || '.'); our $ROOT = $ENV{VF_ROOT} || '.';
+our $ROOT = $ENV{MODEL_ROOT} || '.';
 # vf_suite.pl -- the value-flags verification driver.  Runs the existing lanes under one entry point on both interpreters and
 # prints the coverage table that defines "verified" for this area.  Lanes: handler matrix (gen_vf.pl), locale axis (gen4_vf.pl),
 # 12-op core depth 4 and 58-op set depth 3 (gen3_vf.pl), copy check (gen_copycheck.pl).  Each lane's report is cached in
 # reports/<lane>.<ver>.txt; RERUN=1 forces a rerun.  Verdicts per lane: match, open (recipe + source line in the lane report),
-# version-divergent (the two perls' oracle observations differ; the model follows 5.44), diverges-defined (W1-W3 windows).
+# version-divergent (the two perls' observations differ; the model follows 5.44), diverges-defined (W1-W3 windows).
 use strict; use warnings;
 my @PERLS = $ENV{PERLS} ? split(/[ ,]+/, $ENV{PERLS}) : ('perl');
 # Startup checks.  Each failure prints what was checked and what was found and exits nonzero; success prints the verified profile.
@@ -34,18 +34,18 @@ my @LANES = (
 my %T;
 for my $p (@PERLS) { my $ver = `$p -e 'print \$]'`; $ver = sprintf("%d.%d.%d", $ver, ($ver*1000)%1000, ($ver*1000000)%1000);
   for my $l (@LANES) { my ($name,$cmd,$holder,$ops,$depth,$proj)=@$l; my $f="$R/$name.$ver.txt";
-    system("cd $ROOT && ORACLE=$p TAG=suite_${name}_$ver $cmd > $f 2>/dev/null") if $ENV{RERUN} || !-s $f || !`grep -c "oracle=.*[1-9]\\|rows=[1-9]" $f`;   # an empty or zero-transition report is rerun, never cached
+    system("cd $ROOT && PERL_CONFORMANCE_PERL=$p TAG=suite_${name}_$ver $cmd > $f 2>/dev/null") if $ENV{RERUN} || !-s $f || !`grep -c "oracle=.*[1-9]\\|rows=[1-9]" $f`;   # an empty or zero-transition report is rerun, never cached
     my $s = `cat $f`; my %v = (match=>0, open=>0, vdiv=>0, defined=>0); my ($tr,$st)=('-','-');
     if ($s =~ /transitions=(\d+) model_mismatches=(\d+) states=(\d+)/) { ($tr,$st)=($1,$3); $v{open}=$2; $v{match}=$1-$2; }
     if (0) { ($tr,$st)=($1,$3); $v{open}=$2; $v{match}=$1-$2 }
     elsif ($s =~ /rows=(\d+) values_ok=(\d+) values_bad=(\d+) flag_mismatch_on_value_ok_rows=(\d+) crash=(\d+) ub_rows=(\d+)/) { $tr=$1; $v{match}=$2-$4; $v{open}=$3+$4; $v{defined}=$5+$6 }
     elsif ($s =~ /states=(\d+) copy_differs=\d+.*?consumer_copy_vs_original_differs=(\d+)/) { ($tr,$st)=($1,$1); $v{open}=$2; $v{match}=$1-$2 }
     $T{$name}{$ver} = {holder=>$holder, ops=>$ops, depth=>$depth, proj=>$proj, tr=>$tr, st=>$st, %v, file=>$f} } }
-# version-divergent: a (start, from, op) triple whose oracle observation differs between the two perls, from the lanes' transition tables
+# version-divergent: a (start, from, op) triple whose observation differs between the two perls, from the lanes' transition tables
 for my $name (keys %T) { my @v = sort keys %{$T{$name}}; next unless @v==2; my @tab = map { "$ROOT/transitions.suite_${name}_$_.txt" } @v; next unless -s $tab[0] && -s $tab[1];
   my %a; for my $i (0,1) { open my $t,'<',$tab[$i] or next; while (<$t>) { chomp; my ($k,$to) = /^(.*)\t([^\t]*)$/ or next; $a{$k}[$i] = $to } close $t }
   my $d = grep { defined $a{$_}[0] && defined $a{$_}[1] && $a{$_}[0] ne $a{$_}[1] } keys %a; $T{$name}{$_}{vdiv} = $d for @v }
-# Verdict rule: a (start, from, op) triple whose oracle observations differ between the two perls is version-divergent and is
+# Verdict rule: a (start, from, op) triple whose reference observations differ between the two perls is version-divergent and is
 # never counted as open on 5.38.2 (the model follows 5.44.0); the open count on 5.38.2 is its mismatch rows minus those triples.
 for my $name (keys %T) { my @v = sort keys %{$T{$name}}; next unless @v==2; my @tab = map { "$ROOT/transitions.suite_${name}_$_.txt" } @v; next unless -s $tab[0] && -s $tab[1];
   my %a; for my $i (0,1) { open my $t,'<',$tab[$i] or next; while (<$t>) { chomp; my ($k,$to) = /^(.*)\t([^\t]*)$/ or next; $a{$k}[$i] = $to } close $t }
@@ -61,4 +61,4 @@ for my $name (keys %T) { for my $ver (keys %{$T{$name}}) { my $t=$T{$name}{$ver}
 printf "%-8s %-8s %-8s %-24s %-5s %-12s %9s %7s %9s %6s %8s %8s\n", qw(lane perl holder opset depth projection transit states match open ver-div defined);
 for my $l (@LANES) { my $n=$l->[0]; for my $ver (sort keys %{$T{$n}}) { my $t=$T{$n}{$ver};
   printf "%-8s %-8s %-8s %-24s %-5s %-12s %9s %7s %9s %6s %8s %8s\n", $n, $ver, $t->{holder}, $t->{ops}, $t->{depth}, $t->{proj}, $t->{tr}, $t->{st}, $t->{match}, $t->{open}, $t->{vdiv}, $t->{defined} } }
-print "\nprojection column is the VF::Observe projection each lane records (flags = key only; full = key + Devel::Peek + fresh-per-block copy consumers); the key never changes between projections, so counts do not move.\n";
+print "\nprojection column is the Perl::Conformance::Model::ValueFlags::Observe projection each lane records (flags = key only; full = key + Devel::Peek + fresh-per-block copy consumers); the key never changes between projections, so counts do not move.\n";

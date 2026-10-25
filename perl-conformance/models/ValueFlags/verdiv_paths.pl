@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-use lib ($ENV{VF_ROOT} || '.'); our $ROOT = $ENV{VF_ROOT} || '.';
+our $ROOT = $ENV{MODEL_ROOT} || '.';
 # verdiv_paths.pl -- path-based version divergence.  For a lane, replay every open row's path (recipe + op) from its START
 # key through both perls' transition tables; the first step whose observations differ, and every step after it, is
 # version-divergent.  Prints: open rows on 5.38.2 that both perls agree on (true model gaps), rows divergent, and the

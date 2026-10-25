@@ -1,4 +1,4 @@
-# oracle-requires: locale radix_comma.UTF-8
+# perl-conformance-requires: locale radix_comma.UTF-8
 # Copies carry the cached value, not the radix; an uncached copy parses under the radix in effect when it is read.
 use strict; use warnings; no warnings 'numeric';
 use POSIX qw(setlocale LC_NUMERIC);

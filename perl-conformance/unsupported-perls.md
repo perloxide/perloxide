@@ -25,11 +25,13 @@ output, that is where it came from.
 - `Perl_sv_grow` on 5.38.2 does not round the first allocation up (no `expected_size`), so buffer `LEN` on a first
   allocation above 16 bytes differs (NV stringification 26 against 32, a 36-byte un-COW string 38 against 40), and
   `SvPV_shrink_to_cur` differs; the value-flags model follows 5.44.0 and this is the version-divergent group behind its
-  5.38.2 len-only rows (`models/VF/README.md`, passes 14 onward; `models/VF/section.md`).
-- Stringification: public `IOK`, or on 5.38.2 `IOKp` without `NOKp`, formats the integer (`models/VF/section.md`).
+  5.38.2 len-only rows (`models/ValueFlags/README.md`, passes 14 onward; `models/ValueFlags/section.md`).
+- Stringification: public `IOK`, or on 5.38.2 `IOKp` without `NOKp`, formats the integer
+  (`models/ValueFlags/section.md`).
 - `unpack "C0U*"` on malformed octets yields 0 on 5.38.2 and U+FFFD on 5.44.0; the UTF-8 flag model's 2,052 rows match
   1,900 on 5.38.2 against 1,903 on 5.44.0, and the 51 rows on which the two differ are
-  `models/PV/reports/version-differences.diff` (`models/PV/README.md`, `models/PV/section.md`).
+  `models/StringFlags/reports/version-differences.diff` (`models/StringFlags/README.md`,
+  `models/StringFlags/section.md`).
 - The reentry matrices (`suites/reentry-matrix`, `out538.txt`; `suites/reentry-6840`, `reentry-5.38.2.jsonl.gz`) and the
   pre-consolidation transition tables (`suites/transitions`) carry 5.38.2 recordings beside 5.44.0's: 0 value mismatches
   on comparable rows, the same 8 `SIGSEGV` cases in the 6,840-case matrix, and transition tables byte-identical between

@@ -6,6 +6,6 @@ transcription of the reentry control flow (5.44.0 sv.c, `NV_PRESERVES_UV` undefi
 `compare.<ver>.txt` are the reports: 762 match, 0 mismatch, 51 cells where perl segfaults and 51 where it reads through
 the RV union -- all recorded in `undefined.md`. `model.tsv` is the model's output per cell.
 
-This transcription was reconciled cell for cell with the value-flags model (`models/VF`) during the research; the
-value-flags model is the maintained one. The rows this model marks `DIVERGES-defined` are outputs an implementation
+This transcription was reconciled cell for cell with the value-flags model (`models/ValueFlags`) during the research;
+the value-flags model is the maintained one. The rows this model marks `DIVERGES-defined` are outputs an implementation
 might choose in the undefined windows, not facts about perl.

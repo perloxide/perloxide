@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 # pv_gen.pl -- UTF-8 flag / taint enumeration.  For each (string family, context, taint, op[, op2]) a child perl prints
-# an observation record; PV.pm produces the same record from its transcription; mismatches are reported with recipes.
-use strict; use warnings; use FindBin; use lib ($ENV{MODEL_ROOT} || "$FindBin::Bin/.."); my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK; require PV;
-my $PERL = $ENV{ORACLE} || 'perl'; my $TAG = $ENV{TAG} || 'x'; my $DEPTH = $ENV{DEPTH} || 2;
+# an observation record; StringFlags.pm produces the same record from its transcription; mismatches are reported with recipes.
+use strict; use warnings; use FindBin; my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/.."; my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK; require "$MODEL_ROOT/StringFlags.pm";
+my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl'; my $TAG = $ENV{TAG} || 'x'; my $DEPTH = $ENV{DEPTH} || 2;
 my %fam = ( A => q{"abc"}, B => q{"\xB5\xE9"}, L => q{do { my $s = "\xB5\xE9"; utf8::upgrade($s); $s }}, H => q{"a\x{100}"},
             M => q{do { my $s = "\xC3\x28"; Encode::_utf8_on($s); $s }}, E => q{""} );
 my @ctx = ( ['none', ''], ['feature', 'use feature "unicode_strings";'], ['locale', 'use locale; POSIX::setlocale(POSIX::LC_ALL(), "de_DE.UTF-8");'] );
@@ -45,7 +45,7 @@ for my $fam (sort keys %fam) { for my $c (@ctx) { for my $taint (0,1) {
   open my $fh, '>', "$WORK/pv_child.pl" or die; print $fh $code; close $fh;
   my $cmd = "LC_ALL= LANG= TSRC=x timeout 20 $PERL " . ($taint ? "-T " : "") . "$WORK/pv_child.pl 2>/dev/null </dev/null"; my $out = `$cmd`;
   my %got; for (split /\n/, $out) { my ($k,@f) = split /\t/, $_, -1; $got{$k} = join("\t", @f) }
-  $i=0; for my $seq (@seqs) { $i++; my $g = $got{$i} // "NO OUTPUT"; my $m = PV::Harness::Run($fam, $c->[0], $taint, $seq); $n++;
+  $i=0; for my $seq (@seqs) { $i++; my $g = $got{$i} // "NO OUTPUT"; my $m = Perl::Conformance::Model::StringFlags::Harness::Run($fam, $c->[0], $taint, $seq); $n++;
     my $key = "$fam.$c->[0]." . ($taint ? "T" : "U") . "." . join("+",@$seq); $table{$key} = $g;
     my ($gc,$mc) = map { my @f = split /\t/, $_, -1; $f[5] = ""; join("\t", @f) } ($g,$m);   # the warning column is recorded but not compared (warnings are not enumerated)
     if ($gc eq $mc) { $ok++ } else { $bad++; push @rep, "MISMATCH $key\n  perl:  $g\n  model: $m" } }

@@ -5,8 +5,8 @@ private and public `IOK`/`NOK`/`POK` flags plus `SVf_IVisUV` in `SvFLAGS`, toget
 buffer length that decide later transitions — determines the outcome of later operations and is visible to programs
 through several core consumers. This section defines that state as the model records it (the *value-flag record*), the
 three situations in which a cached number can disagree with its string, the transition function every operation applies,
-and what is and is not observable. The reference implementation is `VF.pm`; every rule below names the Perl 5.44.0
-function it transcribes, and the transition tables were generated from both Perl 5.38.2 and 5.44.0.
+and what is and is not observable. The reference implementation is `ValueFlags.pm`; every rule below names the Perl
+5.44.0 function it transcribes, and the transition tables were generated from both Perl 5.38.2 and 5.44.0.
 
 ## 1. State space
 
@@ -194,7 +194,7 @@ Storable, `++`/`--` string-versus-numeric, bitwise string-versus- numeric, range
 stdout consumer except through the cases above; of every flag a stringified integer or an integer-used float can
 acquire, only `pPOK` on the integer (via `isdual`) and public `IOK` on an integral float (via `Dumper`) are
 stdout-visible. Perl behaviors that read freed memory — the float-path `__WARN__` handler that changes the scalar's
-kind, `` aliases to a shifted element, `values` aliases across `delete` — have no oracle and are recorded in
+kind, `` aliases to a shifted element, `values` aliases across `delete` — have no reference run and are recorded in
 `undefined.md`.
 
 ## 7. Verification
@@ -202,8 +202,8 @@ kind, `` aliases to a shifted element, `values` aliases across `delete` — have
 `gen.pl` runs the handler-mutation matrix (18 inputs × 8 replacements × 4 then-actions × 4 outer ops);
 `gen2.pl`/`gen3.pl` enumerate (start value, operation sequence) to depth 3 over 18 starts and 56 operations, recording
 every observed (state, op) → state through `B::FLAGS` and a side-effect-free slot read, and replay each recipe through
-`VF.pm`; `gen4.pl` adds the locale axis with de_DE and C radices in and out of `use locale` scope. Both Perls produce
-byte-identical raw tables and `VF.pm` reproduces all of them.
+`ValueFlags.pm`; `gen4.pl` adds the locale axis with de_DE and C radices in and out of `use locale` scope. Both Perls
+produce byte-identical raw tables and `ValueFlags.pm` reproduces all of them.
 
 ## 9. What the fuller projection separates
 
@@ -217,7 +217,7 @@ body type (`PVIV` versus `PVNV` under identical flags — an integer that was st
 by `COW_REFCNT` (a literal's buffer shared once versus twice, which is the `SvTHINKFIRST` input to the append rule).
 Body type is monotone (`sv_upgrade`) and is what `sv_pvn_force_flags`, `sv_2iuv_common` and `sv_2nv_flags` upgrade to;
 `COW_REFCNT` is the buffer's share count and is what the model's `cow` bit approximates. Neither is yet modeled in
-`VF.pm` beyond the `cow` bit; the state tables carry both for every reachable state.
+`ValueFlags.pm` beyond the `cow` bit; the state tables carry both for every reachable state.
 
 The split classes were then stepped forward by every operation with the full observation (24 starts, 12-op core to depth
 2, 3,116 states, 58 step operations, 5.44.0): 4 of 307 split classes are consumer-visible — all of them an integral
@@ -246,7 +246,7 @@ nothing, so the copy reaches `Data::Dumper` without public `IOK` and `DD_is_inte
 round-trip) quotes `'3'`; in isolation the literal is fresh, the generic path runs `SvIV_please_nomg`, and Dumper prints
 `3`. The scalar's state was identical in both runs — class (a) is empty for the scalar — but the rule is a transcription
 fact: whether `pp_add` caches `IOK` on an operand depends on the *partner's* public flags, so the `add` transition is
-partner-typed (`0` IOK versus `0.0` NOK), and `VF.pm`'s `pp_add_with_partner` carries it.
+partner-typed (`0` IOK versus `0.0` NOK), and `ValueFlags.pm`'s `pp_add_with_partner` carries it.
 
 **The copy, observed and cross-checked.** Every consumer reading in the verification lanes is taken through a copy, so
 the copy itself was made a row: for each state of the 12-op core lane (bare ops, fresh holder, depth 2; 3,099 states on
@@ -266,12 +266,12 @@ stale-buffer and body-type differences are `B`-only.
 svr->sv_flags`: `SVf_IOK` → integer arithmetic, else `SVf_NOK` → `lossless_NV_to_IV` on both or NV arithmetic — and
 `pp_eq` (pp_hot.c), `pp_ne`, `pp_lt`, `pp_gt`, `pp_le`, `pp_ge` (pp.c) have the same `flags_and` ternary ahead of
 `do_ncmp`; on those paths neither operand is converted. `pp_divide`, `pp_modulo`, `pp_pow`, `pp_ncmp` and `do_ncmp` (so
-`sort { $a <=> $b }`) always run `SvIV_please_nomg` on both operands; `pp_negate` has no partner. Enumerated with a
+`sort { $a <=> $b }`) always run `SvIV_please_nomg` on both operands; `pp_negate` has no partner.  Enumerated with a
 fresh op tree per cell — 15 operators × three partner states (literal fresh; string-touched, public `NOK` left by a
 prior non-numeric operand; float-touched) × six operands — on both interpreters: exactly the nine flags-AND operators
 are partner-typed, and identically so on 5.38.2 and 5.44.0. The visible effect is on an integral public-`NOK` operand:
-against a fresh integer literal it gains public `IOK`; against a touched literal it gains nothing. `VF.pm` carries
-`%PARTNER_TYPED` and `pp_add_partner_gate`.
+against a fresh integer literal it gains public `IOK`; against a touched literal it gains nothing.  `ValueFlags.pm`
+carries `%PARTNER_TYPED` and `pp_add_partner_gate`.
 
 **§Verification.** The definition of "verified" for this area is the coverage table produced by `vf_suite.pl`
 (reports/suite/coverage.txt): per interpreter and lane — holder freshness, op set, depth, projection, transitions,
@@ -298,15 +298,15 @@ zeros under a key that could not see this bit.
 **State versus output.** `IsCOW` is in the key because COW is consumer-invisible at the state where it is observed but
 decides a later transition (whether an append forces), so it is state even though it is not output: the key must capture
 everything that decides a future observable, not everything observable now. **The copy rule** is `Perl_sv_setsv_flags`'s
-string arm, transcribed in `VF.pm` with its three arms and the length predicate; the harness copy op is derived from it.
-Every zero stated before the key carried `IsCOW` was a zero under a key that could not see it; the current counts are in
-the coverage table.
+string arm, transcribed in `ValueFlags.pm` with its three arms and the length predicate; the harness copy op is derived
+from it.  Every zero stated before the key carried `IsCOW` was a zero under a key that could not see it; the current
+counts are in the coverage table.
 
 **`LEN`.** On this build (`usemymalloc='n'`, `d_malloc_good_size` and `d_malloc_size` undefined) `SvLEN` is a pure
-function of the source, and `VF.pm` transcribes it: `Perl_sv_grow` with `PERL_STRLEN_NEW_MIN`, the 25% expansion, the
-8-byte roundup and `expected_size`, plus the size expression at every buffer-creating site the core lanes reach. `LEN`
-is in the key, so a COW decision that goes wrong is reported at the site that produced the wrong length rather than as a
-later cow-only row.
+function of the source, and `ValueFlags.pm` transcribes it: `Perl_sv_grow` with `PERL_STRLEN_NEW_MIN`, the 25%
+expansion, the 8-byte roundup and `expected_size`, plus the size expression at every buffer-creating site the core lanes
+reach. `LEN` is in the key, so a COW decision that goes wrong is reported at the site that produced the wrong length
+rather than as a later cow-only row.
 
 **The key.** The projection key carries every field that decides a future observable, for every holder kind: the public
 and private value flags, `IsUV`, `UTF8`, `ROK`, `IsCOW`, the exact integer and NV slots, the string bytes, and `SvLEN` —
@@ -327,6 +327,6 @@ computes; the model's `LEN` arithmetic holds under that condition and no other.
 
 **Verification.** The definition of "verified" for this area is the coverage table produced by `vf_suite.pl`
 (reports/suite/coverage.txt): per interpreter and lane — holder freshness, op set, depth, projection, transitions,
-states — with `match`, `open`, `version-divergent` (path-based: from the first step whose oracle observations differ,
+states — with `match`, `open`, `version-divergent` (path-based: from the first step whose reference observations differ,
 computed by `verdiv_paths.pl`), and `diverges-defined`; the model follows 5.44.0, and every 5.38.2 divergence found so
 far is one rule, the unrounded first allocation before `expected_size` and `SvPV_shrink_to_cur` at `SvCUR + 1`.

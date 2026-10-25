@@ -1,8 +1,8 @@
 #!/usr/bin/perl
-# fz_gen.pl -- scenario generator + differential runner for FZ.pm (finalization / temporary lifetime).
-# Each scenario is an IR program; the same IR is emitted as perl source (oracle) and executed by FZ.
-use strict; use warnings; use FindBin; use lib ($ENV{MODEL_ROOT} || "$FindBin::Bin/.."); my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK; require FZ;
-my $PERL = $ENV{ORACLE} || 'perl';
+# fz_gen.pl -- scenario generator + differential runner for Finalization.pm (finalization / temporary lifetime).
+# Each scenario is an IR program; the same IR is emitted as perl source (the reference run) and executed by FZ.
+use strict; use warnings; use FindBin; my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/.."; my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK; require "$MODEL_ROOT/Finalization.pm";
+my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl';
 
 # ---------------- IR -> perl source ----------------
 my %CLASS = (O=>'plain', K=>'selfcopy', W=>'weakcopy', R=>'rebless', X=>'dies');
@@ -49,8 +49,8 @@ sub emit_op { my $o=shift; my ($t,@a)=@$o;
 my $prelude = <<'P';
 use strict; use warnings; no warnings 'once'; use Scalar::Util qw(weaken); $| = 1;
 our @WEAK; our $keep; our $wk; our $G; our ($h, $w, $t, $ta, $tb, $tc, $td, $te);
-sub FZ::Harness::WeakFlags { join "", map { defined($$_) ? 1 : 0 } @WEAK }
-package O; sub new { my ($c,$id)=@_; bless {id=>$id}, $c } sub DESTROY { print "D$_[0]{id}:", ref($_[0]), "[", main::FZ::Harness::WeakFlags(), "]\n" }
+sub Perl::Conformance::Model::Finalization::Harness::WeakFlags { join "", map { defined($$_) ? 1 : 0 } @WEAK }
+package O; sub new { my ($c,$id)=@_; bless {id=>$id}, $c } sub DESTROY { print "D$_[0]{id}:", ref($_[0]), "[", main::Perl::Conformance::Model::Finalization::Harness::WeakFlags(), "]\n" }
 package K; our @ISA=('O'); sub DESTROY { $_[0]->O::DESTROY; $main::keep = $_[0] }
 package W; our @ISA=('O'); sub DESTROY { $_[0]->O::DESTROY; $main::wk = $_[0]; Scalar::Util::weaken($main::wk) }
 package R; our @ISA=('O'); sub DESTROY { $_[0]->O::DESTROY; bless $_[0], 'P' }
@@ -124,10 +124,10 @@ for my $s (@scen) { my ($name,$ir)=@$s;
   my @weak = map { $_->[1] } grep { $_->[0] eq 'weaken' } map { @{$_}[1..$#$_] } grep { $_->[0] eq 'stmt' } @$ir;
   $src =~ s/sub push_weak \{.*?\}\n/"sub push_weak { \@WEAK = (" . join(",", map { "\\\$$_" } @weak) . "); }\n"/e;
   $src =~ s/^(sub push_weak)/$1/m; $src = "no strict 'refs';\n$src" if 0;
-  # lexical weak holders must be visible to push_weak: hoist them to file-scope 'our' vars for the oracle
+  # lexical weak holders must be visible to push_weak: hoist them to file-scope 'our' vars for the reference run
   open my $fh, '>', "$WORK/fz_child.pl" or die; print $fh $src; close $fh;
   my $got = `timeout 10 $PERL $WORK/fz_child.pl 2>&1`; $got =~ s/^[ \t]*\(in cleanup\)[^\n]*\n/W\n/mg; $got =~ s{ at \Q$WORK\E/fz_child\.pl line \d+\.\n}{\n}g;
-  my $exp = FZ::Harness::Run($ir, {weak=>\@weak});
+  my $exp = Perl::Conformance::Model::Finalization::Harness::Run($ir, {weak=>\@weak});
   my $isglobal = $name =~ /^global/;
   my $cmp = sub { my ($a,$b)=@_; return $a eq $b unless $isglobal; my @x = sort split /\n/, $a; my @y = sort split /\n/, $b; "@x" eq "@y" };
   if ($cmp->($got,$exp)) { $ok++; $allowed++ if $isglobal } else { $bad++; push @rep, "MISMATCH $name\n--- perl:\n$got--- FZ:\n$exp" }

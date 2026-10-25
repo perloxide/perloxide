@@ -3,10 +3,10 @@
 When an object's last reference disappears, Perl runs its destructor at a point that depends on *which* reference
 disappeared and *how*. This section defines the two death paths, the model of the temporaries stack that decides the
 second one, the destructor protocol with resurrection and rebless, the killing of weak references, the interleaving of
-cleanups during exception unwinding, and the structure of global destruction. The reference implementation is `FZ.pm`, a
-transcription of the functions named below. It runs a scenario IR, not Perl: its coverage is exactly the generator's
-scenario set in `fz_gen.pl`, and the program-level oracle is the probe corpus that accompanies it, run on Perl 5.38.2
-and 5.44.0, whose traces are identical over the suite.
+cleanups during exception unwinding, and the structure of global destruction. The reference implementation is
+`Finalization.pm`, a transcription of the functions named below. It runs a scenario IR, not Perl: its coverage is
+exactly the generator's scenario set in `fz_gen.pl`, and the program-level reference is the probe corpus that
+accompanies it, run on Perl 5.38.2 and 5.44.0, whose traces are identical over the suite.
 
 ## 1. Two death paths
 

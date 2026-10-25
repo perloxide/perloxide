@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Differential generator for `local` semantics: real perl (oracle) vs SS.pm.
+# Differential generator for `local` semantics: real perl (the reference run) vs SaveStack.pm.
 # Cells: {plain, tied, magical ($/, $0), glob-aliased} x {package scalar,
 # element present/absent, whole glob} x {bare, assignment, self-assignment}
 # x {no mutation, pre-local-ref mutation, container clear, delete} x
@@ -17,9 +17,9 @@
 # references captured inside the scope: one to the SV the local installed,
 # one to the SV a removing operation handed back. Those show where the
 # installed SV went and that it outlives the scope.
-use strict; use warnings; use FindBin; use lib ($ENV{MODEL_ROOT} || "$FindBin::Bin/.."); my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK;
-require SS;
-my $PERL = $ENV{ORACLE} || 'perl';
+use strict; use warnings; use FindBin; my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/.."; my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK;
+require "$MODEL_ROOT/SaveStack.pm";
+my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl';
 
 my @cells;
 my %SITES = (
@@ -266,151 +266,151 @@ sub fmte { my $e = shift; return '' unless $e; $e =~ s/\n.*//s; $e =~ s/ at .*//
 sub replay {
     my ($c) = @_;
     my ($k, $s, $m, $mu, $ex, $d) = @$c{qw(k s m mu ex d)};
-    SS::Harness::Reset();
+    Perl::Conformance::Model::SaveStack::Harness::Reset();
     $RSG = 10; $ZG = 'ten';
     my ($avid, $hvid, $gv, $idx, $key);
     my ($p1, $p2, $p3) = ('-', '-', '-');
     my $site_read; my $site_addr; my $exists_q = sub { '-' };
     if ($s eq 'pkg') {
-        $gv = SS::gv_fetchpv('x');
-        my $cell = ${ SS::GvSV('x') };
-        if ($k eq 'plain') { $SS::CELL{$cell}{v} = 10 }
+        $gv = Perl::Conformance::Model::SaveStack::gv_fetchpv('x');
+        my $cell = ${ Perl::Conformance::Model::SaveStack::GvSV('x') };
+        if ($k eq 'plain') { $Perl::Conformance::Model::SaveStack::CELL{$cell}{v} = 10 }
         elsif ($k eq 'tied') {
             my $tie = { v => 10 };
-            push @{ $SS::CELL{$cell}{mag} }, { t => 'tied', o => $tie };
-            $SS::CELL{$cell}{smag} = $SS::CELL{$cell}{gmag} = 1;
+            push @{ $Perl::Conformance::Model::SaveStack::CELL{$cell}{mag} }, { t => 'tied', o => $tie };
+            $Perl::Conformance::Model::SaveStack::CELL{$cell}{smag} = $Perl::Conformance::Model::SaveStack::CELL{$cell}{gmag} = 1;
         }
         elsif ($k eq 'mrs') {
-            push @{ $SS::CELL{$cell}{mag} }, { t => 'sv', name => '$/', gref => \$RSG };
-            $SS::CELL{$cell}{smag} = $SS::CELL{$cell}{gmag} = 1;
-            $SS::CELL{$cell}{v} = 10;
+            push @{ $Perl::Conformance::Model::SaveStack::CELL{$cell}{mag} }, { t => 'sv', name => '$/', gref => \$RSG };
+            $Perl::Conformance::Model::SaveStack::CELL{$cell}{smag} = $Perl::Conformance::Model::SaveStack::CELL{$cell}{gmag} = 1;
+            $Perl::Conformance::Model::SaveStack::CELL{$cell}{v} = 10;
         }
         elsif ($k eq 'mz') {
-            push @{ $SS::CELL{$cell}{mag} }, { t => 'sv', name => '$0', gref => \$ZG };
-            $SS::CELL{$cell}{smag} = $SS::CELL{$cell}{gmag} = 1;
-            $SS::CELL{$cell}{v} = 'ten';
+            push @{ $Perl::Conformance::Model::SaveStack::CELL{$cell}{mag} }, { t => 'sv', name => '$0', gref => \$ZG };
+            $Perl::Conformance::Model::SaveStack::CELL{$cell}{smag} = $Perl::Conformance::Model::SaveStack::CELL{$cell}{gmag} = 1;
+            $Perl::Conformance::Model::SaveStack::CELL{$cell}{v} = 'ten';
         }
-        elsif ($k eq 'alias') { $SS::CELL{$cell}{v} = 10 }
-        $site_addr = sub { ${ SS::GvSV('x') } };
-        $site_read = sub { SS::Harness::Read(${ SS::GvSV('x') }) };
+        elsif ($k eq 'alias') { $Perl::Conformance::Model::SaveStack::CELL{$cell}{v} = 10 }
+        $site_addr = sub { ${ Perl::Conformance::Model::SaveStack::GvSV('x') } };
+        $site_read = sub { Perl::Conformance::Model::SaveStack::Harness::Read(${ Perl::Conformance::Model::SaveStack::GvSV('x') }) };
     }
     elsif ($s =~ /^ae/) {
         $idx = $s eq 'aeP' ? 1 : 5;
-        $avid = SS::newAV();
+        $avid = Perl::Conformance::Model::SaveStack::newAV();
         if ($k eq 'tied') {
-            $SS::AV{$avid}{tie} = { store => { 0 => 10, 1 => 20, 2 => 30 }, top => 2 };
+            $Perl::Conformance::Model::SaveStack::AV{$avid}{tie} = { store => { 0 => 10, 1 => 20, 2 => 30 }, top => 2 };
         }
         else {
-            $SS::AV{$avid}{elems} = [ map { my $c2 = SS::newSV(); $SS::CELL{$c2}{v} = $_; $c2 } 10, 20, 30 ];
+            $Perl::Conformance::Model::SaveStack::AV{$avid}{elems} = [ map { my $c2 = Perl::Conformance::Model::SaveStack::newSV(); $Perl::Conformance::Model::SaveStack::CELL{$c2}{v} = $_; $c2 } 10, 20, 30 ];
         }
         $site_addr = sub {
-            if ($SS::AV{$avid}{tie}) { my (undef, $mm) = SS::av_fetch($avid, $idx, 0); return $mm }
-            return $SS::AV{$avid}{elems}[$idx];
+            if ($Perl::Conformance::Model::SaveStack::AV{$avid}{tie}) { my (undef, $mm) = Perl::Conformance::Model::SaveStack::av_fetch($avid, $idx, 0); return $mm }
+            return $Perl::Conformance::Model::SaveStack::AV{$avid}{elems}[$idx];
         };
         $site_read = sub {
-            if ($SS::AV{$avid}{tie}) {
-                my $v = $SS::AV{$avid}{tie}{store}{$idx};
-                SS::Harness::Trace('F', $idx, SS::Harness::Show($v)); return $v;
+            if ($Perl::Conformance::Model::SaveStack::AV{$avid}{tie}) {
+                my $v = $Perl::Conformance::Model::SaveStack::AV{$avid}{tie}{store}{$idx};
+                Perl::Conformance::Model::SaveStack::Harness::Trace('F', $idx, Perl::Conformance::Model::SaveStack::Harness::Show($v)); return $v;
             }
-            my $e = $SS::AV{$avid}{elems}[$idx];
-            return defined $e ? SS::Harness::Read($e) : undef;
+            my $e = $Perl::Conformance::Model::SaveStack::AV{$avid}{elems}[$idx];
+            return defined $e ? Perl::Conformance::Model::SaveStack::Harness::Read($e) : undef;
         };
-        $exists_q = sub { SS::av_exists($avid, $idx) };
+        $exists_q = sub { Perl::Conformance::Model::SaveStack::av_exists($avid, $idx) };
     }
     elsif ($s =~ /^he/) {
         $key = $s eq 'heP' ? 'k' : 'nk';
-        $hvid = SS::newHV();
-        if ($k eq 'tied') { $SS::HV{$hvid}{tie} = { store => { k => 10 } } }
-        else { my $c2 = SS::newSV(); $SS::CELL{$c2}{v} = 10; $SS::HV{$hvid}{elems}{k} = $c2 }
+        $hvid = Perl::Conformance::Model::SaveStack::newHV();
+        if ($k eq 'tied') { $Perl::Conformance::Model::SaveStack::HV{$hvid}{tie} = { store => { k => 10 } } }
+        else { my $c2 = Perl::Conformance::Model::SaveStack::newSV(); $Perl::Conformance::Model::SaveStack::CELL{$c2}{v} = 10; $Perl::Conformance::Model::SaveStack::HV{$hvid}{elems}{k} = $c2 }
         $site_addr = sub {
-            if ($SS::HV{$hvid}{tie}) { my (undef, $mm) = SS::hv_fetch_ent($hvid, $key, 0); return $mm }
-            return $SS::HV{$hvid}{elems}{$key};
+            if ($Perl::Conformance::Model::SaveStack::HV{$hvid}{tie}) { my (undef, $mm) = Perl::Conformance::Model::SaveStack::hv_fetch_ent($hvid, $key, 0); return $mm }
+            return $Perl::Conformance::Model::SaveStack::HV{$hvid}{elems}{$key};
         };
         $site_read = sub {
-            if ($SS::HV{$hvid}{tie}) {
-                my $v = $SS::HV{$hvid}{tie}{store}{$key};
-                SS::Harness::Trace('F', $key, SS::Harness::Show($v)); return $v;
+            if ($Perl::Conformance::Model::SaveStack::HV{$hvid}{tie}) {
+                my $v = $Perl::Conformance::Model::SaveStack::HV{$hvid}{tie}{store}{$key};
+                Perl::Conformance::Model::SaveStack::Harness::Trace('F', $key, Perl::Conformance::Model::SaveStack::Harness::Show($v)); return $v;
             }
-            my $e = $SS::HV{$hvid}{elems}{$key};
-            return defined $e ? SS::Harness::Read($e) : undef;
+            my $e = $Perl::Conformance::Model::SaveStack::HV{$hvid}{elems}{$key};
+            return defined $e ? Perl::Conformance::Model::SaveStack::Harness::Read($e) : undef;
         };
-        $exists_q = sub { SS::hv_exists($hvid, $key) };
+        $exists_q = sub { Perl::Conformance::Model::SaveStack::hv_exists($hvid, $key) };
     }
     elsif ($s eq 'glob') {
-        $gv = SS::gv_fetchpv('x');
-        $SS::CELL{ ${ SS::GvSV('x') } }{v} = 10;
-        SS::gv_fetchpv('y');
-        $SS::CELL{ ${ SS::GvSV('y') } }{v} = 88;
-        $site_addr = sub { ${ SS::GvSV('x') } };
-        $site_read = sub { SS::Harness::Read(${ SS::GvSV('x') }) };
+        $gv = Perl::Conformance::Model::SaveStack::gv_fetchpv('x');
+        $Perl::Conformance::Model::SaveStack::CELL{ ${ Perl::Conformance::Model::SaveStack::GvSV('x') } }{v} = 10;
+        Perl::Conformance::Model::SaveStack::gv_fetchpv('y');
+        $Perl::Conformance::Model::SaveStack::CELL{ ${ Perl::Conformance::Model::SaveStack::GvSV('y') } }{v} = 88;
+        $site_addr = sub { ${ Perl::Conformance::Model::SaveStack::GvSV('x') } };
+        $site_read = sub { Perl::Conformance::Model::SaveStack::Harness::Read(${ Perl::Conformance::Model::SaveStack::GvSV('x') }) };
     }
     my $pre_ok = !($s eq 'aeA' || $s eq 'heA');
     $p1 = $site_addr->() if $pre_ok;
     my $prerefcell;
-    if ($mu eq 'preref') { $prerefcell = SS::SvREFCNT_inc($site_addr->()) }
+    if ($mu eq 'preref') { $prerefcell = Perl::Conformance::Model::SaveStack::SvREFCNT_inc($site_addr->()) }
 
     my ($e1, $e2) = ('', '');
-    my $base = @SS::SS;
+    my $base = @Perl::Conformance::Model::SaveStack::SS;
     my $bodyerr = '';
-    $SS::PENDING = undef;
+    $Perl::Conformance::Model::SaveStack::PENDING = undef;
     my $mkobj = sub {
         my ($n, $dd) = @_;
-        my $obj = SS::newSV(obj => { n => $n, d => $dd });
-        my $tmp = SS::newSV(); $SS::CELL{$tmp}{v} = ['RV', $obj];
-        SS::sv_2mortal($tmp);
+        my $obj = Perl::Conformance::Model::SaveStack::newSV(obj => { n => $n, d => $dd });
+        my $tmp = Perl::Conformance::Model::SaveStack::newSV(); $Perl::Conformance::Model::SaveStack::CELL{$tmp}{v} = ['RV', $obj];
+        Perl::Conformance::Model::SaveStack::sv_2mortal($tmp);
         return $obj;
     };
     my $do_local = sub {
         my ($assignv) = @_;
         my $fresh;
         if ($s eq 'pkg') {
-            my $rhs; $rhs = ${ SS::GvSV("x") } if $m eq "self";
-            $fresh = SS::pp_gvsv('x');
+            my $rhs; $rhs = ${ Perl::Conformance::Model::SaveStack::GvSV("x") } if $m eq "self";
+            $fresh = Perl::Conformance::Model::SaveStack::pp_gvsv('x');
             if ($m eq 'assign') {
-                if (ref $assignv) { SS::Harness::StoreRef($fresh, $$assignv) }
-                else { SS::Harness::Store($fresh, $assignv) }
+                if (ref $assignv) { Perl::Conformance::Model::SaveStack::Harness::StoreRef($fresh, $$assignv) }
+                else { Perl::Conformance::Model::SaveStack::Harness::Store($fresh, $assignv) }
             }
-            elsif ($m eq 'self') { my $v = SS::Harness::Read($rhs); SS::Harness::Store($fresh, $v) }
+            elsif ($m eq 'self') { my $v = Perl::Conformance::Model::SaveStack::Harness::Read($rhs); Perl::Conformance::Model::SaveStack::Harness::Store($fresh, $v) }
         }
         elsif ($s =~ /^ae/ || $s =~ /^he/) {
             my ($rhs_v, $have_rhs);
             if ($m eq 'self') {
                 my $rhsm;
                 if ($s =~ /^ae/) {
-                    if ($SS::AV{$avid}{tie} || defined $SS::AV{$avid}{elems}[$idx]) {
-                        (undef, $rhsm) = SS::av_fetch($avid, $idx, 0);
+                    if ($Perl::Conformance::Model::SaveStack::AV{$avid}{tie} || defined $Perl::Conformance::Model::SaveStack::AV{$avid}{elems}[$idx]) {
+                        (undef, $rhsm) = Perl::Conformance::Model::SaveStack::av_fetch($avid, $idx, 0);
                     }
                 }
                 else {
-                    if ($SS::HV{$hvid}{tie} || exists $SS::HV{$hvid}{elems}{$key}) {
-                        (undef, $rhsm) = SS::hv_fetch_ent($hvid, $key, 0);
+                    if ($Perl::Conformance::Model::SaveStack::HV{$hvid}{tie} || exists $Perl::Conformance::Model::SaveStack::HV{$hvid}{elems}{$key}) {
+                        (undef, $rhsm) = Perl::Conformance::Model::SaveStack::hv_fetch_ent($hvid, $key, 0);
                     }
                 }
-                $rhs_v = defined $rhsm ? SS::Harness::Read($rhsm) : undef;
+                $rhs_v = defined $rhsm ? Perl::Conformance::Model::SaveStack::Harness::Read($rhsm) : undef;
                 $have_rhs = 1;
             }
             my $slotref = $s =~ /^ae/
-                ? SS::pp_aelem($avid, $idx, $m ne 'bare')
-                : SS::pp_helem($hvid, $key, $m ne 'bare');
+                ? Perl::Conformance::Model::SaveStack::pp_aelem($avid, $idx, $m ne 'bare')
+                : Perl::Conformance::Model::SaveStack::pp_helem($hvid, $key, $m ne 'bare');
             $fresh = $$slotref;
             if ($m eq 'assign') {
-                if (ref $assignv) { SS::Harness::StoreRef($fresh, $$assignv) }
-                else { SS::Harness::Store($fresh, $assignv) }
+                if (ref $assignv) { Perl::Conformance::Model::SaveStack::Harness::StoreRef($fresh, $$assignv) }
+                else { Perl::Conformance::Model::SaveStack::Harness::Store($fresh, $assignv) }
             }
-            elsif ($m eq 'self') { SS::Harness::Store($fresh, $rhs_v) }
+            elsif ($m eq 'self') { Perl::Conformance::Model::SaveStack::Harness::Store($fresh, $rhs_v) }
         }
         elsif ($s eq 'glob') {
-            my $oldgp = $SS::GLOB{x}{gp};
-            SS::save_gp('x', 1);
+            my $oldgp = $Perl::Conformance::Model::SaveStack::GLOB{x}{gp};
+            Perl::Conformance::Model::SaveStack::save_gp('x', 1);
             if ($m eq 'assign') {
-                my $slot = SS::GvSV('x');
-                my $ref = ${ SS::GvSV('y') };
-                SS::SvREFCNT_dec($$slot); $$slot = SS::SvREFCNT_inc($ref);
+                my $slot = Perl::Conformance::Model::SaveStack::GvSV('x');
+                my $ref = ${ Perl::Conformance::Model::SaveStack::GvSV('y') };
+                Perl::Conformance::Model::SaveStack::SvREFCNT_dec($$slot); $$slot = Perl::Conformance::Model::SaveStack::SvREFCNT_inc($ref);
             }
             elsif ($m eq 'self') {
-                SS::gp_free($SS::GLOB{x}{gp});
-                $SS::GLOB{x}{gp} = $oldgp;
-                $SS::GP{$oldgp}{rc}++;
+                Perl::Conformance::Model::SaveStack::gp_free($Perl::Conformance::Model::SaveStack::GLOB{x}{gp});
+                $Perl::Conformance::Model::SaveStack::GLOB{x}{gp} = $oldgp;
+                $Perl::Conformance::Model::SaveStack::GP{$oldgp}{rc}++;
             }
         }
         return $fresh;
@@ -420,134 +420,134 @@ sub replay {
         if ($d == 1) {
             my $av = $ex eq 'dieD' ? \$mkobj->('V', 1) : 20;
             $do_local->($av);
-            SS::pp_nextstate();
+            Perl::Conformance::Model::SaveStack::pp_nextstate();
             $p2 = $site_addr->();
-            SS::pp_nextstate();
-            if ($mu eq 'preref') { SS::Harness::Store($prerefcell, 77); SS::pp_nextstate() }
-            elsif ($mu eq 'clear') { ($s =~ /^ae/ ? SS::av_clear($avid) : SS::hv_clear($hvid)); SS::pp_nextstate() }
-            elsif ($mu eq 'del') { ($s =~ /^ae/ ? SS::av_delete($avid, 1) : SS::hv_delete($hvid, 'k')); SS::pp_nextstate() }
+            Perl::Conformance::Model::SaveStack::pp_nextstate();
+            if ($mu eq 'preref') { Perl::Conformance::Model::SaveStack::Harness::Store($prerefcell, 77); Perl::Conformance::Model::SaveStack::pp_nextstate() }
+            elsif ($mu eq 'clear') { ($s =~ /^ae/ ? Perl::Conformance::Model::SaveStack::av_clear($avid) : Perl::Conformance::Model::SaveStack::hv_clear($hvid)); Perl::Conformance::Model::SaveStack::pp_nextstate() }
+            elsif ($mu eq 'del') { ($s =~ /^ae/ ? Perl::Conformance::Model::SaveStack::av_delete($avid, 1) : Perl::Conformance::Model::SaveStack::hv_delete($hvid, 'k')); Perl::Conformance::Model::SaveStack::pp_nextstate() }
             if ($ex eq 'dieB') { die "B\n" }
-            elsif ($ex eq 'dieS') { $SS::ARMDIE = 1 }
+            elsif ($ex eq 'dieS') { $Perl::Conformance::Model::SaveStack::ARMDIE = 1 }
         }
         else {
             $do_local->(20);
-            SS::pp_nextstate();
+            Perl::Conformance::Model::SaveStack::pp_nextstate();
             my $pobj = $mkobj->('P', 0);
-            my $pc = SS::newSV(); $SS::CELL{$pc}{v} = ['RV', SS::SvREFCNT_inc($pobj)];
+            my $pc = Perl::Conformance::Model::SaveStack::newSV(); $Perl::Conformance::Model::SaveStack::CELL{$pc}{v} = ['RV', Perl::Conformance::Model::SaveStack::SvREFCNT_inc($pobj)];
             $padslot = \$pc;
-            SS::save_clearsv($padslot);
-            SS::pp_nextstate();
+            Perl::Conformance::Model::SaveStack::save_clearsv($padslot);
+            Perl::Conformance::Model::SaveStack::pp_nextstate();
             {
-                my $b2 = @SS::SS;
+                my $b2 = @Perl::Conformance::Model::SaveStack::SS;
                 if ($s eq 'glob') {
-                    SS::save_gp('x', 1);
-                    my $slot = SS::GvSV('x');
-                    my $ref = ${ SS::GvSV('y') };
-                    SS::SvREFCNT_dec($$slot); $$slot = SS::SvREFCNT_inc($ref);
+                    Perl::Conformance::Model::SaveStack::save_gp('x', 1);
+                    my $slot = Perl::Conformance::Model::SaveStack::GvSV('x');
+                    my $ref = ${ Perl::Conformance::Model::SaveStack::GvSV('y') };
+                    Perl::Conformance::Model::SaveStack::SvREFCNT_dec($$slot); $$slot = Perl::Conformance::Model::SaveStack::SvREFCNT_inc($ref);
                 }
                 else {
                     my $slotref2 = $s eq 'pkg'
-                        ? do { SS::pp_gvsv('x'); SS::GvSV('x') }
-                        : $s =~ /^ae/ ? SS::pp_aelem($avid, $idx, 1)
-                        : SS::pp_helem($hvid, $key, 1);
-                    SS::Harness::Store($$slotref2, 30);
+                        ? do { Perl::Conformance::Model::SaveStack::pp_gvsv('x'); Perl::Conformance::Model::SaveStack::GvSV('x') }
+                        : $s =~ /^ae/ ? Perl::Conformance::Model::SaveStack::pp_aelem($avid, $idx, 1)
+                        : Perl::Conformance::Model::SaveStack::pp_helem($hvid, $key, 1);
+                    Perl::Conformance::Model::SaveStack::Harness::Store($$slotref2, 30);
                 }
-                SS::pp_nextstate();
-                SS::leave_scope($b2);
-                die $SS::PENDING if defined $SS::PENDING;
+                Perl::Conformance::Model::SaveStack::pp_nextstate();
+                Perl::Conformance::Model::SaveStack::leave_scope($b2);
+                die $Perl::Conformance::Model::SaveStack::PENDING if defined $Perl::Conformance::Model::SaveStack::PENDING;
             }
-            SS::pp_nextstate();
+            Perl::Conformance::Model::SaveStack::pp_nextstate();
             $p2 = $site_addr->();
-            SS::pp_nextstate();
+            Perl::Conformance::Model::SaveStack::pp_nextstate();
             if ($ex eq 'dieB') { die "B\n" }
         }
     };
     $bodyerr = $@;
-    $SS::PENDING = undef;
-    SS::leave_scope($base);
-    $e1 = fmte(defined $SS::PENDING ? $SS::PENDING : $bodyerr);
-    eval { SS::pp_nextstate() };
+    $Perl::Conformance::Model::SaveStack::PENDING = undef;
+    Perl::Conformance::Model::SaveStack::leave_scope($base);
+    $e1 = fmte(defined $Perl::Conformance::Model::SaveStack::PENDING ? $Perl::Conformance::Model::SaveStack::PENDING : $bodyerr);
+    eval { Perl::Conformance::Model::SaveStack::pp_nextstate() };
     $e2 = fmte($@);
     my $exv = $exists_q->();
     my $fvr = $site_read->();
-    my $fv = SS::Harness::Show($fvr);
+    my $fv = Perl::Conformance::Model::SaveStack::Harness::Show($fvr);
     $p3 = ($s !~ /A$/ || $exv) ? $site_addr->() : '-';
-    return norm_ids(join('|', 'T=' . join(',', @SS::TRACE), "I=$p1:$p2:$p3",
+    return norm_ids(join('|', 'T=' . join(',', @Perl::Conformance::Model::SaveStack::TRACE), "I=$p1:$p2:$p3",
         "F=$fv", "X=$exv", "Q=$e1/$e2"));
 }
 
 sub replay_struct {
     my ($c) = @_;
     my ($k, $s, $m, $mu, $ex) = @$c{qw(k s m mu ex)};
-    SS::Harness::Reset();
+    Perl::Conformance::Model::SaveStack::Harness::Reset();
     my $idx = $s eq 'aeP' ? 1 : 5;
-    my $avid = SS::newAV();
-    my $mkval = sub { my $c2 = SS::newSV(); $SS::CELL{$c2}{v} = $_[0]; $c2 };
-    if ($k eq 'tied') { $SS::AV{$avid}{tie} = { store => { 0 => 10, 1 => 20, 2 => 30 }, top => 2 } }
-    else { $SS::AV{$avid}{elems} = [ map { $mkval->($_) } 10, 20, 30 ] }
-    my $tied = $SS::AV{$avid}{tie};
+    my $avid = Perl::Conformance::Model::SaveStack::newAV();
+    my $mkval = sub { my $c2 = Perl::Conformance::Model::SaveStack::newSV(); $Perl::Conformance::Model::SaveStack::CELL{$c2}{v} = $_[0]; $c2 };
+    if ($k eq 'tied') { $Perl::Conformance::Model::SaveStack::AV{$avid}{tie} = { store => { 0 => 10, 1 => 20, 2 => 30 }, top => 2 } }
+    else { $Perl::Conformance::Model::SaveStack::AV{$avid}{elems} = [ map { $mkval->($_) } 10, 20, 30 ] }
+    my $tied = $Perl::Conformance::Model::SaveStack::AV{$avid}{tie};
 
     # The SV at an index as the child's \$a[$i] names it: the element SV of
     # a plain array, a fresh mortal mirror of a tied one.
     my $site_addr = sub {
         my ($i) = @_;
-        my (undef, $cell) = SS::av_fetch($avid, $i, 1);
+        my (undef, $cell) = Perl::Conformance::Model::SaveStack::av_fetch($avid, $i, 1);
         return $cell;
     };
     my ($p1, $p2) = ('-', '-');
     $p1 = $site_addr->($idx) if $s eq 'aeP';
     my ($r1, $r2);
-    my $base = @SS::SS;
-    $SS::PENDING = undef;
+    my $base = @Perl::Conformance::Model::SaveStack::SS;
+    $Perl::Conformance::Model::SaveStack::PENDING = undef;
 
     # A removing operation's result is mortal (pp_shift, pp_pop, pp_splice
     # in list context); the reference taken to it holds a count of its
     # own, and the mortal count goes at the statement boundary.
-    my $take = sub { my ($cell) = @_; $r2 = defined $cell ? SS::SvREFCNT_inc($cell) : undef };
+    my $take = sub { my ($cell) = @_; $r2 = defined $cell ? Perl::Conformance::Model::SaveStack::SvREFCNT_inc($cell) : undef };
     eval {
-        my $slotref = SS::pp_aelem($avid, $idx, $m ne 'bare');
-        SS::Harness::Store($$slotref, 50) if $m eq 'assign';
-        SS::pp_nextstate();
+        my $slotref = Perl::Conformance::Model::SaveStack::pp_aelem($avid, $idx, $m ne 'bare');
+        Perl::Conformance::Model::SaveStack::Harness::Store($$slotref, 50) if $m eq 'assign';
+        Perl::Conformance::Model::SaveStack::pp_nextstate();
         $p2 = $site_addr->($idx);
-        SS::pp_nextstate();
-        $r1 = SS::SvREFCNT_inc($site_addr->($idx));
-        SS::pp_nextstate();
+        Perl::Conformance::Model::SaveStack::pp_nextstate();
+        $r1 = Perl::Conformance::Model::SaveStack::SvREFCNT_inc($site_addr->($idx));
+        Perl::Conformance::Model::SaveStack::pp_nextstate();
         if ($mu eq 'keep') { }
-        elsif ($mu eq 'shift1') { $take->(SS::sv_2mortal(SS::av_shift($avid))); SS::pp_nextstate() }
+        elsif ($mu eq 'shift1') { $take->(Perl::Conformance::Model::SaveStack::sv_2mortal(Perl::Conformance::Model::SaveStack::av_shift($avid))); Perl::Conformance::Model::SaveStack::pp_nextstate() }
         elsif ($mu eq 'shift2') {
-            SS::sv_2mortal(SS::av_shift($avid)); SS::pp_nextstate();
-            $take->(SS::sv_2mortal(SS::av_shift($avid))); SS::pp_nextstate();
+            Perl::Conformance::Model::SaveStack::sv_2mortal(Perl::Conformance::Model::SaveStack::av_shift($avid)); Perl::Conformance::Model::SaveStack::pp_nextstate();
+            $take->(Perl::Conformance::Model::SaveStack::sv_2mortal(Perl::Conformance::Model::SaveStack::av_shift($avid))); Perl::Conformance::Model::SaveStack::pp_nextstate();
         }
-        elsif ($mu eq 'unshift1') { SS::pp_unshift($avid, 7); SS::pp_nextstate() }
-        elsif ($mu eq 'pop1') { $take->(SS::sv_2mortal(SS::av_pop($avid))); SS::pp_nextstate() }
-        elsif ($mu eq 'push1') { SS::pp_push($avid, 7); SS::pp_nextstate() }
-        elsif ($mu eq 'splice_rm') { $take->((SS::pp_splice($avid, 'list', 0, 1))[0]); SS::pp_nextstate() }
-        elsif ($mu eq 'splice_ins') { SS::pp_splice($avid, 'scalar', 0, 0, 7); SS::pp_nextstate() }
-        elsif ($mu eq 'fill_neg1') { SS::av_fill($avid, -1); SS::pp_nextstate() }
-        elsif ($mu eq 'fill0') { SS::av_fill($avid, 0); SS::pp_nextstate() }
-        elsif ($mu eq 'refill') { SS::pp_aassign_av($avid, 7, 8); SS::pp_nextstate() }
+        elsif ($mu eq 'unshift1') { Perl::Conformance::Model::SaveStack::pp_unshift($avid, 7); Perl::Conformance::Model::SaveStack::pp_nextstate() }
+        elsif ($mu eq 'pop1') { $take->(Perl::Conformance::Model::SaveStack::sv_2mortal(Perl::Conformance::Model::SaveStack::av_pop($avid))); Perl::Conformance::Model::SaveStack::pp_nextstate() }
+        elsif ($mu eq 'push1') { Perl::Conformance::Model::SaveStack::pp_push($avid, 7); Perl::Conformance::Model::SaveStack::pp_nextstate() }
+        elsif ($mu eq 'splice_rm') { $take->((Perl::Conformance::Model::SaveStack::pp_splice($avid, 'list', 0, 1))[0]); Perl::Conformance::Model::SaveStack::pp_nextstate() }
+        elsif ($mu eq 'splice_ins') { Perl::Conformance::Model::SaveStack::pp_splice($avid, 'scalar', 0, 0, 7); Perl::Conformance::Model::SaveStack::pp_nextstate() }
+        elsif ($mu eq 'fill_neg1') { Perl::Conformance::Model::SaveStack::av_fill($avid, -1); Perl::Conformance::Model::SaveStack::pp_nextstate() }
+        elsif ($mu eq 'fill0') { Perl::Conformance::Model::SaveStack::av_fill($avid, 0); Perl::Conformance::Model::SaveStack::pp_nextstate() }
+        elsif ($mu eq 'refill') { Perl::Conformance::Model::SaveStack::pp_aassign_av($avid, 7, 8); Perl::Conformance::Model::SaveStack::pp_nextstate() }
         die "B\n" if $ex eq 'dieB';
     };
     my $bodyerr = $@;
-    $SS::PENDING = undef;
-    SS::leave_scope($base);
-    my $e1 = fmte(defined $SS::PENDING ? $SS::PENDING : $bodyerr);
-    eval { SS::pp_nextstate() };
+    $Perl::Conformance::Model::SaveStack::PENDING = undef;
+    Perl::Conformance::Model::SaveStack::leave_scope($base);
+    my $e1 = fmte(defined $Perl::Conformance::Model::SaveStack::PENDING ? $Perl::Conformance::Model::SaveStack::PENDING : $bodyerr);
+    eval { Perl::Conformance::Model::SaveStack::pp_nextstate() };
     my $e2 = fmte($@);
 
     # The observation in the child's order: exists for every index, then
     # the address of each existing element, then its value (a FETCH on a
     # tied array), then the two references' addresses and values.
-    my $fill = $tied ? ($tied->{top} // -1) : $#{ $SS::AV{$avid}{elems} };
-    my @X = map { SS::av_exists($avid, $_) } 0 .. $STRUCT_TOP;
+    my $fill = $tied ? ($tied->{top} // -1) : $#{ $Perl::Conformance::Model::SaveStack::AV{$avid}{elems} };
+    my @X = map { Perl::Conformance::Model::SaveStack::av_exists($avid, $_) } 0 .. $STRUCT_TOP;
     my @I = map { $X[$_] ? $site_addr->($_) : '-' } 0 .. $STRUCT_TOP;
     my @F = map {
-        if ($X[$_]) { my (undef, $cell) = SS::av_fetch($avid, $_, 0); SS::Harness::Show(SS::Harness::Read($cell)) }
+        if ($X[$_]) { my (undef, $cell) = Perl::Conformance::Model::SaveStack::av_fetch($avid, $_, 0); Perl::Conformance::Model::SaveStack::Harness::Show(Perl::Conformance::Model::SaveStack::Harness::Read($cell)) }
         else { '-' }
     } 0 .. $STRUCT_TOP;
     my @R = map { defined $_ ? $_ : '-' } $r1, $r2;
-    my @V = map { defined $_ ? SS::Harness::Show(SS::Harness::Read($_)) : '-' } $r1, $r2;
-    return norm_ids(join('|', 'T=' . join(',', @SS::TRACE),
+    my @V = map { defined $_ ? Perl::Conformance::Model::SaveStack::Harness::Show(Perl::Conformance::Model::SaveStack::Harness::Read($_)) : '-' } $r1, $r2;
+    return norm_ids(join('|', 'T=' . join(',', @Perl::Conformance::Model::SaveStack::TRACE),
         'I=' . join(':', $p1, $p2, @I, @R), 'F=' . join(',', @F),
         'X=' . join('', @X), 'N=' . $fill, 'E=' . join(',', @V), "Q=$e1/$e2"));
 }

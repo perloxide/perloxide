@@ -14,5 +14,5 @@ Single-fact probes from the value-flags research, with their outputs per Perl wh
 - `aliasing_bench.c`: per-iteration cost of registry-plus-proxy versus promote-on-bind (a measurement, not a fact about
   Perl; kept with the probes it accompanied).
 
-These run under the oracle harness like any probe (`harness/bin/oracle run ../probes`), though their blessed outputs
-here were recorded directly.
+These run under the oracle harness like any probe (`harness/bin/perl-conformance run ../probes`), though their blessed
+outputs here were recorded directly.

@@ -1,11 +1,11 @@
-package SS;
+package Perl::Conformance::Model::SaveStack;
 # Executable transcription of scope.c's `local` semantics over a miniature
 # SV world: cells with refcounts, a mortals stack freed at statement
 # boundaries, container/value magic, tied containers, a glob/GP layer, and
 # the save stack with Perl_leave_scope's pop-before-execute unwind. A
 # snake_case routine mirrors the perl 5.44.0 function or macro of that name
 # (Perl_/S_ removed); comments cite them. What has no C counterpart is
-# harness glue in SS::Harness: Reset, Trace and Show for the world and the
+# harness glue in Perl::Conformance::Model::SaveStack::Harness: Reset, Trace and Show for the world and the
 # observation, Read and Store for a payload read with get magic and a
 # payload store with set magic (the value side of sv_setsv_mg, over opaque
 # payloads), StoreRef for sv_setrv_inc_mg, RetainPayload and ReleasePayload
@@ -15,14 +15,14 @@ use strict; use warnings;
 our (%CELL, %AV, %HV, %GLOB, %GP, @SS, @TMPS, @TRACE);
 our ($NID, $ARMDIE, $PENDING);
 
-sub SS::Harness::Reset {
+sub Perl::Conformance::Model::SaveStack::Harness::Reset {
     %CELL = (); %AV = (); %HV = (); %GLOB = (); %GP = ();
     @SS = (); @TMPS = (); @TRACE = ();
     $NID = 0; $ARMDIE = 0; $PENDING = undef;
 }
 
-sub SS::Harness::Trace { push @TRACE, join(':', @_) }
-sub SS::Harness::Show { my $v = shift; !defined $v ? 'u' : ref $v ? 'r' : $v }
+sub Perl::Conformance::Model::SaveStack::Harness::Trace { push @TRACE, join(':', @_) }
+sub Perl::Conformance::Model::SaveStack::Harness::Show { my $v = shift; !defined $v ? 'u' : ref $v ? 'r' : $v }
 
 # ---------------- cells ----------------
 # A cell is one SV: { v => payload, rc, mag => [..], smag, gmag, obj }.
@@ -49,7 +49,7 @@ sub SvREFCNT_dec {
         # S_curse invokes DESTROY via call_sv with G_EVAL|G_KEEPERR
         # (sv.c:7783): an exception raised inside an implicit destructor is
         # downgraded to a "(in cleanup)" warning and never propagates.
-        SS::Harness::Trace('X', $o->{n});
+        Perl::Conformance::Model::SaveStack::Harness::Trace('X', $o->{n});
         warn "D\n" if $o->{d};
     }
     if (ref $c->{v} && $c->{v}[0] eq 'RV') { SvREFCNT_dec($c->{v}[1]) }
@@ -61,13 +61,13 @@ sub sv_2mortal { push @TMPS, $_[0]; $_[0] }
 # the referent, and overwriting or deleting the entry releases it. This is
 # what defers a displaced object's DESTROY until the restore STORE
 # overwrites the tie slot.
-sub SS::Harness::RetainPayload {
+sub Perl::Conformance::Model::SaveStack::Harness::RetainPayload {
     my ($v) = @_;
     SvREFCNT_inc($v->[1]) if ref $v && $v->[0] eq 'RV';
     return $v;
 }
 
-sub SS::Harness::ReleasePayload {
+sub Perl::Conformance::Model::SaveStack::Harness::ReleasePayload {
     my ($v) = @_;
     SvREFCNT_dec($v->[1]) if ref $v && $v->[0] eq 'RV';
 }
@@ -94,13 +94,13 @@ sub mg_get {
     return unless $c->{gmag};
     if (my $m = mg_find($c, 'tied')) {
         my $v = $m->{o}{v};
-        SS::Harness::Trace('F', SS::Harness::Show($v));
+        Perl::Conformance::Model::SaveStack::Harness::Trace('F', Perl::Conformance::Model::SaveStack::Harness::Show($v));
         $c->{v} = $v;
     }
     elsif (my $e = mg_find($c, 'tiedelem')) {
         my $cont = $e->{kind} eq 'A' ? $AV{ $e->{cont} } : $HV{ $e->{cont} };
         my $v = $cont->{tie}{store}{ $e->{key} };
-        SS::Harness::Trace('F', $e->{key}, SS::Harness::Show($v));
+        Perl::Conformance::Model::SaveStack::Harness::Trace('F', $e->{key}, Perl::Conformance::Model::SaveStack::Harness::Show($v));
         $c->{v} = $v;
     }
     elsif (my $s = mg_find($c, 'sv')) {
@@ -120,37 +120,37 @@ sub mg_set {
     my $c = $CELL{$id};
     return unless $c->{smag};
     if (my $m = mg_find($c, 'tied')) {
-        SS::Harness::Trace('S', SS::Harness::Show($c->{v}));
+        Perl::Conformance::Model::SaveStack::Harness::Trace('S', Perl::Conformance::Model::SaveStack::Harness::Show($c->{v}));
         die "S\n" if $ARMDIE;
         my $old = $m->{o}{v};
-        $m->{o}{v} = SS::Harness::RetainPayload($c->{v});
-        SS::Harness::ReleasePayload($old);
+        $m->{o}{v} = Perl::Conformance::Model::SaveStack::Harness::RetainPayload($c->{v});
+        Perl::Conformance::Model::SaveStack::Harness::ReleasePayload($old);
     }
     elsif (my $e = mg_find($c, 'tiedelem')) {
         my $cont = $e->{kind} eq 'A' ? $AV{ $e->{cont} } : $HV{ $e->{cont} };
-        SS::Harness::Trace('S', $e->{key}, SS::Harness::Show($c->{v}));
+        Perl::Conformance::Model::SaveStack::Harness::Trace('S', $e->{key}, Perl::Conformance::Model::SaveStack::Harness::Show($c->{v}));
         die "S\n" if $ARMDIE;
         my $old = $cont->{tie}{store}{ $e->{key} };
-        $cont->{tie}{store}{ $e->{key} } = SS::Harness::RetainPayload($c->{v});
-        SS::Harness::ReleasePayload($old);
+        $cont->{tie}{store}{ $e->{key} } = Perl::Conformance::Model::SaveStack::Harness::RetainPayload($c->{v});
+        Perl::Conformance::Model::SaveStack::Harness::ReleasePayload($old);
         my $t = $cont->{tie};
         $t->{top} = $e->{key} if $e->{kind} eq 'A' && $e->{key} > ($t->{top} // -1);
     }
     elsif (my $s = mg_find($c, 'sv')) { ${ $s->{gref} } = $c->{v} }
 }
 
-sub SS::Harness::Read { my ($id) = @_; mg_get($id); $CELL{$id}{v} }
-sub SS::Harness::Store {
+sub Perl::Conformance::Model::SaveStack::Harness::Read { my ($id) = @_; mg_get($id); $CELL{$id}{v} }
+sub Perl::Conformance::Model::SaveStack::Harness::Store {
     my ($id, $v) = @_;
     my $old = $CELL{$id}{v};
     $CELL{$id}{v} = $v;
-    SS::Harness::ReleasePayload($old) if ref $old;
+    Perl::Conformance::Model::SaveStack::Harness::ReleasePayload($old) if ref $old;
     mg_set($id);
 }
 
 # sv_setrv_inc_mg: the destination takes a new reference to the referent,
 # then set magic runs.
-sub SS::Harness::StoreRef {
+sub Perl::Conformance::Model::SaveStack::Harness::StoreRef {
     my ($id, $target) = @_;
     SvREFCNT_inc($target);
     my $old = $CELL{$id}{v};
@@ -211,14 +211,14 @@ sub hv_fetch_ent {
 sub av_exists {
     my ($avid, $idx) = @_;
     my $av = $AV{$avid};
-    if ($av->{tie}) { SS::Harness::Trace('E', $idx); return exists $av->{tie}{store}{$idx} ? 1 : 0 }
+    if ($av->{tie}) { Perl::Conformance::Model::SaveStack::Harness::Trace('E', $idx); return exists $av->{tie}{store}{$idx} ? 1 : 0 }
     return defined $av->{elems}[$idx] ? 1 : 0;
 }
 
 sub hv_exists {
     my ($hvid, $key) = @_;
     my $hv = $HV{$hvid};
-    if ($hv->{tie}) { SS::Harness::Trace('E', $key); return exists $hv->{tie}{store}{$key} ? 1 : 0 }
+    if ($hv->{tie}) { Perl::Conformance::Model::SaveStack::Harness::Trace('E', $key); return exists $hv->{tie}{store}{$key} ? 1 : 0 }
     return exists $hv->{elems}{$key} ? 1 : 0;
 }
 
@@ -233,8 +233,8 @@ sub av_delete {
     my ($avid, $idx) = @_;
     my $av = $AV{$avid};
     if ($av->{tie}) {
-        SS::Harness::Trace('D', $idx);
-        SS::Harness::ReleasePayload(delete $av->{tie}{store}{$idx});
+        Perl::Conformance::Model::SaveStack::Harness::Trace('D', $idx);
+        Perl::Conformance::Model::SaveStack::Harness::ReleasePayload(delete $av->{tie}{store}{$idx});
         if ($idx == ($av->{tie}{top} // -1)) {
             my $t = $idx - 1;
             $t-- while $t >= 0 && !exists $av->{tie}{store}{$t};
@@ -253,8 +253,8 @@ sub hv_delete {
     my ($hvid, $key) = @_;
     my $hv = $HV{$hvid};
     if ($hv->{tie}) {
-        SS::Harness::Trace('D', $key);
-        SS::Harness::ReleasePayload(delete $hv->{tie}{store}{$key});
+        Perl::Conformance::Model::SaveStack::Harness::Trace('D', $key);
+        Perl::Conformance::Model::SaveStack::Harness::ReleasePayload(delete $hv->{tie}{store}{$key});
         return;
     }
     my $c = delete $hv->{elems}{$key};
@@ -265,10 +265,10 @@ sub av_clear {
     my ($avid) = @_;
     my $av = $AV{$avid};
     if ($av->{tie}) {
-        SS::Harness::Trace('C');
+        Perl::Conformance::Model::SaveStack::Harness::Trace('C');
         my $st = $av->{tie}{store};
         $av->{tie}{store} = {}; $av->{tie}{top} = -1;
-        SS::Harness::ReleasePayload($st->{$_}) for sort keys %$st;
+        Perl::Conformance::Model::SaveStack::Harness::ReleasePayload($st->{$_}) for sort keys %$st;
         return;
     }
     SvREFCNT_dec($_) for grep { defined } @{ $av->{elems} };
@@ -279,10 +279,10 @@ sub hv_clear {
     my ($hvid) = @_;
     my $hv = $HV{$hvid};
     if ($hv->{tie}) {
-        SS::Harness::Trace('C');
+        Perl::Conformance::Model::SaveStack::Harness::Trace('C');
         my $st = $hv->{tie}{store};
         $hv->{tie}{store} = {};
-        SS::Harness::ReleasePayload($st->{$_}) for sort keys %$st;
+        Perl::Conformance::Model::SaveStack::Harness::ReleasePayload($st->{$_}) for sort keys %$st;
         return;
     }
     SvREFCNT_dec($_) for values %{ $hv->{elems} };
@@ -312,8 +312,8 @@ sub _tie_list {
 
 sub _tie_set_list {
     my ($t, @list) = @_;
-    SS::Harness::ReleasePayload($_) for values %{ $t->{store} };
-    $t->{store} = { map { $_ => SS::Harness::RetainPayload($list[$_]) } 0 .. $#list };
+    Perl::Conformance::Model::SaveStack::Harness::ReleasePayload($_) for values %{ $t->{store} };
+    $t->{store} = { map { $_ => Perl::Conformance::Model::SaveStack::Harness::RetainPayload($list[$_]) } 0 .. $#list };
     $t->{top} = $#list;
 }
 
@@ -325,7 +325,7 @@ sub av_shift {
     my ($avid) = @_;
     my $av = $AV{$avid};
     if (my $t = $av->{tie}) {
-        SS::Harness::Trace('SH');
+        Perl::Conformance::Model::SaveStack::Harness::Trace('SH');
         my $v = delete $t->{store}{0};
         for my $i (1 .. ($t->{top} // -1)) {
             $t->{store}{ $i - 1 } = delete $t->{store}{$i} if exists $t->{store}{$i};
@@ -345,7 +345,7 @@ sub av_pop {
     my ($avid) = @_;
     my $av = $AV{$avid};
     if (my $t = $av->{tie}) {
-        SS::Harness::Trace('PO');
+        Perl::Conformance::Model::SaveStack::Harness::Trace('PO');
         my $v = delete $t->{store}{ $t->{top} };
         $t->{top}-- if $t->{top} >= 0;
         my $copy = newSV();
@@ -363,12 +363,12 @@ sub pp_unshift {
     my ($avid, @vals) = @_;
     my $av = $AV{$avid};
     if (my $t = $av->{tie}) {
-        SS::Harness::Trace('UN', map { SS::Harness::Show($_) } @vals);
+        Perl::Conformance::Model::SaveStack::Harness::Trace('UN', map { Perl::Conformance::Model::SaveStack::Harness::Show($_) } @vals);
         my $n = @vals;
         for my $i (reverse 0 .. ($t->{top} // -1)) {
             $t->{store}{ $i + $n } = delete $t->{store}{$i} if exists $t->{store}{$i};
         }
-        $t->{store}{$_} = SS::Harness::RetainPayload($vals[$_]) for 0 .. $#vals;
+        $t->{store}{$_} = Perl::Conformance::Model::SaveStack::Harness::RetainPayload($vals[$_]) for 0 .. $#vals;
         $t->{top} = ($t->{top} // -1) + $n;
         return;
     }
@@ -386,8 +386,8 @@ sub pp_push {
     my ($avid, @vals) = @_;
     my $av = $AV{$avid};
     if (my $t = $av->{tie}) {
-        SS::Harness::Trace('PU', map { SS::Harness::Show($_) } @vals);
-        $t->{store}{ ++$t->{top} } = SS::Harness::RetainPayload($_) for @vals;
+        Perl::Conformance::Model::SaveStack::Harness::Trace('PU', map { Perl::Conformance::Model::SaveStack::Harness::Show($_) } @vals);
+        $t->{store}{ ++$t->{top} } = Perl::Conformance::Model::SaveStack::Harness::RetainPayload($_) for @vals;
         return;
     }
     for my $v (@vals) {
@@ -405,10 +405,10 @@ sub av_fill {
     my $av = $AV{$avid};
     $fill = -1 if $fill < 0;
     if (my $t = $av->{tie}) {
-        SS::Harness::Trace('SZ', $fill + 1);
+        Perl::Conformance::Model::SaveStack::Harness::Trace('SZ', $fill + 1);
         $t->{top} = $fill;
         for my $k (grep { $_ > $fill } keys %{ $t->{store} }) {
-            SS::Harness::ReleasePayload(delete $t->{store}{$k});
+            Perl::Conformance::Model::SaveStack::Harness::ReleasePayload(delete $t->{store}{$k});
         }
         return;
     }
@@ -432,7 +432,7 @@ sub pp_splice {
     my ($avid, $gimme, $offset, $length, @vals) = @_;
     my $av = $AV{$avid};
     if (my $t = $av->{tie}) {
-        SS::Harness::Trace('SP', $offset, $length, map { SS::Harness::Show($_) } @vals);
+        Perl::Conformance::Model::SaveStack::Harness::Trace('SP', $offset, $length, map { Perl::Conformance::Model::SaveStack::Harness::Show($_) } @vals);
         my @list = _tie_list($t);
         my @removed = splice @list, $offset, $length, @vals;
         _tie_set_list($t, @list);
@@ -460,11 +460,11 @@ sub pp_aassign_av {
     av_clear($avid);
     return unless @vals;
     if (my $t = $av->{tie}) {
-        SS::Harness::Trace('EX', scalar @vals);
+        Perl::Conformance::Model::SaveStack::Harness::Trace('EX', scalar @vals);
         for my $i (0 .. $#vals) {
-            SS::Harness::Trace('S', $i, SS::Harness::Show($vals[$i]));
+            Perl::Conformance::Model::SaveStack::Harness::Trace('S', $i, Perl::Conformance::Model::SaveStack::Harness::Show($vals[$i]));
             die "S\n" if $ARMDIE;
-            $t->{store}{$i} = SS::Harness::RetainPayload($vals[$i]);
+            $t->{store}{$i} = Perl::Conformance::Model::SaveStack::Harness::RetainPayload($vals[$i]);
             $t->{top} = $i if $i > ($t->{top} // -1);
         }
         return;

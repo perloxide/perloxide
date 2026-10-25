@@ -1,9 +1,9 @@
 #!/usr/bin/perl
-use lib ($ENV{VF_ROOT} || '.'); our $ROOT = $ENV{VF_ROOT} || '.'; my $TAG = $ENV{TAG} || "matrix";
-# Differential generator: perl (oracle) vs the design's value flags model, for
+our $ROOT = $ENV{MODEL_ROOT} || '.'; my $TAG = $ENV{TAG} || "matrix";
+# Differential generator: perl (the reference run) vs the design's value flags model, for
 # __WARN__ handlers that mutate the scalar being converted.
 use strict; use warnings; use POSIX ();
-my $PERL = $ENV{ORACLE} || 'perl';
+my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl';
 my @inputs = (['12x',q{'12x'}],['12.5x',q{'12.5x'}],['abc',q{'abc'}],['empty',q{''}],['sp12x',q{' 12x'}],
   ['1e3x',q{'1e3x'}],['Infx',q{'Infx'}],['nanx',q{'nanx'}],['-0x',q{'-0x'}],['0x1A',q{'0x1A'}],['1_000',q{'1_000'}],
   ['12U',q{"12\x{100}"}],['12',q{'12'}],['12.5',q{'12.5'}],['undef',q{undef}],['12n',q{12}],['12.5n',q{12.5}],['ref',q{\1}]);
@@ -14,7 +14,7 @@ my @outers = (['add',q{0+$x}],['bor',q{$x|0}],['spg',q{sprintf('%g',$x)}],['cat'
 my $child_tmpl = <<'CHILD';
 use strict; use warnings; use B; binmode(STDOUT, ":utf8");
 my @F=(IOK=>B::SVf_IOK,NOK=>B::SVf_NOK,POK=>B::SVf_POK,pIOK=>B::SVp_IOK,pNOK=>B::SVp_NOK,pPOK=>B::SVp_POK,IsUV=>B::SVf_IVisUV,ROK=>B::SVf_ROK);
-use lib ($ENV{VF_ROOT}||'.'); use VF::Observe; *fl = \&VF::Observe::flags;
+require(($ENV{MODEL_ROOT} || ".") . "/Observe.pm"); *fl = \&Perl::Conformance::Model::ValueFlags::Observe::flags;
 my $ADDR; sub num { my $v=shift; ref $v ? "ADDR" : (defined $ADDR && $v == $ADDR) ? "ADDR" : sprintf("%.17g",$v) }
 my $x = __INPUT__;
 my $calls=0; my $depth=0;
@@ -32,13 +32,13 @@ my $n; my $died=0;
 CHILD
 
 # ---------------- model of the design ----------------
-use lib ($ENV{VF_ROOT}||'.'); require VF;
-package VF;
+require "$ROOT/ValueFlags.pm";
+package Perl::Conformance::Model::ValueFlags;
 # handler-matrix driver (uses the M2 primitives)
 sub run_model { my ($in,$repl,$then,$outer)=@_;
   my $h = $in eq 'undef' ? { kind=>'U',iv=>0,nv=>0,int_form=>0,num_form=>0,is_uv=>0,stringified=>0} : $in eq "12n" ? { kind=>"I",iv=>12,nv=>0,int_form=>2,num_form=>0,is_uv=>0,stringified=>0}
         : $in eq "12.5n" ? { kind=>"N",iv=>0,nv=>12.5,int_form=>0,num_form=>2,is_uv=>0,stringified=>0} : $in eq 'ref' ? { kind=>'R',iv=>0,nv=>0,int_form=>0,num_form=>0,is_uv=>0,stringified=>0}
-        : VF::Harness::string($in eq 'empty' ? '' : $in eq 'sp12x' ? ' 12x' : $in eq '12U' ? "12\x{100}" : $in);
+        : Perl::Conformance::Model::ValueFlags::Harness::string($in eq 'empty' ? '' : $in eq 'sp12x' ? ' 12x' : $in eq '12U' ? "12\x{100}" : $in);
   my $calls=0; my $depth=0; my $died=0;
   my $ctx; $ctx = { warn => sub { my $hh=shift; $calls++; return if $depth++;
      my %set = (s99=>sub{ @$hh{qw(kind pv int_form num_form is_uv stringified)}=('S','99',0,0,0,0); $hh->{cow}=1; $hh->{cow}=1 }, 's99.5'=>sub{ @$hh{qw(kind pv int_form num_form is_uv stringified)}=('S','99.5',0,0,0,0); $hh->{cow}=1; $hh->{cow}=1 },
@@ -50,13 +50,13 @@ sub run_model { my ($in,$repl,$then,$outer)=@_;
      $depth--; } };
   my $n = eval { my %ops=(add=>\&pp_add,bor=>\&pp_bit_or,spg=>\&sv_vcatpvfn_flags_g,cat=>\&sv_2pv_flags); $ops{$outer}->($h,$ctx) };
   if ($@) { return ("UB", "", "", "", "", "", $calls) if $@ =~ /^UB/; $died=1 }
-  my $nr = $died ? "die" : $outer eq 'cat' ? "'$n'" : VF::Harness::Num($n);
+  my $nr = $died ? "die" : $outer eq 'cat' ? "'$n'" : Perl::Conformance::Model::ValueFlags::Harness::Num($n);
   my $quiet = { warn => sub { $calls++ } };   # post-reads under a no-op handler (perl side counts them too? no: perl's post handler is sub{} which does not count)
   $quiet = { warn => sub {} };
-  my $f = VF::Harness::FlagsProjection($h);
+  my $f = Perl::Conformance::Model::ValueFlags::Harness::FlagsProjection($h);
   my $d = ($h->{kind} eq "S" || $h->{kind} eq "R" || $h->{int_form} || $h->{num_form}) ? 1 : 0;
   my $s = !$d ? "undef" : $h->{kind} eq "R" ? "ADDR" : "'".sv_2pv_flags($h,$quiet)."'";
-  my $a = VF::Harness::Num(pp_add($h,$quiet)); my $o = VF::Harness::Num(pp_bit_or($h,$quiet)); my $g = VF::Harness::Num(sv_2nv_flags($h,$quiet));
+  my $a = Perl::Conformance::Model::ValueFlags::Harness::Num(pp_add($h,$quiet)); my $o = Perl::Conformance::Model::ValueFlags::Harness::Num(pp_bit_or($h,$quiet)); my $g = Perl::Conformance::Model::ValueFlags::Harness::Num(sv_2nv_flags($h,$quiet));
   return ($nr,$s,$a,$o,$g,$f,$calls,$d);
 }
 package main;
@@ -68,8 +68,8 @@ for my $in (@inputs) { for my $re (@repls) { for my $th (@thens) { for my $ou (@
   my $out = `timeout 5 $PERL $ROOT/child_$TAG.pl 2>/dev/null`; my $st = $?; utf8::decode($out);
   my $key = "$in->[0]/$re->[0]/$th->[0]/$ou->[0]"; $rows++;
   if ($st & 127 || ($st >> 8) >= 124) { $crash++; push @report, "CRASH  $key (signal ".($st&127).")"; next }
-  chomp $out; my @p = split /\t/, $out; my @m = VF::run_model($in->[0],$re->[0],$th->[0],$ou->[0]);
-  if ($m[0] eq "UB") { $ub++; local $VF::DESIGN_DEFINED = 1; my @d = VF::run_model($in->[0],$re->[0],$th->[0],$ou->[0]); push @report, "DIVERGES-defined $key perl=[@p[0..4]] design=[@d[0..4]]"; next }
+  chomp $out; my @p = split /\t/, $out; my @m = Perl::Conformance::Model::ValueFlags::run_model($in->[0],$re->[0],$th->[0],$ou->[0]);
+  if ($m[0] eq "UB") { $ub++; local $Perl::Conformance::Model::ValueFlags::DESIGN_DEFINED = 1; my @d = Perl::Conformance::Model::ValueFlags::run_model($in->[0],$re->[0],$th->[0],$ou->[0]); push @report, "DIVERGES-defined $key perl=[@p[0..4]] design=[@d[0..4]]"; next }
   my $vals_ok = join("|",@p[0..4],$p[7]//"") eq join("|",@m[0..4],$m[7]);
   if ($vals_ok) { $ok++ } else { $bad++; push @report, "VALUE  $key\n         perl : @p[0..4]\n         model: @m[0..4]" }
   if ($p[5] ne $m[5]) { $flagbad++; push @report, "FLAGS  $key perl=$p[5] model=$m[5]" if $vals_ok }

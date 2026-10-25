@@ -1,4 +1,4 @@
-package Oracle::Verdict;
+package Perl::Conformance::Verdict;
 
 # Classifies one test from its recorded runs. A record is a hash of stdout, stderr, fd3, and exit.
 #
@@ -24,7 +24,7 @@ package Oracle::Verdict;
 
 use strict;
 use warnings;
-use Oracle::Normalize;
+use Perl::Conformance::Normalize;
 
 our @SEED0_GROUP  = qw(stock.seed0.1 stock.seed0.2 noreuse.seed0.1 descending.seed0.1);
 our @SEED_LADDER  = qw(stock.seed1.1 stock.seed2.1 stock.seed3.1 noreuse.seed1.1 descending.seed1.1);
@@ -33,12 +33,12 @@ our @REQUIRED     = (@SEED0_GROUP, @SEED_LADDER, @RANDOM_PAIR);
 
 sub exact_key {
     my ($r) = @_;
-    return join "\0", Oracle::Normalize::exact($r->{stdout}, $r->{stderr}, $r->{fd3}), $r->{exit};
+    return join "\0", Perl::Conformance::Normalize::exact($r->{stdout}, $r->{stderr}, $r->{fd3}), $r->{exit};
 }
 
 sub canonical_key {
     my ($r) = @_;
-    return join "\0", Oracle::Normalize::canonical($r->{stdout}, $r->{stderr}, $r->{fd3}), $r->{exit};
+    return join "\0", Perl::Conformance::Normalize::canonical($r->{stdout}, $r->{stderr}, $r->{fd3}), $r->{exit};
 }
 
 sub _all_equal {

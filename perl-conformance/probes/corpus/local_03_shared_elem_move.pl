@@ -1,4 +1,4 @@
-# oracle-requires: threads
+# perl-conformance-requires: threads
 # local on a threads::shared array element while the array moves under it: the element proxy names
 # its target by index and by shared SV, and the restore writes the saved value through both.  The
 # plain array beside it takes one restore write at the original index.  See

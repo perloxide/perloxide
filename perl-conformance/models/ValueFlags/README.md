@@ -13,11 +13,12 @@ replay mismatch on a supported version is therefore either a model gap or a chan
 the transcribed tag, and the validation record says which routines could carry the second kind.
 
 Terminology: string form / numeric form; value flags (int_form, num_form: 0 none, 1 private, 2 public; is_uv;
-stringified; private); Dual.  Models: VF.pm (package VF, was M.pm), FZ.pm, HV.pm, PV.pm.  A snake_case routine in a
-model package mirrors the C function of that name (Perl_/S_ prefix removed; macros keep their spelling); everything else
-is in <Model>::Harness and CamelCase.  VF.pm is reconciled from two transcriptions (this thread's M.pm and the other
-session's MF.pm, equal cell for cell on the 2304-row matrix); the Perl-undefined windows W1/W2/W3 take the
-design-defined redispatch when $VF::DESIGN_DEFINED is set, and the matrix reports list them as DIVERGES-defined rows
+stringified; private); Dual.  Models: ValueFlags.pm (package VF, was M.pm), Finalization.pm, HashEngine.pm,
+StringFlags.pm.  A snake_case routine in a model package mirrors the C function of that name (Perl_/S_ prefix removed;
+macros keep their spelling); everything else is in <Model>::Harness and CamelCase.  ValueFlags.pm is reconciled from two
+transcriptions (this thread's M.pm and the other session's MF.pm, equal cell for cell on the 2304-row matrix); the
+Perl-undefined windows W1/W2/W3 take the design-defined redispatch when
+$Perl::Conformance::Model::ValueFlags::DESIGN_DEFINED is set, and the matrix reports list them as DIVERGES-defined rows
 with Perl's and the design's outputs side by side.  Not done in this pass: the single merged generator with the
 Devel::Peek projection (peek_projection_probe.txt shows what the fuller projection distinguishes), depth-4
 re-verification of the 13-op core against the renamed model, the random-walk complement.  The counts after renaming are
@@ -33,7 +34,7 @@ in reports/.
   every flag-projection class the full projection separates.
 - Pending at packaging time: the 56-op depth-3 rerun on 5.38.2 and the PV depth-1 reruns against the renamed models
   (present in reports/ only if they completed); the merged single generator and the seeded random walk; body-type and
-  COW_REFCNT modeling in VF.pm.
+  COW_REFCNT modeling in ValueFlags.pm.
 - A suffixed snake_case name in a model (got_nv, sv_inc_nomg_integer, pp_bit_or_string_other) is a label or arm inside
   the named C function, not a function of its own.
 
@@ -48,37 +49,38 @@ harness generations.  Partition (gen_partition.pl, partition.5.44.0.txt): 24 sta
 states, every state stepped by the 58-op set with the full observation: 307 flag-projection classes split; class (a) = 4
 (all NOK-only integral NVs whose members differ in body type NV/PVNV and stale buffer CUR/LEN; a consumer column differs
 now or after `nv`), class (b) = 303, which includes every COW_REFCNT split (1 versus 2: both SvTHINKFIRST,
-consumer-invisible).  The (a) column was not pinned and VF.pm was not extended; step 4 is open.  Not confirmed in this
-bundle unless present in reports/: the 56-op depth-3 rerun on 5.38.2 and the PV depth-1 reruns.  The merged generator
-and the seeded random walk are not built.
+consumer-invisible).  The (a) column was not pinned and ValueFlags.pm was not extended; step 4 is open.  Not confirmed
+in this bundle unless present in reports/: the 56-op depth-3 rerun on 5.38.2 and the PV depth-1 reruns.  The merged
+generator and the seeded random walk are not built.
 
 ## Pass 4
 
 classA_pin.<ver>.txt: the four consumer-separated classes re-probed in isolation are consumer-identical on both Perls;
 the partition's separation traced to a Data::Dumper XS quoting difference on an identical fresh state inside the
-enumeration process (cause not pinned).  Class (a) is empty for the scalar; no VF.pm change.  Long runs started detached
-in this pass (longruns.sh, pid recorded): confirmed reports are present in reports/ only if they completed before
-packaging.  Steps 3 and 4 (merged generator, seeded random walk) not built.  Pass 4 confirmed: 56-op depth 3 on 5.38.2
-against the renamed VF.pm = 295,858 transitions / 0 mismatches (vf_56op_depth3.5.38.2.txt).  PV.pm rename had turned the
-child's utf8::upgrade/downgrade calls into the model's C names (a string-literal rename side effect); fixed in
-pv_gen.pl/PV.pm; the PV depth-1 reruns are in reports/ only if they completed before packaging.
+enumeration process (cause not pinned).  Class (a) is empty for the scalar; no ValueFlags.pm change.  Long runs started
+detached in this pass (longruns.sh, pid recorded): confirmed reports are present in reports/ only if they completed
+before packaging.  Steps 3 and 4 (merged generator, seeded random walk) not built.  Pass 4 confirmed: 56-op depth 3 on
+5.38.2 against the renamed ValueFlags.pm = 295,858 transitions / 0 mismatches (vf_56op_depth3.5.38.2.txt).
+StringFlags.pm rename had turned the child's utf8::upgrade/downgrade calls into the model's C names (a string-literal
+rename side effect); fixed in pv_gen.pl/StringFlags.pm; the PV depth-1 reruns are in reports/ only if they completed
+before packaging.
 
 ## Pass 5
 
 Dumper artifact pinned: case (i) — pp_add's fast path (pp_hot.c) skips SvIV_please_nomg when both operands share public
 NOK, and the consumer chain's shared literal 0 had acquired NOK from an earlier non-numeric addend; scalar state
-identical; class (a) empty for the scalar; VF.pm gains pp_add_with_partner.  PV rename regression isolated: the `*op =
-sub` override glob was not renamed with `sub op` (same class as VF's `*grok`); fixed; reruns launched (reports present
-only if completed).  Rename-script rule going forward: never rewrite identifiers inside quoted child source; the two
-glob-assignment misses are listed here.  Merged generator and random walk: not built.  PV reruns after the glob fix:
-5.44.0 1903/2052, 5.38.2 1900/2052 -- the pre-rename counts, confirmed against the renamed PV.pm.
+identical; class (a) empty for the scalar; ValueFlags.pm gains pp_add_with_partner.  PV rename regression isolated: the
+`*op = sub` override glob was not renamed with `sub op` (same class as VF's `*grok`); fixed; reruns launched (reports
+present only if completed).  Rename-script rule going forward: never rewrite identifiers inside quoted child source; the
+two glob-assignment misses are listed here.  Merged generator and random walk: not built.  PV reruns after the glob fix:
+5.44.0 1903/2052, 5.38.2 1900/2052 -- the pre-rename counts, confirmed against the renamed StringFlags.pm.
 
 ## Pass 6
 
 copycheck.<ver>.txt (gen_copycheck.pl): copy-state rows and the destructive copy-vs-original cross-check over the 12-op
 core lane at depth 2 -- consumer outputs identical on every state (0/3099 on 5.44.0, 0/3084 on 5.38.2); the copy differs
 from its source only by IsCOW/COW_REFCNT (both sides) and by not carrying a stale unflagged buffer; every value flag is
-carried.  No VF.pm change.  Merged generator and random walk: not reached.
+carried.  No ValueFlags.pm change.  Merged generator and random walk: not reached.
 
 ## Pass 7
 
@@ -94,44 +96,47 @@ body and buffer and takes no COW on re-assignment; (3) the observer's copy holde
 lexical inside the observer sub is a reused pad slot and its stale body/buffer masquerades as a copy transition, and a
 shared literal partner inside the observer drifts.  Partner-typed report (partner_typed.txt): add, subtract, multiply,
 `==`, `!=`, `<`, `>`, `<=`, `>=` are partner-typed (flags-AND fast path); `/`, `%`, `**`, `<=>`, sort numeric, unary
-minus are not; identical on both Perls.  VF.pm: binop_operand_flags.
+minus are not; identical on both Perls.  ValueFlags.pm: binop_operand_flags.
 
 ## Pass 8
 
-VF::Observe (models/VF/Observe.pm) is the one observation module: flags+slots key (what the model is checked against),
-and under PROJ=full the Devel::Peek body/flags/CUR/LEN/COW_REFCNT plus the consumer chain on a fresh-per-block package
-copy.  gen3_vf.pl (core, 58-op, walk lanes) is wired to it; the key is projection-independent, so lane counts did not
-move (spot-checked: 159/95 under both projections).  Lanes still carrying their own head: matrix, locale, copy
-(functionally the same key; the copy lane already makes a fresh per-block copy).  core4 stays the cached historical lane
-(13 starts; its exact start list was not recorded in the report and is not recoverable from the driver -- the transition
-table is).  Walk lane: 24 starts x 125 seeded walks x depth 6 over the 58-op set, seed 20260924, full projection, both
-Perls; its mismatches are listed with recipes in reports/suite/walk.<ver>.txt.  First run exposed a harness gap: the six
-starts added to gen3 for the 24-union had no mstart entries (i0/f0 were modeled as strings); fixed for i0/f0; "0 but
-true" (s0but) remains open in the model.  binop_operand_flags renamed: the gate is VF::pp_add_partner_gate (the
-flags_and prelude shared by pp_add/pp_subtract/pp_multiply and the comparison ops).
+Perl::Conformance::Model::ValueFlags::Observe (models/ValueFlags/Observe.pm) is the one observation module: flags+slots
+key (what the model is checked against), and under PROJ=full the Devel::Peek body/flags/CUR/LEN/COW_REFCNT plus the
+consumer chain on a fresh-per-block package copy.  gen3_vf.pl (core, 58-op, walk lanes) is wired to it; the key is
+projection-independent, so lane counts did not move (spot-checked: 159/95 under both projections).  Lanes still carrying
+their own head: matrix, locale, copy (functionally the same key; the copy lane already makes a fresh per-block copy).
+core4 stays the cached historical lane (13 starts; its exact start list was not recorded in the report and is not
+recoverable from the driver -- the transition table is).  Walk lane: 24 starts x 125 seeded walks x depth 6 over the
+58-op set, seed 20260924, full projection, both Perls; its mismatches are listed with recipes in
+reports/suite/walk.<ver>.txt.  First run exposed a harness gap: the six starts added to gen3 for the 24-union had no
+mstart entries (i0/f0 were modeled as strings); fixed for i0/f0; "0 but true" (s0but) remains open in the model.
+binop_operand_flags renamed: the gate is Perl::Conformance::Model::ValueFlags::pp_add_partner_gate (the flags_and
+prelude shared by pp_add/pp_subtract/pp_multiply and the comparison ops).
 
 ## Pass 9
 
-"0 but true": VF.pm already had the branch but placed it after the trailing-garbage test, so the general parse returned
-first; moved ahead of the parse as in numeric.c Perl_grok_number_flags (memEQs(pv, len, "0 but true") ->
-IS_NUMBER_IN_UV, value 0), s0but depth-2 mismatches 674 -> 20.  Key precision: VF::Observe::slots and gen3's model
-projection now print IV/UV slots exactly (the %.17g key had collapsed adjacent integers above 2^53, which produced the
-iMax/sUV/s1e19 "deep recipes" -- they were key-collision artifacts, not model gaps); state counts in integer-heavy lanes
-move by construction of the key, and the table's counts are from the reruns.  core4 retired and rerun fresh through the
-driver: 24 starts, the 13-op core, depth 4, full projection (41,639 transitions; 20 open on 5.44.0, 32 on 5.38.2).  Walk
-rerun with seed 20260924: 170 -> 12 open on both Perls.  Remaining open family (core4 and walk): append (`.=`) onto a
-buffer that holds private numeric flags after an empty append (`.= ""`) followed by a read that caches them -- Perl
-clears the private flags, the model keeps them; observed cause: Perl's empty append leaves the COW share intact
-(S_sv_uncow, sv.c, then clears on the next non-pure append) while the model drops cow on any append; not yet fixed.
-Lanes wired to VF::Observe: core4, full3, walk, locale, copy.  The matrix lane keeps its own head: its key carries ROK
-(reference holders) where the module key carries UTF8, so wiring it changed its key and its counts (290 rows); it was
-reverted to keep the counts, and the difference is recorded here.  full3 projection cost: not measured this pass; the
-lane stays on flags-plus-slots by prior decision.  Matrix 5.44.0 report in the chain was contaminated by a concurrent
-run during the wiring experiment; rerun cleanly (2154/0/114/36) and the table regenerated.
+"0 but true": ValueFlags.pm already had the branch but placed it after the trailing-garbage test, so the general parse
+returned first; moved ahead of the parse as in numeric.c Perl_grok_number_flags (memEQs(pv, len, "0 but true") ->
+IS_NUMBER_IN_UV, value 0), s0but depth-2 mismatches 674 -> 20.  Key precision:
+Perl::Conformance::Model::ValueFlags::Observe::slots and gen3's model projection now print IV/UV slots exactly (the
+%.17g key had collapsed adjacent integers above 2^53, which produced the iMax/sUV/s1e19 "deep recipes" -- they were
+key-collision artifacts, not model gaps); state counts in integer-heavy lanes move by construction of the key, and the
+table's counts are from the reruns.  core4 retired and rerun fresh through the driver: 24 starts, the 13-op core, depth
+4, full projection (41,639 transitions; 20 open on 5.44.0, 32 on 5.38.2).  Walk rerun with seed 20260924: 170 -> 12 open
+on both Perls.  Remaining open family (core4 and walk): append (`.=`) onto a buffer that holds private numeric flags
+after an empty append (`.= ""`) followed by a read that caches them -- Perl clears the private flags, the model keeps
+them; observed cause: Perl's empty append leaves the COW share intact (S_sv_uncow, sv.c, then clears on the next
+non-pure append) while the model drops cow on any append; not yet fixed.  Lanes wired to
+Perl::Conformance::Model::ValueFlags::Observe: core4, full3, walk, locale, copy.  The matrix lane keeps its own head:
+its key carries ROK (reference holders) where the module key carries UTF8, so wiring it changed its key and its counts
+(290 rows); it was reverted to keep the counts, and the difference is recorded here.  full3 projection cost: not
+measured this pass; the lane stays on flags-plus-slots by prior decision.  Matrix 5.44.0 report in the chain was
+contaminated by a concurrent run during the wiring experiment; rerun cleanly (2154/0/114/36) and the table regenerated.
 
 ## Pass 10 -- the key widened, and what it exposed
 
-Key change: VF::Observe::flags and VF::Harness::FlagsProjection now emit IOK,NOK,POK,pIOK,pNOK,pPOK,IsUV,ROK,UTF8,IsCOW,
+Key change: Perl::Conformance::Model::ValueFlags::Observe::flags and
+Perl::Conformance::Model::ValueFlags::Harness::FlagsProjection now emit IOK,NOK,POK,pIOK,pNOK,pPOK,IsUV,ROK,UTF8,IsCOW,
 and integer slots print exactly (no %.17g).  Two harness faults fixed on the way: the observation copy (`our $c = $x`)
 was taken BEFORE the key and COW-shared the observed scalar (IsCOW appeared on every read-op result); record() now takes
 the key first.  The matrix lane is on the module key (its handler-assignment model now sets cow: string literal 1,
@@ -140,13 +145,13 @@ non-COW state share a key and the replayed recipe reaches the wrong one -- the "
 not a pp_multiconcat branch; the append probe (appendprobe.pl) shows private numeric flags survive both empty and
 non-empty appends on a non-COW buffer on both Perls).  Under the widened key the model's cow tracking is exposed as an
 approximation: nearly every open row is cow-only (Perl IsCOW, model not) -- see the counts below -- and the dominant
-source is the harness copy op after an un-COWed buffer, where Perl re-establishes IsCOW and VF.pm's sv_setsv_flags
-(rewritten this pass to leave cow unchanged, on a probe that turns out not to generalize) does not.  This is the open
-modeling item; the rule to transcribe is sv_setsv_flags's COW branch (sv.c: the CAN_COW_MASK / SvLEN > SvCUR+1
-conditions) and the copy-back's same-buffer case.  Counts moved by the key change, as expected: core4 41,639/20 ->
-44,382/2,002 (5.44.0); walk 10,107/12 -> 10,407/596; matrix 2154/0 -> 2154/44; locale unchanged 1152/0; copy 3096/3081
-with 0 consumer differences.  full3 under the new key was still running at packaging and is NOT in the table (pending,
-marked in vf_suite.pl); the caption now says the key changed and which counts moved.  Full-projection cost
+source is the harness copy op after an un-COWed buffer, where Perl re-establishes IsCOW and ValueFlags.pm's
+sv_setsv_flags (rewritten this pass to leave cow unchanged, on a probe that turns out not to generalize) does not.  This
+is the open modeling item; the rule to transcribe is sv_setsv_flags's COW branch (sv.c: the CAN_COW_MASK / SvLEN >
+SvCUR+1 conditions) and the copy-back's same-buffer case.  Counts moved by the key change, as expected: core4 41,639/20
+-> 44,382/2,002 (5.44.0); walk 10,107/12 -> 10,407/596; matrix 2154/0 -> 2154/44; locale unchanged 1152/0; copy
+3096/3081 with 0 consumer differences.  full3 under the new key was still running at packaging and is NOT in the table
+(pending, marked in vf_suite.pl); the caption now says the key changed and which counts moved.  Full-projection cost
 (full3_cost.txt): ~100 us/state versus 2-6 us for flags, ~0.5 min extra per Perl over 295,858 transitions -- full3 runs
 under the full projection from now on.  ver-div is computed from the per-lane transition tables
 (TAG=suite_<lane>_<ver>); the 12-row 5.38/5.44 core4 difference from pass 9 is superseded by this key change and must be
@@ -157,35 +162,35 @@ re-derived from the new tables.  "0 but true" rows: closed (they were in the col
 Transcribed: Perl_sv_setsv_flags's `sflags & SVp_POK` arm (sv.c) -- swipe / copy-on-write / plain copy -- with the
 CoWable predicate (S_SvPV_shared_hkey_or_CoWable: plain source needs (sflags & CAN_COW_MASK)==CAN_COW_FLAGS, (len-cur) <
 80, len < 2*cur, cur+1 < len; an IsCOW source shares when !len or the destination is fresh), and the harness copy op
-derived from it (VF::Harness::CopyOp: two calls plus the scope exit).  The predicate reads SvLEN, so the model now
-carries len with Perl_sv_grow's minlen rule (cur + cur/4 + 16, 8-byte roundup, 16 floor); the allocator usable-size step
-is NOT transcribed and is the stated approximation.  S_sv_uncow (SvLEN 0, SvGROW cur+1) at inc/dec/utf8/append.
-Stringification's share is modeled as the setsv COW arm on observation (mechanism not cited).  gen3 lanes: ONE eval per
-block (rule 1); a croak is the block's terminal record.  core4 open rows barely moved (2,002 -> 2,018 on 5.44.0; 1,605
-on 5.38.2): residue_lists.txt partitions them -- 1,613 cow-only with Perl IsCOW and model not, 321 cow-only the other
-way, 84 other -- so the len approximation, not the arm structure, is the remaining cause.  Not done this pass: ver-div
-triples re-derived with recipes and source; the record rule (a ver-div triple never counted as open on 5.38.2) is not
-yet applied by the driver; full3 and walk under this generation were still running at packaging and are in the table
-only if their reports completed.  Every pre-pass-10 zero in this README and in the section is a zero under the old key;
-the coverage caption says so.
+derived from it (Perl::Conformance::Model::ValueFlags::Harness::CopyOp: two calls plus the scope exit).  The predicate
+reads SvLEN, so the model now carries len with Perl_sv_grow's minlen rule (cur + cur/4 + 16, 8-byte roundup, 16 floor);
+the allocator usable-size step is NOT transcribed and is the stated approximation.  S_sv_uncow (SvLEN 0, SvGROW cur+1)
+at inc/dec/utf8/append.  Stringification's share is modeled as the setsv COW arm on observation (mechanism not cited).
+gen3 lanes: ONE eval per block (rule 1); a croak is the block's terminal record.  core4 open rows barely moved (2,002 ->
+2,018 on 5.44.0; 1,605 on 5.38.2): residue_lists.txt partitions them -- 1,613 cow-only with Perl IsCOW and model not,
+321 cow-only the other way, 84 other -- so the len approximation, not the arm structure, is the remaining cause.  Not
+done this pass: ver-div triples re-derived with recipes and source; the record rule (a ver-div triple never counted as
+open on 5.38.2) is not yet applied by the driver; full3 and walk under this generation were still running at packaging
+and are in the table only if their reports completed.  Every pre-pass-10 zero in this README and in the section is a
+zero under the old key; the coverage caption says so.
 
 ## Pass 12 -- LEN transcribed and put in the key
 
 Profile condition: usemymalloc='n', d_malloc_good_size='undef', d_malloc_size='undef' (both Perls), so
-PERL_UNWARANTED_CHUMMINESS_WITH_MALLOC is undefined and SvLEN is the length sv_grow computes.  Transcribed (VF.pm,
-cited): Perl_sv_grow (newlen++, minlen = cur + cur/4 + 16, PERL_STRLEN_ROUNDUP quantum 8 on an existing buffer,
-expected_size on a first allocation), SvGROW's SvLEN < n gate, expected_size (perl.h), S_sv_uncow (SvLEN 0 then SvGROW
-cur+1), sv_2pv_flags sizes (IV len+1; NV 0.0 -> 2; Inf/NaN -> 5; other NV -> 25 = 1+1+NV_DIG+1+1+5+1), pp_multiconcat's
-grow (1 + targ_len + appended, sv_grow only if SvLEN < grow), sv_utf8_upgrade_flags_grow's need (SvCUR + expansion +
-extra + 1), the literal via SvPV_shrink_to_cur (sv.h: expected_size(SvCUR+2); toke.c not in the source tree here, cited
-from the macro), sv_setpvn (len+1).  Not transcribed: sprintf target sizing, pp_repeat, chr (their lanes are the 58-op
-set).  LEN is in the key (|L:n on POK holders, both sides), so a wrong size is named at its site: residue_by_site.txt
-partitions core4/walk open rows into len-only (by op), cow(+len), other; len_probe_depth3.txt is the 6-start family
-probe (815 len-only of 1,708).  The remaining len-only rows show the model one 8-byte quantum low after an un-COW of a
-literal-shared buffer (e.g. Perl 32, model 24 for a 2-byte string) -- S_sv_uncow's allocation sequence for a buffer the
-SV does not own is the next thing to pin.  The two-way cow-only split has collapsed into len-only rows, as predicted.
-full3 and the other deferred items (ver-div verdict rule, ver-div groups with source) were not reached; stale zeros are
-covered by the caption and the section.
+PERL_UNWARANTED_CHUMMINESS_WITH_MALLOC is undefined and SvLEN is the length sv_grow computes.  Transcribed
+(ValueFlags.pm, cited): Perl_sv_grow (newlen++, minlen = cur + cur/4 + 16, PERL_STRLEN_ROUNDUP quantum 8 on an existing
+buffer, expected_size on a first allocation), SvGROW's SvLEN < n gate, expected_size (perl.h), S_sv_uncow (SvLEN 0 then
+SvGROW cur+1), sv_2pv_flags sizes (IV len+1; NV 0.0 -> 2; Inf/NaN -> 5; other NV -> 25 = 1+1+NV_DIG+1+1+5+1),
+pp_multiconcat's grow (1 + targ_len + appended, sv_grow only if SvLEN < grow), sv_utf8_upgrade_flags_grow's need
+(SvCUR + expansion + extra + 1), the literal via SvPV_shrink_to_cur (sv.h: expected_size(SvCUR+2); toke.c not in the
+source tree here, cited from the macro), sv_setpvn (len+1).  Not transcribed: sprintf target sizing, pp_repeat, chr
+(their lanes are the 58-op set).  LEN is in the key (|L:n on POK holders, both sides), so a wrong size is named at its
+site: residue_by_site.txt partitions core4/walk open rows into len-only (by op), cow(+len), other; len_probe_depth3.txt
+is the 6-start family probe (815 len-only of 1,708).  The remaining len-only rows show the model one 8-byte quantum low
+after an un-COW of a literal-shared buffer (e.g. Perl 32, model 24 for a 2-byte string) -- S_sv_uncow's allocation
+sequence for a buffer the SV does not own is the next thing to pin.  The two-way cow-only split has collapsed into
+len-only rows, as predicted.  full3 and the other deferred items (ver-div verdict rule, ver-div groups with source) were
+not reached; stale zeros are covered by the caption and the section.
 
 ## Pass 13 -- the un-COW allocation pinned; residue by site
 
@@ -230,14 +235,14 @@ sv_grow newlen = cur+2 with minlen 16 from the zeroed SvCUR, first-allocation ex
 The model's CopyOp had returned cow_refcnt to its old value (sole owner -> buffer kept -> 32).  core4 on 5.44.0: 50,613
 / 0 open.  Walk: `$x = "10"` is sv_setsv_flags(holder, literal): an IsCOW source shares only when SvLEN(dsv) < cur+1 (or
 cur >= 1250), so a holder owning any buffer takes the plain copy and keeps its LEN; one without a buffer shares
-(VF::Harness::assign_string); a holder already sharing an equal literal stays IsCOW (observed; same-buffer line not yet
-cited).  sv_pvn_force_flags on undef -> the 16-byte first allocation.  Not sized this pass, listed by op with rows in
-residue_by_site.txt: smat (pp_subst), subw (sv_insert_flags), vec (do_vecset), spg/sprintf (sv_vcatpvfn_flags), xl
-(pp_repeat), chr (pp_chr), sortn, hkey.  5.38.2: open after the verdict rule is in the table; its one version-divergent
-rule (no first-allocation rounding before expected_size; SvPV_shrink_to_cur at SvCUR+1) is the group, not yet listed
-with recipes.  full3: still running; not in table.  Harness rule 5: the observer never copies the holder between ops --
-any sv_setsv from it is a COW share the next op sees; observe with B/Devel::Peek per step and run consumers once, at the
-end, on the original.
+(Perl::Conformance::Model::ValueFlags::Harness::assign_string); a holder already sharing an equal literal stays IsCOW
+(observed; same-buffer line not yet cited).  sv_pvn_force_flags on undef -> the 16-byte first allocation.  Not sized
+this pass, listed by op with rows in residue_by_site.txt: smat (pp_subst), subw (sv_insert_flags), vec (do_vecset),
+spg/sprintf (sv_vcatpvfn_flags), xl (pp_repeat), chr (pp_chr), sortn, hkey.  5.38.2: open after the verdict rule is in
+the table; its one version-divergent rule (no first-allocation rounding before expected_size; SvPV_shrink_to_cur at
+SvCUR+1) is the group, not yet listed with recipes.  full3: still running; not in table.  Harness rule 5: the observer
+never copies the holder between ops -- any sv_setsv from it is a COW share the next op sees; observe with B/Devel::Peek
+per step and run consumers once, at the end, on the original.
 
 ## Pass 16 (2026-09-26)
 
@@ -273,10 +278,10 @@ generation's and the 5.38.2 column is still the triple-based verdict.
 ## Pass 18 (2026-09-26) -- reporting
 
 Queue: the full3 launches of passes 15-17 all exited early (empty reports) -- the launch collided with the kill loops in
-the same turn; chain10.sh runs a `perl -c VF.pm` check before any lane (compile-check rule) and logs each lane's rc.
-Reordered: core4 + walk first (they feed the path-based column), full3 after; full3 was still running at packaging (~35
-min per Perl under the full projection: 24 starts x 58 ops x depth 3 with Dump per state).  core4 under the completed
-key (|B:n): 5.44.0 55,343 / 0.  5.38.2: 6,287 mismatch rows, ALL on version-divergent paths, 0 agreeing-open
+the same turn; chain10.sh runs a `perl -c ValueFlags.pm` check before any lane (compile-check rule) and logs each lane's
+rc.  Reordered: core4 + walk first (they feed the path-based column), full3 after; full3 was still running at packaging
+(~35 min per Perl under the full projection: 24 starts x 58 ops x depth 3 with Dump per state).  core4 under the
+completed key (|B:n): 5.44.0 55,343 / 0.  5.38.2: 6,287 mismatch rows, ALL on version-divergent paths, 0 agreeing-open
 (verdiv_paths.core4.txt): every group's first differing step is a first allocation one quantum apart (L:23 vs L:24 for a
 21-byte un-COW), i.e. the 5.38 rule "no rounding on the first allocation before expected_size (5.44)".  Walk: 5.44.0 360
 -> 46 after one model fix the residue forced: pp_undef (pp.c, scalar default arm) FREES the buffer (SvPV_free, SvPV_set
@@ -309,43 +314,46 @@ pointer.
 
 ## Pass 20 (2026-09-28) -- the key audited against sv.h; the harness made relocatable
 
-Key (VF::Observe::key, mirrored by VF::Harness::KeyTail): value flags | slot | P:bytes|L:len or B:cur/len | T:SvTYPE |
+Key (Perl::Conformance::Model::ValueFlags::Observe::key, mirrored by
+Perl::Conformance::Model::ValueFlags::Harness::KeyTail): value flags | slot | P:bytes|L:len or B:cur/len | T:SvTYPE |
 C:CowREFCNT | O:OOK offset.  Added this pass: SvTYPE (the low byte of sv_flags; sv_upgrade's ladder and its trigger
-sites are transcribed as sticky slot-use bits in VF::body_type), OOK + offset (new op chopl = substr($x,0,1,""); sv_chop
-/ sv_backoff transcribed; sv_grow, S_sv_uncow copy_over, pp_undef, the setters and sv_inc/sv_dec normalize first),
-CowREFCNT (model cow_refcnt; SV_COW_REFCNT_MAX saturation is a rule, not enumerated), stale CUR/LEN on non-POK holders.
-KEY EXCLUSIONS (each with its reason): sv_refcnt -- enters only through S_SvPV_can_swipe_buf (SvREFCNT(ssv)==1 &&
-SvTEMP), which reads the SOURCE of a copy; a named holder is never TEMP (only sv_2mortal sets it): an op-definition
-input.  SVs_TEMP/PADTMP/PADSTALE, SVs_OBJECT, GMG/SMG/RMG, AMAGIC, FAKE, BREAK, magic, stash -- never on a fresh package
-holder by lane design (no blessing, magic, globs, global destruction): ASSERTED -- VF::Observe::peek dies if Dump ever
-shows one or a MAGIC line.  xpvlv fields -- LVs are the TARGs of substr/vec/pos, never the holder.  Buffer bytes past
-CUR -- every writer NUL-terminates at CUR and readers clamp (do_vecget returns 0 past srclen).  sv_u pointer identity --
-implicit in single- holder lanes; a multi-holder lane must key buffer identity because of sv_setsv_flags's SvPVX(dsv) ==
-SvPVX(ssv) early return.  OP-DEFINITION INPUTS (a class, not key fields): the op tree's constants (partner-typed
-arithmetic: pp_add_partner_gate) and an op's TARG, which keeps its buffer across executions (pp_repeat's SvGROW(TARG,
-max) sizes differently the second time -- the likely xr residue); each copy-producing op declares its source's flags and
-refcount.  Verdicts: body-only (Perl and model differ only in T:) is reported beside open.  Depth-2 under the audited
-key, 5.44.0, 13-op core + chopl family probe: 2,379 transitions, 2 body-only, 84 other (key_audit_probe.txt); core2 lane
-(13-op core, 24 starts, depth 2, full projection): 11,914 transitions / 167 open, ALL body-only -- SvTYPE never decided
-a value flag, LEN or COW difference at depth 2, and those 167 are the type model's own rows (sv_upgrade sites still to
-read exactly).  The remaining depth-2 lanes (core2 5.38.2, full2, walk2 both Perls) were still running at packaging and
-are not in the table; they run with `vf_suite.pl` (suite) and `vf_suite.pl lane` on the hardware that keeps processes
-alive.  Harness (harness/): VF_ROOT and PERLS from the environment (no /tmp/gen), startup checks for the allocator
-profile and the locale, TAG-named children, per-start runs merged by merge_starts.pl (tables and start files are keyed
-by start) targets suite / lane (xargs -P JOBS across the 24 starts) / verdiv, dependencies.md, core modules only.
+sites are transcribed as sticky slot-use bits in Perl::Conformance::Model::ValueFlags::body_type), OOK + offset (new op
+chopl = substr($x,0,1,""); sv_chop / sv_backoff transcribed; sv_grow, S_sv_uncow copy_over, pp_undef, the setters and
+sv_inc/sv_dec normalize first), CowREFCNT (model cow_refcnt; SV_COW_REFCNT_MAX saturation is a rule, not enumerated),
+stale CUR/LEN on non-POK holders.  KEY EXCLUSIONS (each with its reason): sv_refcnt -- enters only through
+S_SvPV_can_swipe_buf (SvREFCNT(ssv)==1 && SvTEMP), which reads the SOURCE of a copy; a named holder is never TEMP (only
+sv_2mortal sets it): an op-definition input.  SVs_TEMP/PADTMP/PADSTALE, SVs_OBJECT, GMG/SMG/RMG, AMAGIC, FAKE, BREAK,
+magic, stash -- never on a fresh package holder by lane design (no blessing, magic, globs, global destruction): ASSERTED
+-- Perl::Conformance::Model::ValueFlags::Observe::peek dies if Dump ever shows one or a MAGIC line.  xpvlv fields -- LVs
+are the TARGs of substr/vec/pos, never the holder.  Buffer bytes past CUR -- every writer NUL-terminates at CUR and
+readers clamp (do_vecget returns 0 past srclen).  sv_u pointer identity -- implicit in single- holder lanes; a
+multi-holder lane must key buffer identity because of sv_setsv_flags's SvPVX(dsv) == SvPVX(ssv) early return.
+OP-DEFINITION INPUTS (a class, not key fields): the op tree's constants (partner-typed arithmetic: pp_add_partner_gate)
+and an op's TARG, which keeps its buffer across executions (pp_repeat's SvGROW(TARG, max) sizes differently the second
+time -- the likely xr residue); each copy-producing op declares its source's flags and refcount.  Verdicts: body-only
+(Perl and model differ only in T:) is reported beside open.  Depth-2 under the audited key, 5.44.0, 13-op core + chopl
+family probe: 2,379 transitions, 2 body-only, 84 other (key_audit_probe.txt); core2 lane (13-op core, 24 starts, depth
+2, full projection): 11,914 transitions / 167 open, ALL body-only -- SvTYPE never decided a value flag, LEN or COW
+difference at depth 2, and those 167 are the type model's own rows (sv_upgrade sites still to read exactly).  The
+remaining depth-2 lanes (core2 5.38.2, full2, walk2 both Perls) were still running at packaging and are not in the
+table; they run with `vf_suite.pl` (suite) and `vf_suite.pl lane` on the hardware that keeps processes alive.  Harness
+(harness/): MODEL_ROOT and PERLS from the environment (no /tmp/gen), startup checks for the allocator profile and the
+locale, TAG-named children, per-start runs merged by merge_starts.pl (tables and start files are keyed by start) targets
+suite / lane (xargs -P JOBS across the 24 starts) / verdiv, dependencies.md, core modules only.
 
-## Pass 21 (2026-09-28) -- delivered as models/VF
+## Pass 21 (2026-09-28) -- delivered as models/ValueFlags
 
 Startup path rewritten: each check prints what it checked and found and exits nonzero (allocator profile per Perl,
 locale); success prints the verified profile.  Lane depths from DEPTH / DEPTH_CORE / DEPTH_FULL / DEPTH_WALK; lane names
 carry the depth; a zero or empty report is never cached.  Depth-1 suite on both Perls under the audited key:
 reports/coverage.txt (core1 2,715 / 41 open both Perls; full1 25,719 / 835 (5.44.0) and 503 (5.38.2); walk1 1,250 / 11
 and 4; locale 504 / 30; copy 3,096 / 3,081 with 0 consumer differences; matrix 2,304 / 44).  SvTYPE is now a field set
-at sv_upgrade's trigger sites (VF::upgrade; sites and lines in VF.pm) and nowhere else; the slot-use bits are gone.  NOT
-closed: core2 on 5.44.0 shows 2,030 body-only rows (11,914 transitions) -- e.g. a PVIV holder read with sprintf "%.17g"
-(sv_2nv_flags: SvTYPE < SVt_PVNV -> PVNV) stays PVIV in the model although the wrapper requests that climb; the first
-thing to read is the binding of the `nv`/`iv`/`dec` ops in generators/gen3_vf.pl to the wrapped VF routines and the
-order of the wrappers at the end of VF.pm.  Layout: VF.pm and VF/Observe.pm (models), generators/, vf_suite.pl,
-merge_starts.pl, verdiv_paths.pl, dependencies.md, reports/ (coverage.txt and the lane reports behind it), section.md.
-The Harness routines live in VF.pm under package VF::Harness (a separate VF/Harness.pm split is straightforward and not
-yet done).
+at sv_upgrade's trigger sites (Perl::Conformance::Model::ValueFlags::upgrade; sites and lines in ValueFlags.pm) and
+nowhere else; the slot-use bits are gone.  NOT closed: core2 on 5.44.0 shows 2,030 body-only rows (11,914 transitions)
+-- e.g. a PVIV holder read with sprintf "%.17g" (sv_2nv_flags: SvTYPE < SVt_PVNV -> PVNV) stays PVIV in the model
+although the wrapper requests that climb; the first thing to read is the binding of the `nv`/`iv`/`dec` ops in
+generators/gen3_vf.pl to the wrapped VF routines and the order of the wrappers at the end of ValueFlags.pm.  Layout:
+ValueFlags.pm and Observe.pm (models), generators/, vf_suite.pl, merge_starts.pl, verdiv_paths.pl, dependencies.md,
+reports/ (coverage.txt and the lane reports behind it), section.md.  The Harness routines live in ValueFlags.pm under
+package Perl::Conformance::Model::ValueFlags::Harness (a separate VF/Harness.pm split is straightforward and not yet
+done).

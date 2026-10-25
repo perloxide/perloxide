@@ -5,9 +5,9 @@ value came from outside the program (`SVs_TAINT`). Neither bit is a property of 
 section: a `Str` that is numeric, a `Dual`, and a plain string all carry them the same way. This section defines the
 flag as an interpretation claim, the operations that change it, the operations whose *rules* depend on it, the I/O
 boundary, hash keys by reference to the hash section, and taint as per-value state with a statement-scoped accumulator.
-The reference implementation is `PV.pm`; its harness `pv_gen.pl` enumerates six string families × three lexical contexts
-× tainted/untainted × fifty-seven operations (2,052 rows per interpreter) and compares bytes, flag, `length`, the `ord`
-of every character, `tainted`, and any croak, on Perl 5.38.2 and 5.44.0.
+The reference implementation is `StringFlags.pm`; its harness `pv_gen.pl` enumerates six string families × three lexical
+contexts × tainted/untainted × fifty-seven operations (2,052 rows per interpreter) and compares bytes, flag, `length`,
+the `ord` of every character, `tainted`, and any croak, on Perl 5.38.2 and 5.44.0.
 
 ## 1. The flag as an interpretation claim
 
@@ -93,6 +93,6 @@ The open rows are, first, the `unpack` family on the malformed and flagged Latin
 difference above (0 versus U+FFFD) and the fatal-versus-replacement boundary are partly transcribed; second, the `tr`
 count on a malformed string; third, a taint row: `ord` of a tainted string is tainted in Perl while `chr(ord $t)` is
 not, so taint is dropped at `chr`, not at `ord`, and the model has it the other way. The tables in the bundle
-(`table.<ver>.tsv`) are the oracle records for every row; the 51 rows on which the two interpreters differ are listed in
-`version-differences.diff`, and the model follows 5.44.0 where they differ. Depth 2 (chains of two string-valued
+(`table.<ver>.tsv`) are the reference records for every row; the 51 rows on which the two interpreters differ are listed
+in `version-differences.diff`, and the model follows 5.44.0 where they differ. Depth 2 (chains of two string-valued
 operations) is implemented in the generator but was not run in this pass.

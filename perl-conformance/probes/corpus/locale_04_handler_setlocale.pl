@@ -1,4 +1,4 @@
-# oracle-requires: locale radix_comma.UTF-8
+# perl-conformance-requires: locale radix_comma.UTF-8
 # setlocale inside a numeric-warning handler during a numification. The IV conversion path parses the NV
 # before the warning; the NV conversion path parses it after the handler returns.
 use strict; use warnings;

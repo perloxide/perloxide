@@ -1,4 +1,4 @@
-# oracle-requires: threads
+# perl-conformance-requires: threads
 # Weak references to a threads::shared object are per thread.  A thread reaches a shared referent through
 # its own proxy SV, and a weak reference is a weak reference to that proxy: it is cleared when the thread's
 # last strong reference dies, whether or not the shared referent lives on in another thread.  The referent

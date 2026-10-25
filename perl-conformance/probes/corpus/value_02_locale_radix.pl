@@ -1,4 +1,4 @@
-# oracle-requires: locale radix_comma.UTF-8
+# perl-conformance-requires: locale radix_comma.UTF-8
 # Locale-dependent parse: is a numeric cache made under 'use locale' (comma radix) reused outside it?
 use strict; use warnings; no warnings 'numeric';
 use POSIX qw(setlocale LC_NUMERIC);

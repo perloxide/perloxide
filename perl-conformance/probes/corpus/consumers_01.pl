@@ -1,5 +1,5 @@
-# oracle-variant: default
-# oracle-variant: use_b USE_B=1
+# perl-conformance-variant: default
+# perl-conformance-variant: use_b USE_B=1
 # Core consumers whose output depends on numeric flag state. For each value, compare a plain string
 # against the same string after a numification that leaves the string unchanged.
 use strict; use warnings; no warnings qw(numeric void once uninitialized);

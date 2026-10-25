@@ -3,10 +3,10 @@
 # tarball (CPAN downloads are not required).  Two families, the unthreaded one and the one built
 # with -Dusethreads, each in three variants:
 #
-#   perl-5.44.0                     stock, the oracle
+#   perl-5.44.0                     stock, the reference build
 #   perl-5.44.0-noreuse             noreuse.patch: freed SV heads never return to the free list
 #   perl-5.44.0-descending          descending.patch: each new SV arena's free list is threaded high to low
-#   perl-5.44.0-threads             the same three with -Dusethreads, the oracle for probes that
+#   perl-5.44.0-threads             the same three with -Dusethreads, the reference for probes that
 #   perl-5.44.0-threads-noreuse     require ithreads and the configuration cross-check for the rest
 #   perl-5.44.0-threads-descending
 #
@@ -15,7 +15,7 @@
 #                   not compile. Useful for checking that the patches still apply.
 #   --family        build only one family (default all).
 #
-# Environment: PERLBREW_ROOT (default /opt/perlbrew), WORK (default /tmp/oracle-build).
+# Environment: PERLBREW_ROOT (default /opt/perlbrew), WORK (default /tmp/perl-conformance-build).
 # Each build takes 15-30 minutes on one core. Status files: $WORK/<name>.DONE or $WORK/<name>.FAILED.
 
 set -u
@@ -40,7 +40,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 VERSION=5.44.0
 export PERLBREW_ROOT=${PERLBREW_ROOT:-/opt/perlbrew}
 export PERLBREW_HOME=$PERLBREW_ROOT/home
-WORK=${WORK:-/tmp/oracle-build}
+WORK=${WORK:-/tmp/perl-conformance-build}
 mkdir -p "$WORK"
 cd "$WORK" || exit 1
 
@@ -58,7 +58,7 @@ base=$(git -C "$WORK/src" rev-parse HEAD)
 for variant in stock noreuse descending; do
     if [ "$variant" != stock ]; then
         git -C "$WORK/src" apply --index "$HERE/$variant.patch" || fail "patch $variant" "$variant"
-        git -C "$WORK/src" -c user.name=oracle -c user.email=oracle@localhost commit -q -m "$variant" || fail "commit $variant" "$variant"
+        git -C "$WORK/src" -c user.name=perl-conformance -c user.email=perl-conformance@localhost commit -q -m "$variant" || fail "commit $variant" "$variant"
     fi
     git -C "$WORK/src" archive --format=tar.gz --prefix="perl-$VERSION/" -o "$WORK/perl-$VERSION-$variant.tar.gz" HEAD || fail "tar $variant" "$variant"
     git -C "$WORK/src" reset -q --hard "$base"

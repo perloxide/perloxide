@@ -1,4 +1,4 @@
-package Oracle::Run;
+package Perl::Conformance::Run;
 
 # Runs one Perl program under a pinned environment, capturing stdout, stderr, the probe channel on
 # file descriptor 3, and a textual exit record ("exit N", "signal N", or "timeout").
@@ -58,7 +58,7 @@ sub run {
         chdir dirname($arg{file}) or POSIX::_exit(126);
         %ENV = (base_env(), mode_env($arg{mode}), %{ $arg{extra_env} || {} });
         my @cmd = ($arg{perl});
-        push @cmd, "-I$arg{probe_lib}", '-MProbe' if $arg{probe_lib};
+        push @cmd, "-I$arg{probe_lib}", '-MPerl::Conformance::Probe' if $arg{probe_lib};
         push @cmd, basename($arg{file});
         { exec { $cmd[0] } @cmd }
         POSIX::_exit(127);

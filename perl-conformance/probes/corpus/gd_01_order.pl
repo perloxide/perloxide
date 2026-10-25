@@ -1,6 +1,6 @@
-# oracle-variant: plain PRIME=0
-# oracle-variant: prime PRIME=1
-# oracle-variant: resurrect RESURRECT=1
+# perl-conformance-variant: plain PRIME=0
+# perl-conformance-variant: prime PRIME=1
+# perl-conformance-variant: resurrect RESURRECT=1
 # Global destruction order. Every object is held only by package-reachable SVs; each holder's address is
 # recorded before destruction so DESTROY order can be compared with allocation order and arena position.
 # PRIME=1 scrambles the SV head free list before any object or holder is allocated.

@@ -1,4 +1,4 @@
-package Oracle::Locales;
+package Perl::Conformance::Locales;
 
 # Compiles the harness's own locales so that no probe depends on which locales a system has
 # generated. The sources live in the harness's locales/ directory, one file per locale, each a
@@ -13,7 +13,7 @@ package Oracle::Locales;
 #                 character-class and case-mapping probes, in place of C.UTF-8, which not every
 #                 glibc provides.
 #
-# compile() returns the LOCPATH directory, or undef (with a reason in $Oracle::Locales::WHY) when
+# compile() returns the LOCPATH directory, or undef (with a reason in $Perl::Conformance::Locales::WHY) when
 # localedef or the i18n sources are missing; the caller then skips the probes that require a
 # compiled locale and says so. Nothing else about a run changes.
 
@@ -25,7 +25,7 @@ use File::Spec;
 
 our $WHY = '';
 
-sub source_dir { File::Spec->catdir(dirname(__FILE__), '..', '..', 'locales') }
+sub source_dir { File::Spec->catdir(dirname(__FILE__), '..', '..', '..', 'locales') }
 
 sub names {
     my $dir = source_dir();
@@ -77,7 +77,7 @@ sub compile {
     return $build_dir;
 }
 
-# True when NAME (as a probe's "oracle-requires: locale NAME" names it) is one of the compiled
+# True when NAME (as a probe's "perl-conformance-requires: locale NAME" names it) is one of the compiled
 # locales.
 sub provides {
     my ($name) = @_;

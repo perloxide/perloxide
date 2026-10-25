@@ -15,16 +15,16 @@ builds — legwork a user who needs an older target fully current may have to do
 becomes less useful than on the day it was added.  The newest supported version is the default target for the harness's
 lane-A comparison; a user selects another supported version as their target where the harness and the suites take one.
 A Perl that is not supported — a system's stock `perl`, say — is an *implementation to check* against the blessed
-outputs with `harness/bin/oracle check`, not an oracle, whatever its version.
+outputs with `harness/bin/perl-conformance check`, not a reference, whatever its version.
 
 - **5.44.0**, built from the `v5.44.0` tag of https://github.com/Perl/perl5 with `perls/build-perls.sh`, is the only
   supported version at this writing, and so the default target.  Unthreaded unless a probe states otherwise (`#
-  oracle-requires: threads`), in which case the oracle is the same tag built with `-Dusethreads`.  Every lane-A probe of
-  the corpus produces identical normalized output on both; the builds differ in the `Perl interpreter: 0x...` suffix of
-  some diagnostics, which normalization removes.
+  perl-conformance-requires: threads`), in which case the reference build is the same tag built with `-Dusethreads`.
+  Every lane-A probe of the corpus produces identical normalized output on both; the builds differ in the `Perl
+  interpreter: 0x...`  suffix of some diagnostics, which normalization removes.
 - **Instrumented variants:** `noreuse` (`plant_SV` never returns freed SV heads to `PL_sv_root`) and `descending`
   (arenas threaded from the highest slot down).  A program whose output is not identical across stock, `noreuse`, and
-  `descending` after address bijection is `allocator-sensitive` and is not an exact-comparison oracle.
+  `descending` after address bijection is `allocator-sensitive` and is not an exact-comparison reference.
 - **5.38.2** (the Ubuntu 24.04 system Perl, threaded) is not a supported version: it has no instrumented variants and
   was never blessed as a target.  What it was observed to do beside 5.44.0 is gathered in `unsupported-perls.md` and
   demonstrates nothing on its own.
@@ -74,10 +74,10 @@ separate allocations in every case.
 
 - Numeric-radix probes and lanes use a locale the harness compiles from its own source (`radix_comma`: `LC_NUMERIC` with
   `decimal_point ","`, every other category POSIX); ctype probes use `ctype_utf8` (`LC_CTYPE` from the glibc `i18n`
-  classification, every other category POSIX).  The sources are `harness/locales/`; `harness/lib/Oracle/Locales.pm`
-  compiles them with the system's `localedef` against the system's own `i18n` sources at startup, so no probe depends on
-  which locales the system has generated.  The compiled form is keyed by the sources and the `localedef` version, so a
-  changed glibc recompiles.
+  classification, every other category POSIX).  The sources are `harness/locales/`;
+  `harness/lib/Perl/Conformance/Locales.pm` compiles them with the system's `localedef` against the system's own `i18n`
+  sources at startup, so no probe depends on which locales the system has generated.  The compiled form is keyed by the
+  sources and the `localedef` version, so a changed glibc recompiles.
 
 ## Environment
 

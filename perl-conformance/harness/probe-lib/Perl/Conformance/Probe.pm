@@ -1,6 +1,6 @@
-package Probe;
+package Perl::Conformance::Probe;
 
-# Flag projector for probed programs. The harness loads this module (with -I and -MProbe) only for
+# Flag projector for probed programs. The harness loads this module (with -I and -MPerl::Conformance::Probe) only for
 # programs that mention __PROBE__. __PROBE__($scalar, $label) writes one line to file descriptor 3:
 #
 #   PROBE line=N label=LABEL flags=CODE created_as=n|s|-

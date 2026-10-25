@@ -1,4 +1,4 @@
-# oracle-requires: threads
+# perl-conformance-requires: threads
 # local on threads::shared variables with two threads involved.  Every step is handed off with a
 # condition variable, so the interleaving is the one written here and the output is a function of
 # the program.  What it shows:

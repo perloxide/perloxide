@@ -1,24 +1,24 @@
 #!/usr/bin/env perl
 
-# oracle: differential oracle harness for Perl.
+# perl-conformance: the differential conformance harness for Perl.
 #
-#   oracle list     CORPUS                    list test ids (file.pl or file.pl@variant)
-#   oracle run      CORPUS [--only RE]        run every test on the target version's builds
-#   oracle verdict  CORPUS [--only RE]        classify recorded runs; writes RESULTS/VERSION/verdicts.tsv
-#   oracle bless    CORPUS [--only RE]        store verdicts and normalized outputs as CORPUS/expected/TEST/VERSION
-#   oracle selftest CORPUS [--only RE]        run + verdict, then compare against the target's blessing
-#   oracle gaps     CORPUS                    list the tests not yet blessed on the target version
-#   oracle check    CORPUS --impl PATH        run an implementation and compare per lane against the target
+#   perl-conformance list     CORPUS                    list test ids (file.pl or file.pl@variant)
+#   perl-conformance run      CORPUS [--only RE]        run every test on the target version's builds
+#   perl-conformance verdict  CORPUS [--only RE]        classify recorded runs; writes RESULTS/VERSION/verdicts.tsv
+#   perl-conformance bless    CORPUS [--only RE]        store verdicts and normalized outputs as CORPUS/expected/TEST/VERSION
+#   perl-conformance selftest CORPUS [--only RE]        run + verdict, then compare against the target's blessing
+#   perl-conformance gaps     CORPUS                    list the tests not yet blessed on the target version
+#   perl-conformance check    CORPUS --impl PATH        run an implementation and compare per lane against the target
 #
-# Common options: --target VERSION (default: the newest version in ../supported-versions; also PERL_COMPAT_TARGET),
-# --results DIR (default ./results; runs land in DIR/VERSION), --config FILE (default oracle.conf next to bin/).
+# Common options: --target VERSION (default: the newest version in ../supported-versions; also PERL_CONFORMANCE_TARGET),
+# --results DIR (default ./results; runs land in DIR/VERSION), --config FILE (default perl-conformance.conf next to bin/).
 #
 # Corpus directives, as comment lines anywhere in a test file:
-#   # oracle-requires: threads | locale NAME     skip the test on builds that lack the capability;
+#   # perl-conformance-requires: threads | locale NAME     skip the test on builds that lack the capability;
 #                                             a test that requires threads runs in the threaded family
-#   # oracle-variant: NAME VAR=VALUE ...         run the file once per variant with extra environment;
+#   # perl-conformance-variant: NAME VAR=VALUE ...         run the file once per variant with extra environment;
 #                                             a file with variants has no implicit default run
-#   # oracle-timeout: SECONDS
+#   # perl-conformance-timeout: SECONDS
 
 use strict;
 use warnings;
@@ -28,21 +28,21 @@ use File::Basename qw(basename);
 use File::Path qw(make_path remove_tree);
 use File::Spec;
 use Getopt::Long qw(GetOptionsFromArray);
-use Oracle::Run;
-use Oracle::Normalize;
-use Oracle::Locales;
+use Perl::Conformance::Run;
+use Perl::Conformance::Normalize;
+use Perl::Conformance::Locales;
 
 # The LOCPATH holding the harness's compiled locales, set at startup; undef when they could not be compiled.
 our $LOCPATH;
-use Oracle::Verdict;
+use Perl::Conformance::Verdict;
 
-# The oracle for a supported version is a family of three builds: stock, and the two allocator
+# The reference for a supported version is a family of three builds: stock, and the two allocator
 # variants.  There are two families, unthreaded (plain) and built with -Dusethreads (threads).  A test
-# runs in the plain family unless it requires threads.  Whichever family is the test's oracle, its
+# runs in the plain family unless it requires threads.  Whichever family is the test's reference, its
 # runs are recorded under the generic names (stock.seed0.1 and so on), and the other family's stock
 # build runs once as the configuration cross-check (xconfig).  Every run, verdict and blessing is per
-# version: the target version is selected with --target or PERL_COMPAT_TARGET and defaults to the newest
-# line of ../supported-versions.  A Perl that is not a supported version is never an oracle; it is
+# version: the target version is selected with --target or PERL_CONFORMANCE_TARGET and defaults to the newest
+# line of ../supported-versions.  A Perl that is not a supported version is never a reference; it is
 # run only as an implementation under `check`.
 my %FAMILY = (
     plain   => { stock => 'stock',         noreuse => 'noreuse',         descending => 'descending' },
@@ -77,7 +77,7 @@ sub build_path {
     return $conf->{ $FAMILY{$family}{$build} };
 }
 
-sub usage { die "usage: oracle list|run|verdict|bless|selftest|gaps|check CORPUS [options]\n" }
+sub usage { die "usage: perl-conformance list|run|verdict|bless|selftest|gaps|check CORPUS [options]\n" }
 
 sub slurp {
     my ($path) = @_;
@@ -114,7 +114,7 @@ sub supported_versions {
 
 # The config has one [VERSION] section per supported version holding that version's six build paths,
 # and a global timeout.  Only the target version's section is loaded; its keys may be overridden by
-# PERL_COMPAT_STOCK, PERL_COMPAT_THREADS_STOCK and so on, as may impl and timeout.
+# PERL_CONFORMANCE_STOCK, PERL_CONFORMANCE_THREADS_STOCK and so on, as may impl and timeout.
 sub load_config {
     my ($path, $target) = @_;
     my %conf = (timeout => 60, target => $target);
@@ -126,7 +126,7 @@ sub load_config {
         $conf{$k} = $v if $section eq '' || $section eq $target;
     }
     for my $k (@BUILD_KEYS, qw(impl timeout)) {
-        $conf{$k} = $ENV{"PERL_COMPAT_" . uc $k} if defined $ENV{"PERL_COMPAT_" . uc $k};
+        $conf{$k} = $ENV{"PERL_CONFORMANCE_" . uc $k} if defined $ENV{"PERL_CONFORMANCE_" . uc $k};
     }
     return \%conf;
 }
@@ -140,10 +140,10 @@ sub discover {
     for my $name (@files) {
         my $path = File::Spec->rel2abs("$corpus/$name");
         my $text = slurp($path);
-        my @requires = map { [ split ' ', $_ ] } $text =~ /^#\s*oracle-requires:\s*(.+?)\s*$/mg;
-        my ($timeout) = $text =~ /^#\s*oracle-timeout:\s*(\d+)/m;
+        my @requires = map { [ split ' ', $_ ] } $text =~ /^#\s*perl-conformance-requires:\s*(.+?)\s*$/mg;
+        my ($timeout) = $text =~ /^#\s*perl-conformance-timeout:\s*(\d+)/m;
         my $probe = $text =~ /__PROBE__/ ? 1 : 0;
-        my @variants = $text =~ /^#\s*oracle-variant:\s*(.+?)\s*$/mg;
+        my @variants = $text =~ /^#\s*perl-conformance-variant:\s*(.+?)\s*$/mg;
         my @specs = @variants ? map { my ($v, @kv) = split ' ', $_; [ "$name\@$v", { map { split /=/, $_, 2 } @kv } ] } @variants
                               : ([ $name, {} ]);
         for my $spec (@specs) {
@@ -169,7 +169,7 @@ sub has_capability {
         # A locale requirement names one of the harness's own compiled locales (harness/locales/),
         # never a system locale, so a probe runs the same wherever localedef and the glibc i18n
         # sources exist. It is unmet when those are missing (reported once at startup).
-        $ok = ($LOCPATH && Oracle::Locales::provides($args[0] // '')) ? 1 : 0;
+        $ok = ($LOCPATH && Perl::Conformance::Locales::provides($args[0] // '')) ? 1 : 0;
     }
     else {
         die "unknown requirement '$kind'\n";
@@ -215,7 +215,7 @@ sub cmd_run {
                 next;
             }
             for my $n (1 .. $count) {
-                Oracle::Run::run(
+                Perl::Conformance::Run::run(
                     perl => $perl, file => $t->{file}, prefix => "$dir/$build.$mode.$n", mode => $mode,
                     extra_env => { %{ $t->{env} || {} }, ($LOCPATH ? (LOCPATH => $LOCPATH) : ()) }, probe_lib => ($t->{probe} ? "$Bin/../probe-lib" : undef),
                     timeout => $t->{timeout} // $conf->{timeout},
@@ -237,14 +237,14 @@ sub classify_test {
     chomp $family;
     $family = 'plain' unless length $family;
     my %runs;
-    for my $name (@Oracle::Verdict::REQUIRED) {
+    for my $name (@Perl::Conformance::Verdict::REQUIRED) {
         my $r = read_record("$dir/$name");
         return ('skipped', { reason => "missing run $name", family => $family }, undef) unless $r;
         $runs{$name} = $r;
     }
-    my ($verdict, $detail) = Oracle::Verdict::classify(\%runs);
+    my ($verdict, $detail) = Perl::Conformance::Verdict::classify(\%runs);
     my $x = read_record("$dir/xconfig.seed0.1");
-    $detail->{agrees_with_xconfig} = $x ? (Oracle::Verdict::exact_key($x) eq Oracle::Verdict::exact_key($runs{'stock.seed0.1'}) ? 1 : 0) : '-';
+    $detail->{agrees_with_xconfig} = $x ? (Perl::Conformance::Verdict::exact_key($x) eq Perl::Conformance::Verdict::exact_key($runs{'stock.seed0.1'}) ? 1 : 0) : '-';
     $detail->{family} = $family;
     return ($verdict, $detail, \%runs);
 }
@@ -284,14 +284,14 @@ sub cmd_bless {
             spew("$dir/also_lane_b", "$detail->{also_lane_b}\n");
             if ($verdict eq 'lane-A-eligible') {
                 my $s = $runs->{'stock.seed0.1'};
-                my @exact = Oracle::Normalize::exact(@{$s}{qw(stdout stderr fd3)});
+                my @exact = Perl::Conformance::Normalize::exact(@{$s}{qw(stdout stderr fd3)});
                 spew_blessed("$dir/seed0.$_", shift @exact, $t->{id}) for qw(stdout stderr fd3);
                 spew("$dir/seed0.exit", $s->{exit});
             }
             if ($verdict eq 'lane-B-only' || ($verdict eq 'lane-A-eligible' && $detail->{also_lane_b})) {
                 for my $mode (qw(seed0 seed1)) {
                     my $r = $runs->{"stock.$mode.1"};
-                    my @canon = Oracle::Normalize::canonical(@{$r}{qw(stdout stderr fd3)});
+                    my @canon = Perl::Conformance::Normalize::canonical(@{$r}{qw(stdout stderr fd3)});
                     spew_blessed("$dir/canonical.$mode.$_", shift @canon, $t->{id}) for qw(stdout stderr fd3);
                     spew("$dir/canonical.$mode.exit", $r->{exit});
                 }
@@ -299,7 +299,7 @@ sub cmd_bless {
         }
         for my $cross ($verdict eq 'lane-A-eligible' ? qw(xconfig) : ()) {
             my $x = read_record(test_dir($results, $t->{id}) . "/$cross.seed0.1") or next;
-            my @exact = Oracle::Normalize::exact(@{$x}{qw(stdout stderr fd3)});
+            my @exact = Perl::Conformance::Normalize::exact(@{$x}{qw(stdout stderr fd3)});
             spew_blessed("$dir/$cross.seed0.$_", shift @exact, $t->{id}) for qw(stdout stderr fd3);
             spew("$dir/$cross.seed0.exit", $x->{exit});
         }
@@ -329,7 +329,7 @@ sub cmd_selftest {
         push @problems, "family $detail->{family}, expected $want_family" if $detail->{family} ne $want_family;
         (my $safe = $t->{id}) =~ s/\@/__/g;
         if ($runs && $want eq 'lane-A-eligible') {
-            my @exact = Oracle::Normalize::exact(@{ $runs->{'stock.seed0.1'} }{qw(stdout stderr fd3)});
+            my @exact = Perl::Conformance::Normalize::exact(@{ $runs->{'stock.seed0.1'} }{qw(stdout stderr fd3)});
             for my $ch (qw(stdout stderr fd3)) {
                 my $got  = shift @exact;
                 my $want = slurp("$dir/seed0.$ch");
@@ -351,7 +351,7 @@ sub cmd_selftest {
                 next unless -e "$dir/canonical.$mode.exit";
                 my $r = $runs->{"stock.$mode.1"};
                 my %c = (exit => $r->{exit});
-                @c{qw(stdout stderr fd3)} = Oracle::Normalize::canonical(@{$r}{qw(stdout stderr fd3)});
+                @c{qw(stdout stderr fd3)} = Perl::Conformance::Normalize::canonical(@{$r}{qw(stdout stderr fd3)});
                 push @problems, compare_channels("canonical $mode", \%c, $dir, "canonical.$mode", $diffdir, $t->{id});
             }
         }
@@ -389,7 +389,7 @@ sub cmd_check {
         chomp $verdict;
         unless (length $verdict) {
             $tally{UNBLESSED}++;
-            printf "%-5s %-44s %-22s %s\n", 'UNBLESSED', $t->{id}, '-', "not blessed on $conf->{target} (see `oracle gaps`)";
+            printf "%-5s %-44s %-22s %s\n", 'UNBLESSED', $t->{id}, '-', "not blessed on $conf->{target} (see `perl-conformance gaps`)";
             next;
         }
         my @lacks = map { $_->[0] } grep { !has_capability($impl, $_) } @{ $t->{requires} };
@@ -403,7 +403,7 @@ sub cmd_check {
         make_path($wdir);
         my %got;
         for my $mode (qw(seed0 seed1)) {
-            Oracle::Run::run(
+            Perl::Conformance::Run::run(
                 perl => $impl, file => $t->{file}, prefix => "$wdir/impl.$mode", mode => $mode,
                 extra_env => { %{ $t->{env} || {} }, ($LOCPATH ? (LOCPATH => $LOCPATH) : ()) }, probe_lib => ($t->{probe} ? "$Bin/../probe-lib" : undef),
                 timeout => $t->{timeout} // $conf->{timeout},
@@ -415,13 +415,13 @@ sub cmd_check {
             my @problems;
             if ($verdict eq 'lane-A-eligible') {
                 my %e = (exit => $got{seed0}{exit});
-                @e{qw(stdout stderr fd3)} = Oracle::Normalize::exact(@{ $got{seed0} }{qw(stdout stderr fd3)});
+                @e{qw(stdout stderr fd3)} = Perl::Conformance::Normalize::exact(@{ $got{seed0} }{qw(stdout stderr fd3)});
                 push @problems, compare_channels('lane A seed0 exact', \%e, $edir, 'seed0', $diffdir, $t->{id});
             }
             for my $mode (qw(seed0 seed1)) {
                 next if $verdict eq 'lane-A-eligible' && !($mode eq 'seed1' && slurp("$edir/also_lane_b") =~ /^1/);
                 my %c = (exit => $got{$mode}{exit});
-                @c{qw(stdout stderr fd3)} = Oracle::Normalize::canonical(@{ $got{$mode} }{qw(stdout stderr fd3)});
+                @c{qw(stdout stderr fd3)} = Perl::Conformance::Normalize::canonical(@{ $got{$mode} }{qw(stdout stderr fd3)});
                 push @problems, compare_channels("lane B $mode canonical", \%c, $edir, "canonical.$mode", $diffdir, $t->{id});
             }
             $status = @problems ? 'FAIL' : 'PASS';
@@ -446,7 +446,7 @@ sub cmd_check {
 }
 
 # The tests the target version has no blessing for: the catch-up list for a version added before
-# they were.  Closing it is `oracle run` and `oracle bless` with --target and --only.
+# they were.  Closing it is `perl-conformance run` and `perl-conformance bless` with --target and --only.
 sub cmd_gaps {
     my ($conf, $corpus, @tests) = @_;
     my @gaps = grep { !-e expected_dir($corpus, $conf->{target}, $_->{id}) . "/verdict" } @tests;
@@ -457,7 +457,7 @@ sub cmd_gaps {
 
 my ($command, @args) = @ARGV;
 usage() unless defined $command;
-my ($results, $config, $only, $impl, $target) = ('results', "$Bin/../oracle.conf", undef, undef, $ENV{PERL_COMPAT_TARGET});
+my ($results, $config, $only, $impl, $target) = ('results', "$Bin/../perl-conformance.conf", undef, undef, $ENV{PERL_CONFORMANCE_TARGET});
 GetOptionsFromArray(\@args, 'results=s' => \$results, 'config=s' => \$config, 'only=s' => \$only, 'impl=s' => \$impl, 'target=s' => \$target) or usage();
 my $corpus = shift @args;
 usage() unless defined $corpus && -d $corpus;
@@ -467,8 +467,8 @@ die "$target is not a supported version (supported-versions lists: @supported)\n
 $corpus  = File::Spec->rel2abs($corpus);
 $results = File::Spec->rel2abs($results) . "/$target";
 my $conf = load_config($config, $target);
-$LOCPATH = Oracle::Locales::compile("$results/locales");
-print STDERR "oracle: compiled locales unavailable ($Oracle::Locales::WHY); probes that require one are skipped\n" unless $LOCPATH;
+$LOCPATH = Perl::Conformance::Locales::compile("$results/locales");
+print STDERR "perl-conformance: compiled locales unavailable ($Perl::Conformance::Locales::WHY); probes that require one are skipped\n" unless $LOCPATH;
 $conf->{impl} = $impl if defined $impl;
 
 # Runs change into the test's directory before exec, so a relative implementation path must be

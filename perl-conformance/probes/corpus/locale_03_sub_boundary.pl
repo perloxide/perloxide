@@ -1,4 +1,4 @@
-# oracle-requires: locale radix_comma.UTF-8
+# perl-conformance-requires: locale radix_comma.UTF-8
 # 'use locale' is lexical to the statement doing the numification; the cache follows the scalar across calls.
 use strict; use warnings; no warnings 'numeric';
 use POSIX qw(setlocale LC_NUMERIC);

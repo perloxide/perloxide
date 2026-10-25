@@ -1,4 +1,4 @@
-# oracle-requires: threads
+# perl-conformance-requires: threads
 # Flag marks on literal constants under ithreads: each thread clones the op tree, so marks are per-interpreter.
 use strict; use warnings;
 use threads; use threads::shared; use Thread::Queue;

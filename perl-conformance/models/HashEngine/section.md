@@ -2,7 +2,7 @@
 
 `keys`, `values`, `each`, and the destruction order of a hash's values are all functions of where Perl's `hv.c` puts
 entries and how it walks them. This section defines that engine so the bit-exact verification lane can reproduce it. The
-reference implementation is `HV.pm`, a transcription of the functions named below for the profile: 64-bit,
+reference implementation is `HashEngine.pm`, a transcription of the functions named below for the profile: 64-bit,
 `PERL_HASH_FUNC_SIPHASH13` with `SBOX32` for keys of at most `SBOX32_MAX_LEN` = 24 bytes, `PERL_HASH_RANDOMIZE_KEYS`,
 `PERL_HASH_DEFAULT_HvMAX` = 7. Its harness `hv_gen.pl` compares it with `Hash::Util::bucket_array`,
 `hash_traversal_mask`, and `hash_value` below program level and with `keys`/`each`/`DESTROY` traces at program level, on
@@ -38,8 +38,8 @@ unless overridden. `PERL_PERTURB_KEYS=2` (DETERMINISTIC) enables the `PERL_XORSH
 ^= x<<17`) with a seed-derived start: every colliding insert and every split advances it (`UPDATE_HASH_RAND_BITS_KEY`,
 `MAYBE_UPDATE_HASH_RAND_BITS`), so the layout of any hash depends on every hash operation the process performed before
 it — including the interpreter's own startup — and cannot match across interpreters or builds. The harness confirms
-this: under that mode the per-key hash values agree with `HV.pm` and the bucket contents do not, and the lane is
-excluded as an oracle.
+this: under that mode the per-key hash values agree with `HashEngine.pm` and the bucket contents do not, and the lane is
+excluded as a reference.
 
 ## 3. Storage and the split rule
 
