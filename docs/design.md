@@ -11133,8 +11133,9 @@ perl-conformance/                  # The Perl-only compatibility reference (its 
     probes/              #   one program per fact: corpus/ (harness-run, blessed per build) and research/
     models/              #   executable transcriptions of perl's own algorithms, checked cell by cell
     suites/              #   scenario suites with blessed outputs
-    harness/             #   the oracle: six 5.44.0 builds in two families, verdict lanes, bless/check
-    perls/               #   how the oracle's perl builds are made
+    harness.md           #   how the harness works
+    bin/ lib/ tools/     #   the harness: six builds per supported version in two families, verdict lanes, bless/check
+    perls/               #   how the reference's perl builds are made
     measurements/        #   costs on a particular machine, not facts about perl
 ```
 
@@ -11312,7 +11313,7 @@ The key architectural decisions in this design:
 - **Lane A / lane B** — the oracle harness's verdict lanes: a lane-A test's exact output is a function of the program
   and the pinned hash seed alone, identical across the stock, no-reuse and descending builds; a lane-B test's content is
   stable but its line order depends on the allocator, address values, or the hash seed, so it is compared canonically
-  (`perl-conformance/harness/README.md`).
+  (`perl-conformance/harness.md`).
 - **Lifecycle** — alive, dying, dead: `ALIVE` set, or clear with a count, or clear with none, read off the gate
   (§2.4.4).
 - **Lookaside** — the extent's parallel array of 4-byte per-cell entries holding the spilled weak count and the record
