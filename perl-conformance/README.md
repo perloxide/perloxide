@@ -35,8 +35,8 @@ implementation's own documentation.
 **Citation.** Every `facts.md` entry carries an id, `area.slug`, and is cited from any document as `[fact:area.slug]`:
 one word, so that no paragraph rewrap can split it, and the slug is permanent, so that reordering or rewording an entry
 breaks nothing.  `harness/bin/perl-conformance explain ID` prints an entry with its evidence resolved to paths and, with
-`--run`, runs the cited probes and cases against the target version; `cite-check FILE...` verifies the citations in a
-document.
+`--run`, runs the cited probes and cases against the target version; `explain AREA` and `explain --grep RE` are for
+finding an entry; `cite-check FILE...` verifies the citations in a document.
 
 **Blessed output never ends a line in whitespace.**  Editors and git strip trailing whitespace, so a blessed file that
 depends on it is corrupted the first time anyone touches it.  A probe that would print a trailing space — an empty list

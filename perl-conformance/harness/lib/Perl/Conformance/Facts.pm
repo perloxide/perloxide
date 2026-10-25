@@ -23,7 +23,7 @@ use File::Basename qw(basename);
 # load(PATH_TO_FACTS_MD) -> object.  The reference root is the directory holding facts.md.
 sub load {
     my ($class, $path) = @_;
-    open my $fh, '<', $path or die "cannot read $path: $!\n";
+    open my $fh, '<:encoding(UTF-8)', $path or die "cannot read $path: $!\n";
     my @lines = <$fh>;
     close $fh;
     chomp @lines;
@@ -111,6 +111,26 @@ sub ids {
 sub areas {
     my ($self) = @_;
     return @{ $self->{areas} };
+}
+
+# The area whose prefix is PREFIX, or undef.
+sub area {
+    my ($self, $prefix) = @_;
+    my ($area) = grep { defined $_->{prefix} && $_->{prefix} eq $prefix } @{ $self->{areas} };
+    return $area;
+}
+
+# The facts whose id or text matches the regex, in index order.
+sub search {
+    my ($self, $re) = @_;
+    return grep { $_->{id} =~ $re || $_->{text} =~ $re } map { $self->fact($_) } $self->ids;
+}
+
+# A fact's first sentence: the text up to the first sentence end followed by the two spaces that separate sentences.
+sub summary {
+    my ($class, $fact) = @_;
+    my ($first) = $fact->{text} =~ /^(.*?[.!?])(?:  |\z)/s;
+    return $first // $fact->{text};
 }
 
 # The backtick spans of a fact, classified.  Returns a list of { kind, name, path?, exists? }:

@@ -9,8 +9,10 @@
 #   perl-conformance selftest CORPUS [--only RE]        run + verdict, then compare against the target's blessing
 #   perl-conformance gaps     CORPUS                    list the tests not yet blessed on the target version
 #   perl-conformance check    CORPUS --impl PATH        run an implementation and compare per lane against the target
-#   perl-conformance explain  [ID...] [--run]           print facts.md entries with their evidence resolved to paths;
-#                                                      no id lists every id; --run also runs the cited probes and cases
+#   perl-conformance explain  [ID|AREA...] [--run]      print facts.md entries with their evidence resolved to paths;
+#                                                      an AREA prefix lists its ids, no argument lists every id, and
+#                                                      --run also runs the cited probes and cases
+#   perl-conformance explain  --grep RE [-v]            one line per entry whose id or text matches; -v prints them in full
 #   perl-conformance cite-check FILE...                 verify that every [fact:ID] citation in FILE names an entry
 #
 # Common options: --target VERSION (default: the newest version in ../supported-versions; also PERL_CONFORMANCE_TARGET),
@@ -84,7 +86,7 @@ sub build_path {
 
 sub usage {
     die "usage: perl-conformance list|run|verdict|bless|selftest|gaps|check CORPUS [options]\n"
-      . "       perl-conformance explain [ID...] [--run] | cite-check FILE...\n";
+      . "       perl-conformance explain [ID|AREA...] [--run] | explain --grep RE [-v] | cite-check FILE...\n";
 }
 
 sub slurp {
@@ -487,14 +489,33 @@ sub wrap_entry {
     return "$out\n";
 }
 
-# `explain` with no ids: every id under its area, with versions.
+# `explain` with no ids: every id under its area, with versions; `explain AREA` (a prefix, no dot): that area alone.
 sub list_facts {
-    my ($facts) = @_;
-    for my $area ($facts->areas) {
+    my ($facts, @areas) = @_;
+    for my $area (@areas ? @areas : $facts->areas) {
         next unless @{ $area->{facts} };
         print "$area->{title}\n";
         printf "  %-44s [%s]\n", $_->{id}, $_->{versions} for @{ $area->{facts} };
     }
+}
+
+# `explain --grep RE`: one line per matching entry, the id and the entry's first sentence cut to the line; --verbose
+# prints the matching entries in full instead.
+sub grep_facts {
+    my ($facts, $pattern, $verbose) = @_;
+    my $re = eval { qr/$pattern/i } or die "bad pattern /$pattern/: $@";
+    my @hits = $facts->search($re);
+    print STDERR scalar(@hits), " matching fact(s)\n";
+    return 1 unless @hits;
+    return cmd_explain($facts, undef, map { $_->{id} } @hits) if $verbose;
+    for my $fact (@hits) {
+        my $lead = sprintf "%-44s ", $fact->{id};
+        my $summary = Perl::Conformance::Facts->summary($fact);
+        my $room = 120 - length $lead;
+        $summary = substr($summary, 0, $room - 1) . "\x{2026}" if length $summary > $room;
+        print $lead, $summary, "\n";
+    }
+    return 0;
 }
 
 # `explain ID...`: the entry, its Perl source references, and its evidence with every path resolved.  Under --run the
@@ -646,21 +667,37 @@ sub setup_target {
 
 my ($command, @args) = @ARGV;
 usage() unless defined $command;
-my ($results, $config, $only, $impl, $target, $run) = ('results', "$Bin/../perl-conformance.conf", undef, undef, $ENV{PERL_CONFORMANCE_TARGET}, 0);
-GetOptionsFromArray(\@args, 'results=s' => \$results, 'config=s' => \$config, 'only=s' => \$only, 'impl=s' => \$impl, 'target=s' => \$target, 'run' => \$run) or usage();
+my ($results, $config, $only, $impl, $target, $run, $pattern, $verbose) = ('results', "$Bin/../perl-conformance.conf", undef, undef, $ENV{PERL_CONFORMANCE_TARGET}, 0, undef, 0);
+GetOptionsFromArray(\@args, 'results=s' => \$results, 'config=s' => \$config, 'only=s' => \$only, 'impl=s' => \$impl, 'target=s' => \$target, 'run' => \$run, 'grep=s' => \$pattern, 'verbose|v' => \$verbose) or usage();
 if ($command eq 'explain') {
+    # facts.md is UTF-8 and its entries print as text.
+    binmode $_, ':encoding(UTF-8)' for \*STDOUT, \*STDERR;
     my $facts = load_facts();
+    if (defined $pattern) {
+        usage() if @args || $run;
+        exit grep_facts($facts, $pattern, $verbose);
+    }
     if (!@args) {
         list_facts($facts);
         exit 0;
     }
+
+    # An argument without a dot is an area prefix and lists that area; ids are explained.
+    my @areas = grep { !/\./ } @args;
+    @args = grep { /\./ } @args;
+    my $unknown = 0;
+    for my $prefix (@areas) {
+        my $area = $facts->area($prefix);
+        if ($area) { list_facts($facts, $area) } else { print STDERR "no area `$prefix`\n"; $unknown++ }
+    }
+    exit($unknown ? 1 : 0) unless @args;
     my $runner;
     if ($run) {
         my ($conf, $res) = setup_target($target, $config, $results);
         make_path($res);
         $runner = { conf => $conf, results => $res };
     }
-    exit cmd_explain($facts, $runner, @args);
+    exit(cmd_explain($facts, $runner, @args) || $unknown ? 1 : 0);
 }
 if ($command eq 'cite-check') {
     exit cmd_cite_check(load_facts(), @args);
