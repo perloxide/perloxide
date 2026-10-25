@@ -197,32 +197,36 @@ Measure the fill rate first.
 
 ### Sequence counter width
 
-Use 64 bits.  The reasoning is worth recording because two shorter widths look defensible and are not.
+Twenty-four bits, in the cell's second control word (design §2.4.3).  An earlier version of this section concluded
+sixty-four, and the reasoning is worth keeping because the correction is about which conditions multiply, not about the
+arithmetic.
 
-The reader's window is not its execution time — it is bounded by *scheduling*.  A userspace reader can be preempted
-between taking the sequence and re-checking it, and a descheduled thread is off-CPU for milliseconds.  With a write
-costing 2.34 ns, a full cycle takes 300 ns at one byte and 77 µs at two, so a single scheduling quantum overruns both by
-orders of magnitude.
+The reader's window is bounded by *scheduling*, not by its execution time: a userspace reader can be preempted between
+taking the sequence and re-checking it, and a descheduled thread is off-CPU for milliseconds.  With a write costing 2.34
+ns, a cycle of 2^(W−1) writes takes 300 ns at one byte, 77 µs at two, and about 20 ms at twenty-four bits.  Wraparound
+only creates the *opportunity*; failure requires observing the identical value, 1 in 2^(W−1) per exposure.
 
-Wraparound only creates the *opportunity*; failure requires observing the identical value.  For a preemption long enough
-to cycle the counter, the value at resume is effectively uniform, so the probability is 1/2^(W−1) per exposure: 1 in 128
-for one byte, 1 in 32,768 for two, 1 in 2.1 billion for four.  One in 32,768 is a corruption every few seconds under
-load.  Four bytes is a rate rather than an impossibility, and the consequence is a dereferenced garbage pointer — an
-unreproducible crash, the worst class of defect to ship.
+What the earlier version left out is that the cycle must be *driven*: a wrap needs another core writing that one cell
+back-to-back for the whole stall — 2^23 writes in 20 ms is a tight `$shared = $i` loop against a single scalar, a
+benchmark rather than a program — and the reader must have been preempted inside a 1.3 ns window to begin with, about
+1e-7 per read at a 10 ms quantum.  The three conditions multiply, and at twenty-four bits the product is one wrong read
+per machine-decade under a deliberate demonstration and nothing at all under real workloads.  Each bit removed halves
+the stall a demonstration needs: at twenty, any context switch suffices; at sixteen, an interrupt.  Twenty-four is where
+"needs a long stall" starts, and twenty-two is the defensible floor.
 
-The kernel is comfortable at four bytes because its readers often run with preemption disabled and its structures are
-replicated by the million.  Neither holds here.
+The other correction is the consequence.  The earlier version said a wrap dereferences a garbage pointer.  It cannot:
+design §2.3.9 applies the sequence to envelope-resident, non-owning payloads only — immediates, inline strings, flags —
+and anything with an owned pointer takes the lock precisely so that nothing can be freed under a reader.  A false
+validation therefore yields a torn *immediate*: a wrong integer, a tag from one write over bytes from another.  A wrong
+value once per decade under adversarial hammering is a bug, not a safety hole, and that is the bound the design accepts.
 
-And eight bytes is free in this layout.  `u32 seq + 16-byte payload` and `u64 seq + 16-byte payload` both measure 24
-bytes, the `u32` spending its saving on alignment padding, and both read within noise of the floor (1.34 versus 1.64
-ns).  Taking the wide counter converts a probabilistic argument into a structural one and retires the question.  Put the
-writer-in-progress flag in the low bit, as the kernel does, so it stays one word.
+The kernel's `vDSO` keeps a `u32` seqcount read by preemptible userspace with exactly this read shape, and has for
+decades; its comfort is not only replication and preemption-disabled readers, as the earlier version claimed.
 
-Where the counter lives, if a seqlock is ever built: not inside the payload.  A scalar slot is `rc_state` (8 bytes) plus
-a 16-byte payload in a 32-byte stride, so eight bytes are already unclaimed there — but *unclaimed is not free*, and
-spending them should be a recorded decision, since the design moved `class_id` to a per-page array specifically to avoid
-per-slot bytes.  For containers the counter replaces the `RwLock` word rather than joining it, and the identity
-allocation class holds — unless a reader-fallback hybrid keeps both, in which case it is eight bytes on top.
+Where the counter lives is settled by design §2.4.3: the second control word, beside the inline weak count and the
+identity flags, with the writer flag its own bit, so a scalar cell carries its seqlock in the 24 bytes it already has.
+For containers the counter still replaces the `RwLock` word rather than joining it.  Measured reads are within noise of
+the floor either way (1.34 versus 1.64 ns for a four-byte versus eight-byte counter beside a 16-byte payload).
 
 ### Waiting: what each escalation costs
 
@@ -293,6 +297,19 @@ So the benchmark has to be **built rather than sampled**, shaped like the concur
 threads on one shared scalar, N threads on disjoint scalars, and a read-mostly mix, at realistic critical-section
 lengths.  That is writable today and runnable on the multi-core machine the contention measurement already needs.  It
 would settle the primitive choice and the spin constants in one run.
+
+### The sharing tier's two numbers
+
+The per-object tier of design §2.4.12 rests on two measurements, both from this container (two vCPUs, release builds).
+The owner's fast path — load state, store `INSIDE`, compiler fence, `SeqCst` load of the converter lock, plain count
+arithmetic, `Release` store of exit — costs 1.29 ns per clone/release pair against 11.99 ns for `fetch_add`/`fetch_sub`
+and 0.74 ns for the arithmetic alone, over 50M pairs: the bracket is about a quarter of a nanosecond per access and the
+owner path is nine times faster than the atomic one.  The process-wide asymmetric barrier the foreigner pays costs 176
+ns per call through `membarrier(2)` (`PRIVATE_EXPEDITED`) and 1.57 µs through the `mprotect` TLB-shootdown fallback,
+over 2,000 calls; the `membarrier` figure scales with the number of cores running this process's threads, since each
+receives an interrupt, and the single-CPU form of the call (Linux 5.10) is the recorded way to hold it at the syscall
+floor on a many-core host.  Both are in `core/src/tests/barrier_tests.rs` (`owner_path_cost` and `heavy_cost`, ignored
+by default); re-derive before quoting them for another machine.
 
 ### The measurement that is still owed
 

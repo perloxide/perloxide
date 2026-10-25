@@ -3376,7 +3376,7 @@ keeps the sweep from reading any unblessed cell's record); exit-status semantics
 
 Every cell in the design so far is accessed as if it were shared: a clone is a locked increment, a read of a shared
 mutable cell runs the sequence protocol, a write takes the section.  Measured in this container, a clone/release pair
-costs 13 ns on the atomic path and under a nanosecond as plain arithmetic, and perl's own `SvREFCNT_inc` is the plain
+costs 12 ns on the atomic path and under a nanosecond as plain arithmetic, and perl's own `SvREFCNT_inc` is the plain
 kind.  Most values in most programs are never reachable from more than one task/thread, so the heap pays for sharing it
 is not doing.  This section rules how a cell avoids that cost while it is private and acquires it the moment it is not —
 soundly, with no walk at publication, no obligation on a Rust host, and no bet on timing.
@@ -3425,9 +3425,10 @@ park():  state.store(PARKED, Release)             // between ops; "I am away, an
 
 `INSIDE` is a depth counter in practice, since magic can re-enter core from inside a cell operation and the inner exit
 must not announce "outside" while the outer operation still holds plain access; the bracket is a guard type so that a
-panic unwinds it.  Measured, the bracket costs about half a nanosecond per access: 1.82 ns for a clone/release pair
-against 13.04 ns on the atomic path and 0.89 ns for the arithmetic alone.  The `SeqCst` load of `converting` is a plain
-`mov` on x86; the one `xchg` is the first entry after a `park()`, once per resumption, not per op.
+panic unwinds it.  Measured, the bracket costs about a quarter of a nanosecond per access: 1.29 ns for a clone/release
+pair against 11.99 ns on the atomic path and 0.74 ns for the arithmetic alone (`benchmarking.md`).  The `SeqCst` load of
+`converting` is a plain `mov` on x86; the one `xchg` is the first entry after a `park()`, once per resumption, not per
+op.
 
 **The foreigner's protocol.**  A task/thread touching a cell owned by another acquires that owner's `converting` lock
 (converters are serialized per owner), then establishes that the owner is not mid-operation, then converts:

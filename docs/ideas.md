@@ -408,17 +408,14 @@ lookup — need the ops layer and are the reason this waits.
 
 ### 4.1 A tier bit so the task/thread-local majority pays no atomics
 
-Every promoted read takes a `parking_lot` read lock and every `HeapArc` clone is an atomic RMW, even in a program that
-never spawns.  A `SHARED` bit in `rc_state` with the invariant "a shared object never points at a local one", maintained
-by a one-way traversal when a reference is published into shared reachability (assignment into a shared container,
-capture by a spawned closure, `:shared`), lets local-tier count operations be plain load/add/store and local-tier reads
-skip the lock.  Biased counts are exact, so `DESTROY` timing is unaffected (deferred counting would not be; the two are
-often conflated).  Local means *task/thread*-local; for a Tokio task that is the task itself, not the worker thread it
-happens to be on — a task may resume on another worker, and the scheduler's handoff supplies the happens-before — so
-the invariant is written against the task/thread, never against OS-thread identity.  Cost: the `share()` traversal, a
-`!Send` token discipline for local-tier operations, and bits in `rc_state` — which is why it is best decided before the
-slab `HeapArc` fixes the node layout.  Sources: Fable 5.1's tier bit, Grok 4.6's `share()` walk, Opus 5's "sharing is
-acquired, not declared".
+Ruled: design §2.4.12.  The candidate as recorded here was an eager design — a `SHARED` bit maintained by a one-way walk
+at every publication point, with a `!Send` token discipline — and the ruling kept the bit and the sharing direction but
+replaced the walk with lazy conversion: the owner is named in the cell, a foreign touch converts through the owner's
+parked state or a process-wide asymmetric barrier, and transfer is a reset of the owner id.  What remains an idea is the
+reclaim policy (when a shared cell goes private again; the mechanism is ruled) and the eager walk itself as an
+optimization at publication points the runtime controls, which §2.4.12 already applies to channel sends and spawn
+captures.  Sources: Fable 5.1's tier bit, Grok 4.6's `share()` walk, Opus 5's "sharing is acquired, not declared", GPT-6
+Astra's scoped admission and request/acknowledge review, Gemini's asymmetric-fence framing.
 
 ### 4.2 Make the cardinal invariant mechanical
 
@@ -511,23 +508,13 @@ the synchronization primitives.  Everything here would change one of those, and 
 
 ### 6.1 Single-threaded fast paths beyond the uncontended cost
 
-Three mechanisms have been proposed for sparing single-threaded programs even the uncontended atomics and lock words;
-each has a cost that the design does not yet accept:
-
-- **A build flag replacing atomics with plain operations.**  Zero synchronization cost, in a separate binary that must
-  refuse `spawn thread`, Rayon, and any multi-worker runtime, since nothing in it is sound across OS threads.  A
-  `current_thread` Tokio runtime is fine under it: tasks interleave only at `.await`.
-- **A task/thread-count short-circuit.**  Skip locking while the runtime's task/thread counter reads one.  As stated it
-  is a check-then-act race: the first `spawn` can start mutating while the main task/thread is inside an unlocked
-  write.  It is sound only with a stop-the-world transition at the first spawn — every unlocked operation quiescent
-  before the second task/thread runs — or with the §4.1 publication discipline, which makes the question per value
-  instead of global.
-- **A lock attached on first cross-task/thread access.**  The lock word is absent until a value is reached from a
-  second task/thread.  Attaching it is itself a transition that needs an atomic identity and a publication point, which
-  is again the §4.1 `share()` walk; without that, there is no safe moment to add the word.
-
-The §4.1 tier bit is the one of these that is exact at runtime.  All of them must be decided before the slab `HeapArc`
-fixes the node layout, since each takes bits or words in the control block.
+Ruled: design §2.4.12's domain flag and per-object tier.  Of the three mechanisms this entry listed, the task/thread-
+count short-circuit was described here as a check-then-act race; that was wrong for the case that matters — the only
+party that can set the flag is the one running, in program order, so a spawn-set flag is sound by construction — and
+right only for a host that creates threads outside the runtime, which the `!Send` boundary now covers.  The build flag
+that replaces atomics with plain operations is no longer needed: the domain flag gives a single-task program the same
+arithmetic in the same binary.  A lock attached on first cross-task/thread access is what the per-object tier does, with
+the owner id as the identity that attachment needed.
 
 ### 6.2 Perl re-entered from a Rust builtin under implicit async
 
@@ -536,25 +523,25 @@ never recurse on the Rust stack.  The gap is re-entrancy from Rust: a `sort` com
 `DESTROY`, a `(?{ })` block, or a signal handler is Perl code called from inside a Rust builtin, with a Rust frame
 between two interpreter frames.  If that Perl code reaches an IO point, one of three things happens:
 
-- **Stackless throughout.**  Every builtin that can call Perl is itself `async` (boxed recursion), comparators
-  included.  No unsafe code; the async-ness spreads through every builtin that can reach user code, which in Perl is
-  most of them, and a Rayon-parallel `sort` cannot yield inside its comparator.
+- **Stackless throughout.**  Every builtin that can call Perl is itself `async` (boxed recursion), comparators included.
+  No unsafe code; the async-ness spreads through every builtin that can reach user code, which in Perl is most of them,
+  and a Rayon-parallel `sort` cannot yield inside its comparator.
 - **A stackful coroutine per interpreter.**  The Perl stack lives on its own switchable stack (`corosensei`-style); a
-  yield at IO switches stacks whatever Rust frames are in between, and Tokio sees one future that resumes the
-  coroutine.  Re-entrancy becomes trivial — perl's own situation on the C stack — at the price of unsafe stack
-  switching, stack sizing, and care around FFI, TLS, and panics across the switch.  This is the mechanism the phrase
-  "green threads" names; Tokio tasks are stackless state machines, which is why the design no longer uses the phrase.
+  yield at IO switches stacks whatever Rust frames are in between, and Tokio sees one future that resumes the coroutine.
+  Re-entrancy becomes trivial — perl's own situation on the C stack — at the price of unsafe stack switching, stack
+  sizing, and care around FFI, TLS, and panics across the switch.  This is the mechanism the phrase "green threads"
+  names; Tokio tasks are stackless state machines, which is why the design no longer uses the phrase.
 - **Non-yielding re-entrant calls.**  Perl called from inside a builtin runs a nested loop that blocks the worker
-  instead of yielding, as `block_in_place` does.  No color is visible at the language level and the results are
-  correct, but a `FETCH` that does network IO stalls a worker thread for its duration.
+  instead of yielding, as `block_in_place` does.  No color is visible at the language level and the results are correct,
+  but a `FETCH` that does network IO stalls a worker thread for its duration.
 
-The choice is about the interpreter's execution model and is best made before the interpreter loop exists.  The
-stackful option also makes §6.3 nearly free.
+The choice is about the interpreter's execution model and is best made before the interpreter loop exists.  The stackful
+option also makes §6.3 nearly free.
 
 ### 6.3 Hosts on another executor
 
-The design requires Tokio and inherits the host's runtime, and states that a host on another executor must not be
-locked out.  How is undecided; the rungs, from cheapest to most independent:
+The design requires Tokio and inherits the host's runtime, and states that a host on another executor must not be locked
+out.  How is undecided; the rungs, from cheapest to most independent:
 
 - **`async-compat`.**  The interpreter stays Tokio-native, and a host on `smol` or another executor wraps the
   interpreter's futures in `async_compat::Compat`, which keeps a Tokio context alive in the background so Tokio's IO,
@@ -562,20 +549,37 @@ locked out.  How is undecided; the rungs, from cheapest to most independent:
   still runs its reactor, and the foreign executor is a client of it.  Probably sufficient for the stated requirement.
 - **A standalone driver.**  An `async` interpreter loop can be driven by any executor, so if the IO layer in synchronous
   mode makes blocking calls and never returns `Pending`, a trivial `block_on` with a no-op waker runs the loop to
-  completion with no runtime at all — §13.7.9's sync/async split applied to the IO backend instead of to user
-  functions.  Costs an IO, timer, signal, process, and channel abstraction with two backends and an embedding API with
-  both a blocking `run` and an `async run`.
+  completion with no runtime at all — §13.7.9's sync/async split applied to the IO backend instead of to user functions.
+  Costs an IO, timer, signal, process, and channel abstraction with two backends and an embedding API with both a
+  blocking `run` and an `async run`.
 - **A trait layer with per-runtime implementations** — the `hyper` 1.0 shape (`hyper::rt::{Executor, Timer, Read,
   Write}`, Tokio implementations in `hyper-util`).  The IO builtins are written against our traits and a runtime is a
   set of implementations; Tokio first, native; `smol` or another runtime is a second set, written by whoever wants it.
-  The only rung that drops the Tokio dependency.  Timers, sockets, processes, and signals are each executor-specific,
-  so a second runtime is a backend, not a flag.
+  The only rung that drops the Tokio dependency.  Timers, sockets, processes, and signals are each executor-specific, so
+  a second runtime is a backend, not a flag.
 
 Only the third rung has a cost that must be paid up front: the IO builtins are either written against an abstraction
 from day one or against Tokio directly, and retrofitting the abstraction later means rewriting them.  That is the
 decision this item waits on.  `async-std` is not a target: it was discontinued in 2025 in favor of `smol`, whose
 building blocks (`async-io`, `futures-lite`, `blocking`) are themselves runtime-agnostic and work under Tokio at the
 cost of their own reactor thread.
+
+### 6.4 Reclaim policy for the sharing tier
+
+Design §2.4.12 rules the mechanism by which a shared cell is made private again and leaves open when to use it, since
+the strong count cannot say whether foreign handles remain.  Candidates: explicit only — a runtime hint at a point where
+it knows a handoff completed, such as a channel receiver that has taken the only remaining handle; a "foreign touched
+since" marker that foreign operations set, at the cost of one RMW each, so that an owner reclaims only cells that have
+gone quiet; or never, leaving `SHARED` one-way.  Fixed already: never on a bare access, which is the storm generator.
+
+### 6.5 Heuristics inside an explicit parallel form
+
+Design §13.6 rules that `map`, `grep` and `sort` parallelize only under an explicit pragma.  What an explicit form does
+internally is open, and the heuristics the earlier automatic design proposed apply there: run sequentially below a
+workload size where Rayon's overhead dominates (a ten-element list), run sequentially when no core is free, and refuse
+to parallelize a block the compiler can prove touches shared mutable state even though the program asked.  Whether a
+parallel `sort` keeps perl's stability and comparator-call guarantees is a §13 question the pragma's documentation must
+answer.
 
 ## 7. Rejected, with reasons
 

@@ -1,6 +1,6 @@
 use super::*;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU32, AtomicU64, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -142,4 +142,55 @@ fn heavy_cost() {
 
 fn platform_has_mprotect() -> bool {
     cfg!(all(target_os = "linux", any(target_arch = "x86", target_arch = "x86_64")))
+}
+
+/// The owner's fast path of the sharing tier against the atomic path and the plain arithmetic alone, per clone/release
+/// pair.  Timing, for the record: run with --release --ignored --nocapture.
+#[test]
+#[ignore = "timing, for the record: run with --release --ignored --nocapture"]
+fn owner_path_cost() {
+    const PAIRS: u64 = 50_000_000;
+    let state = AtomicU8::new(0);
+    let converting = AtomicU8::new(0);
+    let count = AtomicU32::new(1);
+
+    let start = Instant::now();
+    for _ in 0..PAIRS {
+        count.fetch_add(1, Ordering::Relaxed);
+        count.fetch_sub(1, Ordering::Release);
+    }
+    let atomic = start.elapsed().as_nanos() as f64 / PAIRS as f64;
+
+    let start = Instant::now();
+    for _ in 0..PAIRS {
+        for _ in 0..2 {
+            if state.load(Ordering::Relaxed) == 2 {
+                state.store(1, Ordering::SeqCst);
+            } else {
+                state.store(1, Ordering::Relaxed);
+            }
+            light();
+
+            while std::hint::black_box(converting.load(Ordering::SeqCst)) != 0 {
+                std::hint::spin_loop();
+            }
+            let c = count.load(Ordering::Relaxed);
+            count.store(std::hint::black_box(c).wrapping_add(1), Ordering::Relaxed);
+            light();
+
+            state.store(0, Ordering::Release);
+        }
+    }
+    let owner = start.elapsed().as_nanos() as f64 / PAIRS as f64;
+
+    let start = Instant::now();
+    for _ in 0..PAIRS {
+        for _ in 0..2 {
+            let c = count.load(Ordering::Relaxed);
+            count.store(std::hint::black_box(c).wrapping_add(1), Ordering::Relaxed);
+        }
+    }
+
+    let plain = start.elapsed().as_nanos() as f64 / PAIRS as f64;
+    eprintln!("per clone+release pair: atomic {atomic:.2} ns, owner path {owner:.2} ns, plain floor {plain:.2} ns");
 }
