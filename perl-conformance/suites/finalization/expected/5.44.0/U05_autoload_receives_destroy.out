@@ -1,0 +1,3 @@
+AUTOLOAD A::DESTROY
+after
+exit=0

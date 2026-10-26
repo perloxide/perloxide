@@ -1,0 +1,6 @@
+D x sees 5
+D x sees undef
+D h sees h{k}=7
+D h sees h{k} gone
+D a sees a[0]=9
+exit=0

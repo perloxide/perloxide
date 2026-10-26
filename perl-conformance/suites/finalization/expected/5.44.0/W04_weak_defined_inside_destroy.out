@@ -1,0 +1,3 @@
+in DESTROY weak is defined
+after: weak is undef
+exit=0

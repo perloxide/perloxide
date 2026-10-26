@@ -436,7 +436,8 @@ Entries (the transition function is the section text; these are the facts a read
   weak reference takes the same path.  `Perl_sv_setsv_flags`, `Perl_sv_set_undef`, `Perl_av_clear`,
   `Perl_sv_unref_flags`.  Model rows `assign.*`, `undef.*`, `clear.*`, `delete.*` against `cat.*` in
   `models/Finalization/reports/table.tsv`; probes `probes/research/value-model/21_destroy_subop.pl` (`D(5) | D(7) |
-  D(undef) | D(gone)`), `04_destroy_nontemp.pl`. [5.44.0]
+  D(undef) | D(gone)`), `04_destroy_nontemp.pl`.  Suite cases `R05_death_inside_the_operation`,
+  `U07_concat_defers_death`. [5.44.0]
 - `finalization.temporaries-die-at-drains`: Every value made as a temporary — a sub's return value, an anonymous
   constructor, a `delete` in non-void context, the mortalized referent above — sits on `PL_tmps_stack` above the current
   floor and dies when `Perl_free_tmps` pops it, in LIFO order: at the next statement boundary (`pp_nextstate`), at the
@@ -449,7 +450,8 @@ Entries (the transition function is the section text; these are the facts a read
   after the call returns, before the next statement.  `Perl_free_tmps`, `cx_pushblock`, `cx_popblock`,
   `Perl_leave_adjust_stacks`, `pp_leavesub`.  Model rows `plainstmt.*`, `callarg.*`, `vq.void`, `vq.list`, `vq.scalar`,
   `vh.void`, `vh.list`; probe `probes/corpus/destroy_01_weak.pl` (`D:temp1 |after temp statement|`, `D:in-f |after f|
-  D:ret`); `probes/research/value-model/06_destroy_void_lifo.pl` (`dq dh next`). [5.44.0]
+  D:ret`); `probes/research/value-model/06_destroy_void_lifo.pl` (`dq dh next`).  Suite cases `T01_void_temporary`,
+  `T03_foreach_list_temporaries`, `T04_sub_return_value`. [5.44.0]
 - `finalization.condition-temporary-lifetime`: A temporary made in a condition dies where the construct's blocks and
   live `nextstate` ops put the next drain.  An `if` body — one statement (an `OP_SCOPE` whose leading `nextstate` the
   peephole nulls) or several (`enter`/`leave`, whose `cx_pushblock` raises the floor above the temporary) — runs before
@@ -459,7 +461,8 @@ Entries (the transition function is the section text; these are the facts a read
   `unstack`; `do BLOCK while` has no `unstack`, so every condition temporary survives to the statement after the loop,
   while postfix `while` drains per iteration.  `Perl_rpeep` (the nulled `OP_NEXTSTATE`), `Perl_newFOROP`, `pp_unstack`.
   Model rows `if1.*`, `if2.*`, `while.*`, `cfor.*`, `cfor0.*`, `cfor2.*`, `dowhile.*`, `postwhile.*`; probes
-  `probes/research/value-model/05_destroy_cond.pl` (`IF: body d | WHILE: d body`), `16_destroy_if_twostmt.pl`.  [5.44.0]
+  `probes/research/value-model/05_destroy_cond.pl` (`IF: body d | WHILE: d body`), `16_destroy_if_twostmt.pl`.  Suite
+  case `T02_condition_temporary`. [5.44.0]
 - `finalization.scope-exit-order`: Lexicals die in reverse declaration order at scope exit (`SAVEt_CLEARSV` entries run
   LIFO), but an object constructed in the block's last statement is still held by that statement's temporary across the
   exit, so `{ my $a = mk('a'); my $b = mk('b'); my $c = mk('c') }` destroys `b a c` and the same block ending in `1;`,
@@ -467,12 +470,14 @@ Entries (the transition function is the section text; these are the facts a read
   return drains) and an `if` body is `b a c`.  Array and hash lexicals destroy their elements from the top index down
   and in bucket order.  `Perl_leave_scope`, `Perl_free_tmps`.  Model rows `scope3.*` against `scope3one.*`; probe
   `probes/corpus/destroy_02_order.pl` (lane A; the four orders above), `probes/corpus/destroy_01_weak.pl` (`D:arr2
-  D:arr1 D:arr0`). [5.44.0]
+  D:arr1 D:arr0`).  Suite cases `R01_scope_exit_reverse_order`, `R02_array_clear_top_down`,
+  `R03_container_before_contents`. [5.44.0]
 - `finalization.die-unwinds-before-catch`: `die` inside `eval` pops the contexts down to the `eval`, running each one's
   `CX_LEAVE_SCOPE` — the save stack in LIFO order, so lexicals declared after a `local` die before that `local` is
   restored — then restores the temporaries floor, drains, and only then sets `$@`: `eval { my $e1 = mk('e1'); my $e2 =
   mk('e2'); die "x\n" }` destroys `e2` then `e1` before the catcher sees `$@`.  `Perl_die_unwind`.  Model rows `eval.*`,
-  `evaltmp.*`, `local.*`; probe `probes/corpus/destroy_01_weak.pl` (`D:e2 D:e1 |after die: $@=x|`). [5.44.0]
+  `evaltmp.*`, `local.*`; probe `probes/corpus/destroy_01_weak.pl` (`D:e2 D:e1 |after die: $@=x|`).  Suite case
+  `U03_destroy_during_unwind`. [5.44.0]
 - `finalization.curse-protocol`: `DESTROY` is resolved through the method cache (or `AUTOLOAD`) and called in void
   context on a read-only temporary reference with `G_EVAL` and `G_KEEPERR`: an exception inside it becomes a `(in
   cleanup) ...` warning and leaves `$@` untouched, so an exception already propagating survives a dying destructor met
@@ -480,19 +485,23 @@ Entries (the transition function is the section text; these are the facts a read
   that stores `$_[0]` somewhere leaves the count positive, `sv_clear` stops, the object lives on and its next death runs
   `DESTROY` again (a reference made and dropped inside the destructor does not count).  `S_curse`, `Perl_sv_clear`.
   Model rows `*.X` (the destructor dies: `plainstmt.X`, `eval.X`), `*.R` (rebless: the trace `Da:R[1]` then `Da:P[1]`),
-  `*.K` (resurrection: a `Da:K` at each of two deaths), in `models/Finalization/reports/table.tsv`. [5.44.0]
+  `*.K` (resurrection: a `Da:K` at each of two deaths), in `models/Finalization/reports/table.tsv`.  Suite cases
+  `U01_resurrection`, `U02_die_in_destroy`, `U03_destroy_during_unwind`, `U04_rebless_in_destroy`,
+  `U05_autoload_receives_destroy`, `U06_destroy_arguments_and_phase`. [5.44.0]
 - `finalization.file-lexicals-before-end`: When the main program's scope is left its file-scope lexicals die in reverse
   declaration order, in phase `RUN`, before any `END` block runs; objects held only by package variables die in global
   destruction, phase `DESTRUCT`, after `END`.  `S_my_exit_jump` (`LEAVE_SCOPE(0)` unwinds the main program's scope),
   `perl_run` (which then calls the `END` list under `PERL_PHASE_END`), `perl_destruct`.  Model rows `global.lex`,
   `global.weak`; probe `probes/corpus/destroy_01_weak.pl` (`D:file-lexical phase=RUN`, `END block`, `D:global1
-  phase=DESTRUCT`). [5.44.0]
+  phase=DESTRUCT`).  Suite cases `G01_file_lexical_before_end`, `G02_package_var_after_end`, `G03_leaked_cycle_reaped`,
+  `G04_exit_from_nested_sub`, `G05_uncaught_die`. [5.44.0]
 - `finalization.weak-cleared-after-destroy`: Weak references to a dying object are cleared after its `DESTROY` returns,
   not before: inside the destructor every weak reference to the object is still defined.  `Perl_sv_clear` runs `S_curse`
   first and `Perl_sv_kill_backrefs` after it.  This holds for every death outside global destruction; inside it the
   arena walk may clear a weak reference first ([fact:identity.global-destruction-order]).  Probe:
   `probes/corpus/destroy_01_weak.pl`; model rows `undef.*`, `assign.*`, `cat.*` in
-  `models/Finalization/reports/table.tsv` (the `[1]` after the first `D` is the weak holder, defined). [5.44.0]
+  `models/Finalization/reports/table.tsv` (the `[1]` after the first `D` is the weak holder, defined).  Suite cases
+  `W01_weak_cleared_by_last_release`, `W04_weak_defined_inside_destroy`, `W06_weak_in_containers`. [5.44.0]
 - `finalization.resurrection-keeps-weak`: If `DESTROY` resurrects the object (stores `$_[0]` somewhere), its weak
   references are not cleared: `S_curse` returns false when the count is still positive and `sv_clear` stops before the
   kill, so the weak references keep pointing at the live object and the next death runs `DESTROY` again.  Model rows
@@ -503,7 +512,8 @@ Entries (the transition function is the section text; these are the facts a read
   reference by assignment, list assignment, `shift` or `pop` of a weak element, a sub's return, or a hash value read out
   is a strong reference that keeps the referent alive, while the holder it was copied from stays weak and is cleared at
   death wherever it has moved to (the element SV `shift` returns keeps its flag).  `Perl_sv_setsv_flags` sets the new RV
-  without `SvWEAKREF`.  Probe: `probes/corpus/weak_03_copy_is_strong.pl` (lane A). [5.44.0]
+  without `SvWEAKREF`.  Probe: `probes/corpus/weak_03_copy_is_strong.pl` (lane A).  Suite cases
+  `W02_copy_of_weak_is_strong`, `W03_weaken_the_only_reference`, `W05_unweaken_makes_strong`. [5.44.0]
 - `finalization.kill-backrefs-order`: The clearing is a store with set magic: for each weak referrer, in backref-array
   order, `SvRV_set(referrer, 0)`, `SvROK_off`, `SvWEAKREF_off`, then `SvSETMAGIC`.  The array order is weaken order
   permuted by removals: `weaken` appends, and a holder that dies or is overwritten is removed by advancing the array

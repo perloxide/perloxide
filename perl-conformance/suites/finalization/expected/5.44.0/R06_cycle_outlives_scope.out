@@ -1,0 +1,5 @@
+scope left, handle defined
+D a
+D b
+cycle broken, handle undef
+exit=0

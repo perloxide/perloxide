@@ -1,0 +1,4 @@
+D x
+warn: 	(in cleanup) from DESTROY
+still running
+exit=0

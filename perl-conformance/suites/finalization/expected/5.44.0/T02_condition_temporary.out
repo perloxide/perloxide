@@ -1,0 +1,11 @@
+if body
+D if
+after if
+D while
+while body
+after while
+if body with lexical
+after if, same block
+D lexical
+after block
+exit=0
