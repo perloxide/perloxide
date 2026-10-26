@@ -2012,16 +2012,16 @@ Packed array pages carry one value-flag record bit per element in the trailing b
 pages, public-`I` for float pages. That is the whole stdout-observable state of a packed element (§6); the full three
 bits per element are a build option for `B`-level fidelity.
 
-**Constants and tasks/threads.** Perl's compiled constants are mutable flag cells (`perl-conformance/facts.md`, value
-flags: constants).  Here, a literal reached through an alias or reference site (`f("10")`, `for ("10")`, `\"10"`) is a
-READONLY cell per task/thread, so value flags left on it persist across calls of the same code in that task/thread;
-rvalue literal sites are immediates.  A constant sub's value is one cell per task/thread shared by every site that
-inlines it, and compile-time folding of an expression over it (`ZZ + 0`) leaves value flags on the compiling
-task/thread's cell before runtime — which is why a range `$lo .. ZZ` can be numeric on its first execution.  Task/thread
-creation copies the parent's materialized literal cells, as the ithreads clone does.  Shared-tier reads never write
-value flags.  Because the nine partner-typed operators read a literal partner's public flags, per-task/thread constant
-cells are what keep one task/thread's string arithmetic through `0 + $x` from changing another task/thread's
-`Data::Dumper` output for an unrelated value.
+**Constants and tasks/threads.** Perl's compiled constants are mutable flag cells
+([fact:value-flags.constants-mutable-cells]).  Here, a literal reached through an alias or reference site (`f("10")`,
+`for ("10")`, `\"10"`) is a READONLY cell per task/thread, so value flags left on it persist across calls of the same
+code in that task/thread; rvalue literal sites are immediates.  A constant sub's value is one cell per task/thread
+shared by every site that inlines it, and compile-time folding of an expression over it (`ZZ + 0`) leaves value flags on
+the compiling task/thread's cell before runtime — which is why a range `$lo .. ZZ` can be numeric on its first
+execution.  Task/thread creation copies the parent's materialized literal cells, as the ithreads clone does.
+Shared-tier reads never write value flags.  Because the nine partner-typed operators read a literal partner's public
+flags, per-task/thread constant cells are what keep one task/thread's string arithmetic through `0 + $x` from changing
+another task/thread's `Data::Dumper` output for an unrelated value.
 
 **What this design does not reproduce.** The private cache flags themselves, as seen by `B::svref_2object->FLAGS` or
 `Devel::Peek`, are reproduced by projection from the value-flag record (the projection is validated by the flag lane),
