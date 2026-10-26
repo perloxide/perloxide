@@ -137,7 +137,8 @@ sub summary {
 #   path    a file or directory under the reference, or a glob pattern there; `path` is relative to the root
 #   case    a suite case named by its basename (`R01_literal_list_members`), resolved to `suites/*/cases/NAME.pl`
 #   doc     a document of the reference named by its file name (`undefined.md`), resolved at the root
-#   rows    a model row pattern (`plain/aeP/*/unshift1`, `undef.K`, `tiedweak.order`, `assign.*`)
+#   rows    a model row pattern (`plain/aeP/*/unshift1`, `undef.K`, `tiedweak.order`, `assign.*`, `*.hash.*`,
+#           `seedX_perturb2.mask.*`), never a file name
 #   source  a Perl source function, macro, type tag or file:line reference
 # Spans that are Perl code, flag names in prose, or anything else are not evidence and are left out.
 sub evidence {
@@ -163,7 +164,8 @@ sub evidence {
         elsif ($span =~ /^[\w-]+\.(?:md|txt|tsv)\z/) {
             push @out, { kind => 'doc', name => $span, path => $span, exists => (-e "$self->{root}/$span" ? 1 : 0) };
         }
-        elsif ($span =~ m{^(?:plain|tied|shared)/} || $span =~ /^[A-Za-z]+(?:\.[\w*]+)+\z/) {
+        elsif ($span =~ m{^(?:plain|tied|shared)/}
+               || ($span =~ /^(?:[A-Za-z]\w*|\*)(?:\.[\w*]+)+\z/ && $span !~ /\.(?:txt|tsv|md|gz)\z/)) {
             push @out, { kind => 'rows', name => $span };
         }
         elsif ($span =~ /^(?:Perl_|S_|PP_?|pp_|sv_|av_|hv_|mg_|magic_|new[A-Z]|save_|SAVE[A-Zt]|PERL_MAGIC_|MGf_|Sv[A-Z]|Av[A-Z]|Hv[A-Z]|PL_|sharedsv_|curse)\w*\z/) {
