@@ -16,9 +16,9 @@
 #   REPLAY=1 TAG=<version> perl generators/hv_gen.pl                              # the model against the table, no perl
 #
 # When TAG is a version (a perlbrew build name such as 5.44.0 or 5.44.0-threads) the run is merged into the factored
-# table reports/table.tsv (axes lane, kind, item; folded over lane; one field, the value, with a newline written as `\n`
-# and a backslash as `\\`), and REPLAY=1 replays the model against the rows that table holds at TAG instead of running
-# perl.
+# table reports/table.tsv (axes lane, kind, item; folded over lane; one field, the value, escaped as
+# Perl::Conformance::Table::escape writes it: a newline as `\n`, a backslash as `\\`), and REPLAY=1 replays the model
+# against the rows that table holds at TAG instead of running perl.
 use strict; use warnings; use FindBin;
 my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/..";
 my $WORK = $ENV{MODEL_WORK} || "$MODEL_ROOT/work"; mkdir $WORK unless -d $WORK;
@@ -36,8 +36,8 @@ my $ft = $REPLAY || ($TAG =~ $VERSION_RE && -e $TABLE_PATH) ? Perl::Conformance:
        : Perl::Conformance::Table->new(axes => [qw(lane kind item)], folded => 'lane', fields => ['value']);
 die "the factored table holds no version $TAG (it holds @{ $ft->{versions} })\n"
     if $REPLAY && !grep { $_ eq $TAG } @{ $ft->{versions} };
-sub encode { my ($v) = @_; $v =~ s/\\/\\\\/g; $v =~ s/\n/\\n/g; return length $v ? $v : '-' }
-sub decode { my ($v) = @_; return '' if $v eq '-'; $v =~ s/\\(\\|n)/$1 eq 'n' ? "\n" : "\\"/ge; return $v }
+sub encode { Perl::Conformance::Table::escape($_[0]) }
+sub decode { Perl::Conformance::Table::unescape($_[0]) }
 
 my @lanes = ( ['seed0', '0', undef], ['seedX_perturb0', 'deadbeef0123456789abcdef', '0'], ['seedX_perturb2', 'deadbeef0123456789abcdef', '2'] );
 my @SIZES = (5, 40, 700, 5000);

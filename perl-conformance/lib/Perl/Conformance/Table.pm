@@ -288,6 +288,28 @@ sub lookup {
     return $self->{cells}{$version}{ join("\t", @{ $self->parts($row) }) };
 }
 
+# A field value made safe for a table line: a backslash, newline and tab are written `\\`, `\n` and `\t`, any other
+# control character `\xNN`, a trailing space `\x20` (so no line ends in whitespace), the empty string `-` and a lone
+# `-` `\x2d`.  `unescape` inverts it.  These are functions, not methods.
+sub escape {
+    my ($v) = @_;
+    return '-' unless length $v;
+    $v =~ s/\\/\\\\/g;
+    $v =~ s/\n/\\n/g;
+    $v =~ s/\t/\\t/g;
+    $v =~ s/([\x00-\x1f\x7f])/sprintf('\\x%02x', ord $1)/ge;
+    $v =~ s/ \z/\\x20/;
+    $v = '\\x2d' if $v eq '-';
+    return $v;
+}
+
+sub unescape {
+    my ($v) = @_;
+    return '' if $v eq '-';
+    $v =~ s/\\(\\|n|t|x[0-9a-f]{2})/$1 eq '\\' ? '\\' : $1 eq 'n' ? "\n" : $1 eq 't' ? "\t" : chr(hex substr($1, 1))/ge;
+    return $v;
+}
+
 # The rows whose records differ between two versions (a row absent at one of them counts as differing): a list of
 # [row (axis values), record at A, record at B].
 sub diff {
