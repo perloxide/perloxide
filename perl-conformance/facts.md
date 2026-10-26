@@ -197,17 +197,21 @@ line, with the flag set and the value as the suite prints them):
   windows with no defined behavior (`undefined.md`, W1-W3).  `S_sv_2iuv_common`, `S_sv_setnv`, `S_not_a_number`,
   `Perl_sv_2nv_flags`, `Perl_sv_2pv_flags`.  The matrix lane of `models/ValueFlags/reports/coverage.txt` (2,304 rows,
   150 excluded as undefined); `suites/reentry-matrix`; `probes/corpus/num_01_warn_handler.pl` (a, b),
-  `probes/corpus/num_02_stale_cache.pl`; `probes/research/value-model/10_num_warnmut.pl`, `17_warnmut_rows.pl` (`str+nv`
-  99, `str+iv` 12, `num` with the empty stringification), `18_warnmut_matrix.pl`. [5.44.0]
+  `probes/corpus/num_02_stale_cache.pl`; `probes/corpus/value_03_handler_reassign_by_path.pl` (lane A: the integer path
+  installs the pre-handler 3 under the handler's `"49"`, the float paths read 49);
+  `probes/research/value-model/10_num_warnmut.pl`, `17_warnmut_rows.pl` (`str+nv` 99, `str+iv` 12, `num` with the empty
+  stringification), `18_warnmut_matrix.pl`. [5.44.0]
 - `value-flags.negative-zero-order`: `"-0"` converted on the integer path stores IV 0, a later float conversion derives
   NV 0.0 from the IV (`sv_2nv_flags`, `SvIOKp` branch), and `%g` prints `0` forever; converted float-first it stores
   −0.0 and `%g` prints `-0` forever, while `+ 0` prints `0` in both orders because the integer slot wins in `pp_add`.
   Both orders end in `INP`; which came first is the third `Dual` case.  A `Float` −0.0 likewise prints `-0` under `%g`
   but `0` through JSON::PP and Data::Dumper.  `Perl_sv_2nv_flags`, `S_sv_2iuv_common`.
-  `probes/research/value-model/09_num_neg0.pl`, `15_flags_peek.pl` (`gfirst`, `intfirst`), `22_flags_synth.pl`
-  (`neg0_gfirst`, `neg0_intfirst`); column `"-0"` of `probes/corpus/flags_matrix.pl`; `probes/corpus/consumers_01.pl`
-  row 13 (`sprintf "%g"` of `"-0"`: `-0` plain, `0` marked); `probes/corpus/consumers_02_numeric_starts.pl` rows `float
-  -0.0` and `float -0.0, $s|0`. [5.44.0]
+  `probes/corpus/value_01_stale_search.pl` (lane A: `"-0"` is the one string whose cached number prints differently from
+  a fresh parse under `%g`, after `+ 0`, `| 0`, `int` and a subscript use alike, while `"-0.0"` and `"-0e0"`, which take
+  the float path, print `-0` either way); `probes/research/value-model/09_num_neg0.pl`, `15_flags_peek.pl` (`gfirst`,
+  `intfirst`), `22_flags_synth.pl` (`neg0_gfirst`, `neg0_intfirst`); column `"-0"` of `probes/corpus/flags_matrix.pl`;
+  `probes/corpus/consumers_01.pl` row 13 (`sprintf "%g"` of `"-0"`: `-0` plain, `0` marked);
+  `probes/corpus/consumers_02_numeric_starts.pl` rows `float -0.0` and `float -0.0, $s|0`. [5.44.0]
 - `value-flags.locale-radix-frozen`: Under `use locale` with a non-C `LC_NUMERIC`, `grok_number_flags` and `my_atof3`
   accept `PL_numeric_radix_sv` as a decimal point in addition to `.` while `IN_LC(LC_NUMERIC)`; nothing else in the
   conversion chain consults the locale, and `sv_2pv_flags` never caches a float's string form, so stringification is
@@ -222,8 +226,13 @@ line, with the flag set and the value as the suite prints them):
   `suites/transitions/locale/raw_transitions.5.44.0.tsv` rows `c35 POK,pPOK|P:3,5 --de_add-->
   NOK,POK,pIOK,pNOK,pPOK|P:3,5` against `c35 POK,pPOK|P:3,5 --nl_add--> POK,pIOK,pNOK,pPOK|P:3,5`, `c35x POK,pPOK|P:3,5x
   --de_iv--> POK,pIOK,pNOK,pPOK|P:3,5x`, `e35 POK,pPOK|P:1e3,5 --de_iv--> POK,pIOK,pNOK,pPOK|P:1e3,5`, and the `c35
-  NOK,POK,pIOK,pNOK,pPOK|P:3,5 --nl_iv-->` row, unchanged; `probes/research/value-flags/locale.pl` with
-  `locale.5.044000.out`; `probes/research/value-model/20_locale_radix.pl`. [5.44.0]
+  NOK,POK,pIOK,pNOK,pPOK|P:3,5 --nl_iv-->` row, unchanged; probes `probes/corpus/value_02_locale_radix.pl`,
+  `probes/corpus/locale_01_setlocale_after_cache.pl`, `probes/corpus/locale_02_copy_across.pl`,
+  `probes/corpus/locale_03_sub_boundary.pl` (`use locale` is lexical to the statement that numifies, and the cache
+  follows the scalar across calls: a callee under `use locale` numifying the caller's `"1,5"` leaves 1.5 for the caller)
+  and `probes/corpus/locale_04_handler_setlocale.pl` (all lane A, on the harness's compiled `radix_comma` locale);
+  `probes/research/value-flags/locale.pl` with `locale.5.044000.out`; `probes/research/value-model/20_locale_radix.pl`.
+  [5.44.0]
 - `value-flags.constants-mutable-cells`: A compiled constant is a mutable flag cell.  A literal reached through an alias
   or reference site (`f("10")`, `for ("10")`, `\"10"`) is one READONLY SV per op tree, so value flags left on it by a
   numeric use persist across executions of the same code: the first call of a sub that numifies `$_[0]` sees `["10"]`
@@ -396,14 +405,88 @@ Entries:
   array of three six long with `$a[5]` existing and undef; `{ local $h{new} = 3 }` leaves `new` existing and undef; a
   present key deleted by the other thread during the local is restored by the same `STORE`.  The same probe (E, G);
   `probes/research/value-flags/p4.pl` for the single-thread hash form. [5.44.0]
+- `save-stack.scalar-local-fresh-sv`: `local` on a package scalar installs a fresh SV in the glob's slot and parks the
+  old one in the save record: inside the scope `\$g` is a different address, a reference taken before the `local` still
+  reads the old value, a write through it lands in the parked SV, and at scope exit the parked SV comes back, carrying
+  that write (`$g` reads `via-ref`).  An element behaves the same way, and `local` on an absent key restores its
+  absence.  `Perl_save_scalar` (`SAVEt_SV`), `Perl_leave_scope`.  Probes: `probes/corpus/local_02_fresh_sv.pl` (lane A),
+  `probes/research/value-model/01_local_scalar.pl`, `02_local_elems.pl`. [5.44.0]
+- `save-stack.tied-local-method-sequence`: `local` on a tied element runs the tie's methods in a fixed order: `EXISTS`
+  and `FETCH` of the old value on entry, the installing `STORE`s, and one `STORE` of the saved value at scope exit.  On
+  a tied hash `local $h{k} = 20` is `EXISTS(k) FETCH(k) STORE(k,20)` then `STORE(k,10)` at exit; on a tied array the
+  fresh proxy's set magic runs on installation, so `local $a[0] = 20` is `EXISTS(0) FETCH(0) STORE(0,undef) STORE(0,20)`
+  then `STORE(0,10)`; the bare forms `local $h{k}` and `local $a[0]` each store `undef` on entry; an absent key is
+  `EXISTS(absent) STORE(absent,5)` and `DELETE(absent)` at exit, with no `FETCH`.  `pp_helem` and `pp_aelem` under
+  `OPpLVAL_INTRO` (`save_helem_flags`, `save_aelem_flags`, `SAVEt_HDELETE`), `Perl_magic_setpack`.  Probes:
+  `probes/corpus/local_01_tied_elem.pl` (lane A), `probes/research/value-model/03_local_tied.pl`. [5.44.0]
 
 ## Finalization and temporary lifetime [finalization]
 
 Section: `models/Finalization/section.md`.  Model: `models/Finalization/Finalization.pm` (114 scenarios).  Probes:
 `probes/research/value-model/` (04-06, 16, 19, 21), `probes/corpus/destroy_*`, `probes/corpus/gd_*`.
 
-Entries (the transition function is the section text; these are the weak-reference facts a reader looks for by name):
+Entries (the transition function is the section text; these are the facts a reader looks for by name):
 
+- `finalization.death-inside-the-operation`: Which operation drops the last reference fixes when `DESTROY` runs.
+  Assignment (`sv_setsv_flags`), `undef $x` (`sv_set_undef`), `@a = ()` (`av_clear`, from the top index down), `delete`
+  in void context and scope exit (`SAVEt_CLEARSV`) all decrement inside the operation after the new state is installed,
+  so a destructor fired by `$x = 5` reads `$x` as 5, by `$h{k} = 7` as 7, by `undef $y` as undef, and by `delete $h{d}`
+  sees the key gone.  `$x .= "s"` on a reference is the exception: `sv_force_normal_flags` calls `sv_unref_flags`, which
+  mortalizes a referent whose count would reach zero, so the object dies at the statement's end instead; overwriting a
+  weak reference takes the same path.  `Perl_sv_setsv_flags`, `Perl_sv_set_undef`, `Perl_av_clear`,
+  `Perl_sv_unref_flags`.  Model rows `assign.*`, `undef.*`, `clear.*`, `delete.*` against `cat.*` in
+  `models/Finalization/reports/traces.5.44.0.txt`; probes `probes/research/value-model/21_destroy_subop.pl` (`D(5) |
+  D(7) | D(undef) | D(gone)`), `04_destroy_nontemp.pl`. [5.44.0]
+- `finalization.temporaries-die-at-drains`: Every value made as a temporary — a sub's return value, an anonymous
+  constructor, a `delete` in non-void context, the mortalized referent above — sits on `PL_tmps_stack` above the current
+  floor and dies when `Perl_free_tmps` pops it, in LIFO order: at the next statement boundary (`pp_nextstate`), at the
+  end of a loop iteration (`pp_unstack`), per item in `grep`, `map` and `any`, after `die` has unwound to its `eval`,
+  and in `leave_adjust_stacks` for a sub or block leaving in list or scalar context.  A sub or block left in void
+  context does not drain: its last statement's temporaries stay above the caller's floor and die at the caller's next
+  statement, after the callee's own lexicals were cleared, so `sub f { my $x = mk('in-f'); return mk('ret') }` destroys
+  `in-f` before the call returns and `ret` only when the caller drops it, and `h3(), O->new("q")` in void context
+  destroys `q` then `h` at the following statement.  A call argument temporary is protected by the call's block and dies
+  after the call returns, before the next statement.  `Perl_free_tmps`, `cx_pushblock`, `cx_popblock`,
+  `Perl_leave_adjust_stacks`, `pp_leavesub`.  Model rows `plainstmt.*`, `callarg.*`, `vq.void`, `vq.list`, `vq.scalar`,
+  `vh.void`, `vh.list`; probe `probes/corpus/destroy_01_weak.pl` (`D:temp1 |after temp statement|`, `D:in-f |after f|
+  D:ret`); `probes/research/value-model/06_destroy_void_lifo.pl` (`dq dh next`). [5.44.0]
+- `finalization.condition-temporary-lifetime`: A temporary made in a condition dies where the construct's blocks and
+  live `nextstate` ops put the next drain.  An `if` body — one statement (an `OP_SCOPE` whose leading `nextstate` the
+  peephole nulls) or several (`enter`/`leave`, whose `cx_pushblock` raises the floor above the temporary) — runs before
+  the condition's object dies (`body d`); a `while` body, or a C-style `for` without a step, has a live first
+  `nextstate` under an `enterloop` pushed before the condition, so the object dies at the body's first statement (`d
+  body`); a C-style `for` with a step wraps body and step in one `OP_SCOPE`, so the object survives the body and dies at
+  `unstack`; `do BLOCK while` has no `unstack`, so every condition temporary survives to the statement after the loop,
+  while postfix `while` drains per iteration.  `Perl_rpeep` (the nulled `OP_NEXTSTATE`), `Perl_newFOROP`, `pp_unstack`.
+  Model rows `if1.*`, `if2.*`, `while.*`, `cfor.*`, `cfor0.*`, `cfor2.*`, `dowhile.*`, `postwhile.*`; probes
+  `probes/research/value-model/05_destroy_cond.pl` (`IF: body d | WHILE: d body`), `16_destroy_if_twostmt.pl`.  [5.44.0]
+- `finalization.scope-exit-order`: Lexicals die in reverse declaration order at scope exit (`SAVEt_CLEARSV` entries run
+  LIFO), but an object constructed in the block's last statement is still held by that statement's temporary across the
+  exit, so `{ my $a = mk('a'); my $b = mk('b'); my $c = mk('c') }` destroys `b a c` and the same block ending in `1;`,
+  whose `nextstate` drained the temporary first, destroys `c b a`; a sub body with a bare `return` is `c b a` (the
+  return drains) and an `if` body is `b a c`.  Array and hash lexicals destroy their elements from the top index down
+  and in bucket order.  `Perl_leave_scope`, `Perl_free_tmps`.  Model rows `scope3.*` against `scope3one.*`; probe
+  `probes/corpus/destroy_02_order.pl` (lane A; the four orders above), `probes/corpus/destroy_01_weak.pl` (`D:arr2
+  D:arr1 D:arr0`). [5.44.0]
+- `finalization.die-unwinds-before-catch`: `die` inside `eval` pops the contexts down to the `eval`, running each one's
+  `CX_LEAVE_SCOPE` — the save stack in LIFO order, so lexicals declared after a `local` die before that `local` is
+  restored — then restores the temporaries floor, drains, and only then sets `$@`: `eval { my $e1 = mk('e1'); my $e2 =
+  mk('e2'); die "x\n" }` destroys `e2` then `e1` before the catcher sees `$@`.  `Perl_die_unwind`.  Model rows `eval.*`,
+  `evaltmp.*`, `local.*`; probe `probes/corpus/destroy_01_weak.pl` (`D:e2 D:e1 |after die: $@=x|`). [5.44.0]
+- `finalization.curse-protocol`: `DESTROY` is resolved through the method cache (or `AUTOLOAD`) and called in void
+  context on a read-only temporary reference with `G_EVAL` and `G_KEEPERR`: an exception inside it becomes a `(in
+  cleanup) ...` warning and leaves `$@` untouched, so an exception already propagating survives a dying destructor met
+  during unwinding.  A destructor that reblesses the object runs the new class's `DESTROY` next in the same death; one
+  that stores `$_[0]` somewhere leaves the count positive, `sv_clear` stops, the object lives on and its next death runs
+  `DESTROY` again (a reference made and dropped inside the destructor does not count).  `S_curse`, `Perl_sv_clear`.
+  Model rows `*.X` (the destructor dies: `plainstmt.X`, `eval.X`), `*.R` (rebless: the trace `Da:R[1]` then `Da:P[1]`),
+  `*.K` (resurrection: `Da:K[1]` at each of two deaths), in `models/Finalization/reports/traces.5.44.0.txt`. [5.44.0]
+- `finalization.file-lexicals-before-end`: When the main program's scope is left its file-scope lexicals die in reverse
+  declaration order, in phase `RUN`, before any `END` block runs; objects held only by package variables die in global
+  destruction, phase `DESTRUCT`, after `END`.  `S_my_exit_jump` (`LEAVE_SCOPE(0)` unwinds the main program's scope),
+  `perl_run` (which then calls the `END` list under `PERL_PHASE_END`), `perl_destruct`.  Model rows `global.lex`,
+  `global.weak`; probe `probes/corpus/destroy_01_weak.pl` (`D:file-lexical phase=RUN`, `END block`, `D:global1
+  phase=DESTRUCT`). [5.44.0]
 - `finalization.weak-cleared-after-destroy`: Weak references to a dying object are cleared after its `DESTROY` returns,
   not before: inside the destructor every weak reference to the object is still defined.  `Perl_sv_clear` runs `S_curse`
   first and `Perl_sv_kill_backrefs` after it.  Probe: `probes/corpus/destroy_01_weak.pl`; model rows `undef.*`,
