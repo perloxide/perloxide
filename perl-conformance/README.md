@@ -21,7 +21,7 @@ implementation's own documentation.
 | `supported-versions`    | the supported versions, oldest first; the last is the harness's and the suites' default target                                                          |
 | `facts.md`              | the prose index of every fact, by area, each linked to the probe or model row that demonstrates it                                                      |
 | `harness.md`            | how the harness works: the builds and families, hash modes, verdict lanes, blessing and `check`; its decisions                                          |
-| `bin/perl-conformance`  | the driver: `run`, `verdict`, `bless`, `selftest`, `gaps`, `check`; `explain` and `cite-check` for the fact index; `table` for a model's factored table |
+| `bin/perl-conformance`  | the driver: `run`, `verdict`, `bless`, `selftest`, `gaps`, `check`; `explain` and `cite-check` for the fact index; `table` and `replay` for a model's factored tables |
 | `lib/`, `probe-lib/`    | the harness modules (`Perl::Conformance::*`) and, kept apart so a probe sees only it, the probe API (`::Probe`)                                         |
 | `tools/`                | source validation, the citation table and its generator, the blessed-output lint, the destruction-order predictor                                       |
 | `locales/`              | sources of the locales the harness compiles for the locale probes                                                                                       |

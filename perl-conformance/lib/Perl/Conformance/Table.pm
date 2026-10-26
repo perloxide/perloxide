@@ -1,33 +1,43 @@
 package Perl::Conformance::Table;
 
 # A factored result table: the record of an enumeration that is a Cartesian product of axes, stored without the
-# product.  Every distinct result is written once, with the set of axis values it holds for, and the full product for
-# one version is expanded on demand.
+# product.  Every distinct result is written once, with the set of axis values it holds for and the set of versions it
+# was observed on, and the full product for one version is expanded on demand.
 #
-# A row of the product has a name whose dot-separated parts are its axis values (the string-flags model's
-# `B.none.U.uc`: family, context, taint, op).  One axis is declared *folded*: rows that differ only in that axis and have
-# the same record are stored as one line whose name carries the set of values in braces (`B.{none,feature}.U.uc`), or
-# `*` when the set is every value the axis takes.  Versions are folded the same way in a column of their own, so one
-# file holds every version the model has been run on, and the lines a new version adds are exactly the results it
-# changed.
+# A row of the product is one value per axis (the string-flags model's family, context, taint and op: `B`, `none`,
+# `U`, `uc`).  One axis is declared *folded*: rows that differ only in that axis and have the same record are stored as
+# one line whose folded column carries the set of values in braces (`{none,feature}`), or `*` when the set is every
+# value the axis takes.  Versions are folded the same way in a column of their own, so one file holds every version the
+# model has been run on, and the lines a new version adds are exactly the results it changed.
 #
-# File format (tab-separated, `#` comments, no line ends in whitespace):
+# A version is a Perl the enumeration was run on, named as its perlbrew build is: `5.44.0` is the stock build of
+# 5.44.0, `5.44.0-threads` its -Dusethreads build, `5.44.0-noreuse` the allocator-instrumented one; builds sort after
+# the stock build of their version.  A version listed in the header has been merged in full, so a row that is absent at
+# a version is one that enumeration did not produce there (a test that needs ithreads has no row on an unthreaded
+# build).  A version set is written as a comma-separated list in which `5.44.0-*` stands for every build of 5.44.0 in
+# the header, stock included, and `*` alone for every version in the header -- never for every conceivable build.
 #
-#   versions<TAB>name<TAB>field...
+# File format (tab-separated, `#` comments, no line ends in whitespace): one column per axis, so an axis value may hold
+# any character but a tab or a newline -- except the folded axis's values, which may not hold `,`, `{` or `}`:
 #
-# where `versions` is a comma-separated set or `*` (every version listed in the header), `name` is the folded row name,
-# and the fields are the record.  The header comments declare the axes, the folded axis, the versions, and the field
-# names:
+#   versions<TAB>axis-1<TAB>...<TAB>axis-n<TAB>field...
+#
+# where `versions` is a version set, the axis columns name the row (the folded column a set), and the fields are the
+# record.  The header comments declare the axes, the folded axis and its values, the versions, the field names, and the
+# separator that joins a row's values into one name where a name is wanted (a citation, a command line); the separator
+# defaults to `.` and must not occur in any axis value:
 #
 #   # axes: family context taint op
 #   # folded: context
 #   # folded-values: none feature bytes locale_utf8 locale_latin1 locale_posix locale_c
-#   # versions: 5.38.2 5.44.0
+#   # versions: 5.38.2 5.44.0 5.44.0-threads
 #   # fields: bytes flag length ords tainted notes
+#   # separator: .
 #
 # Operations: `load` reads a file; `merge` replaces one version's rows (the full product for that version) and
-# refolds; `write` writes the file; `expand` lists the product for one version; `lookup` resolves a product row name
-# at a version; `diff` lists the rows whose records differ between two versions.
+# refolds; `write` writes the file; `expand` lists the product for one version; `lookup` resolves a product row at a
+# version; `diff` lists the rows whose records differ between two versions.  A row is passed as an array of axis
+# values or as one name joined by the separator; the records are tab-joined fields.
 
 use strict;
 use warnings;
@@ -35,13 +45,15 @@ use warnings;
 sub new {
     my ($class, %arg) = @_;
     my $self = bless {
-        axes     => $arg{axes}     || [],
-        folded   => $arg{folded},
-        fields   => $arg{fields}   || [],
-        versions => [],
-        values   => {},               # axis name -> { value => 1 }, the values seen on each axis
-        cells    => {},               # version -> product row name -> record (tab-joined fields)
+        axes      => $arg{axes}      || [],
+        folded    => $arg{folded},
+        fields    => $arg{fields}    || [],
+        separator => $arg{separator} // '.',
+        versions  => [],
+        values    => {},              # axis name -> { value => 1 }, the values seen on each axis
+        cells     => {},              # version -> row key (tab-joined axis values) -> record (tab-joined fields)
     }, $class;
+    $self->{values}{ $self->{folded} }{$_} = 1 for @{ $arg{folded_values} || [] };
     return $self;
 }
 
@@ -58,23 +70,67 @@ sub load {
         if ($line =~ /^#\s*([\w-]+):\s*(.*?)\s*\z/) {
             my ($k, $v) = ($1, $2);
             my @v = split ' ', $v;
-            if    ($k eq 'axes')     { $self->{axes} = \@v }
-            elsif ($k eq 'folded')   { $self->{folded} = $v[0] }
+            if    ($k eq 'axes')          { $self->{axes} = \@v }
+            elsif ($k eq 'folded')        { $self->{folded} = $v[0] }
             elsif ($k eq 'folded-values') { $self->{values}{ $self->{folded} }{$_} = 1 for @v }
-            elsif ($k eq 'versions') { $self->{versions} = \@v }
-            elsif ($k eq 'fields')   { $self->{fields} = \@v }
+            elsif ($k eq 'versions')      { $self->{versions} = \@v }
+            elsif ($k eq 'fields')        { $self->{fields} = \@v }
+            elsif ($k eq 'separator')     { $self->{separator} = $v }
             next;
         }
         next if $line =~ /^#/;
-        my ($versions, $name, @fields) = split /\t/, $line, -1;
-        my @vers = $versions eq '*' ? @{ $self->{versions} } : split /,/, $versions;
-        my $record = join("\t", @fields);
-        for my $row ($self->unfold($name)) {
-            $self->{cells}{$_}{$row} = $record for @vers;
+        my ($versions, @cols) = split /\t/, $line, -1;
+        my $n = @{ $self->{axes} };
+        die "$path: a line with fewer columns than the $n axes: $line\n" if @cols < $n;
+        my @parts = splice @cols, 0, $n;
+        my @vers = $self->unfold_versions($versions);
+        my $record = join("\t", @cols);
+        for my $row ($self->unfold(\@parts)) {
+            my $key = join("\t", @$row);
+            $self->{cells}{$_}{$key} = $record for @vers;
             $self->note_values($row);
         }
     }
     return $self;
+}
+
+# The versions a version set stands for: `*` is every version in the header, and `P-*` every header version that is
+# `P` or begins `P-` (`5.44.0-*` is every build of 5.44.0, `5.44.0-threads-*` every threaded one).
+sub unfold_versions {
+    my ($self, $set) = @_;
+    return @{ $self->{versions} } if $set eq '*';
+    my @out;
+    for my $item (split /,/, $set) {
+        if ($item =~ /^(.*)-\*\z/) {
+            my $prefix = $1;
+            push @out, grep { $_ eq $prefix || index($_, "$prefix-") == 0 } @{ $self->{versions} };
+        } else {
+            push @out, $item;
+        }
+    }
+    return @out;
+}
+
+# A version set written as compactly as the header allows: `*` for every version, else the shortest prefixes `P-*`
+# whose every header version is in the set, shortest first, and the rest listed.
+sub fold_versions {
+    my ($self, @vers) = @_;
+    my %left = map { $_ => 1 } @vers;
+    return '*' unless grep { !$left{$_} } @{ $self->{versions} };
+    my %prefix;
+    for my $v (@{ $self->{versions} }) {
+        my @p = split /-/, $v;
+        $prefix{ join('-', @p[0 .. $_]) } = 1 for 0 .. $#p;
+    }
+    my @out;
+    for my $p (sort { length $a <=> length $b || version_cmp($a, $b) } keys %prefix) {
+        my @covered = grep { $_ eq $p || index($_, "$p-") == 0 } @{ $self->{versions} };
+        next if @covered < 2 || grep { !$left{$_} } @covered;
+        push @out, "$p-*";
+        delete $left{$_} for @covered;
+    }
+    push @out, grep { $left{$_} } @vers;
+    return join(',', sort { version_cmp($a =~ s/-\*\z//r, $b =~ s/-\*\z//r) } @out);
 }
 
 # The index of the folded axis among the axes.
@@ -85,90 +141,117 @@ sub folded_index {
     die "folded axis $self->{folded} is not one of the axes @axes\n";
 }
 
-# The product row names a folded name stands for.
+# A row as an array of axis values, from an array or from a name joined by the separator.
+sub parts {
+    my ($self, $row) = @_;
+    return [ @$row ] if ref $row;
+    my $sep = quotemeta $self->{separator};
+    return [ split /$sep/, $row, -1 ];
+}
+
+# A row's name: its axis values joined by the separator.
+sub name {
+    my ($self, $row) = @_;
+    return join($self->{separator}, @{ $self->parts($row) });
+}
+
+# The product rows a folded row stands for, each as an array of axis values.
 sub unfold {
-    my ($self, $name) = @_;
-    my @parts = split /\./, $name;
+    my ($self, $row) = @_;
+    my @parts = @{ $self->parts($row) };
     my $i = $self->folded_index;
     my $set = $parts[$i];
     my @vals = $set eq '*' ? sort keys %{ $self->{values}{ $self->{folded} } }
              : $set =~ /^\{(.*)\}\z/ ? split(/,/, $1)
              : ($set);
-    return map { my @p = @parts; $p[$i] = $_; join('.', @p) } @vals;
+    return map { my @p = @parts; $p[$i] = $_; \@p } @vals;
 }
 
 sub note_values {
     my ($self, $row) = @_;
-    my @parts = split /\./, $row;
+    my @parts = @{ $self->parts($row) };
     my @axes = @{ $self->{axes} };
     $self->{values}{ $axes[$_] }{ $parts[$_] } = 1 for 0 .. $#axes;
 }
 
-# merge(VERSION, { product row name => record }): replaces VERSION's rows with the given product.
+# merge(VERSION, { row key => record }): replaces VERSION's rows with the given product.  A key is the row's axis
+# values joined by tabs, or by the separator.
 sub merge {
     my ($self, $version, $rows) = @_;
-    $self->{cells}{$version} = { %$rows };
-    $self->note_values($_) for keys %$rows;
+    my %cells;
+    for my $k (keys %$rows) {
+        my $row = $k =~ /\t/ ? [ split /\t/, $k, -1 ] : $self->parts($k);
+        die "row `$k` has @{[ scalar @$row ]} values for @{[ scalar @{ $self->{axes} } ]} axes\n"
+            unless @$row == @{ $self->{axes} };
+        $cells{ join("\t", @$row) } = $rows->{$k};
+        $self->note_values($row);
+    }
+    $self->{cells}{$version} = \%cells;
     $self->{versions} = [ sort { version_cmp($a, $b) } keys %{ $self->{cells} } ];
     return $self;
 }
 
+# Orders versions numerically by their dotted parts, a version's stock build before its named builds, and the named
+# builds of one version alphabetically.
 sub version_cmp {
     my ($a, $b) = @_;
-    my @a = split /\./, $a;
-    my @b = split /\./, $b;
+    my ($va, $ba) = split /-/, $a, 2;
+    my ($vb, $bb) = split /-/, $b, 2;
+    my @a = split /\./, $va;
+    my @b = split /\./, $vb;
     for my $i (0 .. ($#a > $#b ? $#a : $#b)) {
         my $c = ($a[$i] // 0) <=> ($b[$i] // 0);
         return $c if $c;
     }
-    return 0;
+    return ($ba // '') cmp ($bb // '');
 }
 
-# Every product row name across every version, in axis order.
+# Every product row across every version, as arrays of axis values, in axis order.
 sub rows {
     my ($self) = @_;
     my %seen;
     $seen{$_} = 1 for map { keys %{ $self->{cells}{$_} } } @{ $self->{versions} };
-    return sort keys %seen;
+    return map { [ split /\t/, $_, -1 ] } sort keys %seen;
 }
 
 # The folded lines: for each group of rows that differ only in the folded axis, and each distinct (record, version
-# set) among them, one line.  Returns a list of [versions, name, record].
+# set) among them, one line.  Returns a list of [versions, axis values..., fields...].
 sub lines {
     my ($self) = @_;
     my $i = $self->folded_index;
     my $all_folded = join(',', sort keys %{ $self->{values}{ $self->{folded} } });
-    my $all_versions = join(',', @{ $self->{versions} });
     my %group;
     for my $row ($self->rows) {
-        my @parts = split /\./, $row;
+        my $key = join("\t", @$row);
+        my @parts = @$row;
         my $fv = splice @parts, $i, 1;
-        my $key = join('.', @parts);
+        my $gkey = join("\t", @parts);
         for my $v (@{ $self->{versions} }) {
-            my $rec = $self->{cells}{$v}{$row};
+            my $rec = $self->{cells}{$v}{$key};
             next unless defined $rec;
-            push @{ $group{$key}{$rec}{$fv} }, $v;
+            push @{ $group{$gkey}{$rec}{$fv} }, $v;
         }
     }
     my @out;
-    for my $key (sort keys %group) {
-        for my $rec (sort keys %{ $group{$key} }) {
+    for my $gkey (sort keys %group) {
+        for my $rec (sort keys %{ $group{$gkey} }) {
             # Within one record, the folded values that hold for the same version set share a line.
             my %by_versions;
-            for my $fv (keys %{ $group{$key}{$rec} }) {
-                my $vs = join(',', sort { version_cmp($a, $b) } @{ $group{$key}{$rec}{$fv} });
+            for my $fv (keys %{ $group{$gkey}{$rec} }) {
+                my $vs = $self->fold_versions(@{ $group{$gkey}{$rec}{$fv} });
                 push @{ $by_versions{$vs} }, $fv;
             }
             for my $vs (sort keys %by_versions) {
                 my @fv = sort @{ $by_versions{$vs} };
                 my $set = join(',', @fv) eq $all_folded ? '*' : @fv == 1 ? $fv[0] : '{' . join(',', @fv) . '}';
-                my @parts = split /\./, $key;
+                my @parts = split /\t/, $gkey, -1;
                 splice @parts, $i, 0, $set;
-                push @out, [ $vs eq $all_versions ? '*' : $vs, join('.', @parts), $rec ];
+                push @out, [ $vs, @parts, split(/\t/, $rec, -1) ];
             }
         }
     }
-    return sort { $a->[1] cmp $b->[1] || $a->[0] cmp $b->[0] } @out;
+    my $n = @{ $self->{axes} };
+    return sort { join("\t", @$a[1 .. $n]) cmp join("\t", @$b[1 .. $n]) || $a->[0] cmp $b->[0] } @out;
 }
 
 sub write {
@@ -179,32 +262,41 @@ sub write {
     print $fh "# folded-values: ", join(" ", sort keys %{ $self->{values}{ $self->{folded} } }), "\n";
     print $fh "# versions: @{ $self->{versions} }\n";
     print $fh "# fields: @{ $self->{fields} }\n";
+    print $fh "# separator: $self->{separator}\n" if $self->{separator} ne '.';
     print $fh join("\t", @$_), "\n" for $self->lines;
     close $fh or die "cannot close $path: $!\n";
     return $self;
 }
 
-# The product for one version: a list of [row name, record].
+# The product for one version: a list of [axis values..., fields...].
 sub expand {
     my ($self, $version) = @_;
     my $cells = $self->{cells}{$version} or die "no version $version in the table (it holds @{ $self->{versions} })\n";
-    return map { [ $_, $cells->{$_} ] } sort keys %$cells;
+    return map { [ split(/\t/, $_, -1), split(/\t/, $cells->{$_}, -1) ] } sort keys %$cells;
+}
+
+# The product for one version as { row key => record }, row keys tab-joined -- the shape `merge` takes.
+sub cells {
+    my ($self, $version) = @_;
+    my $cells = $self->{cells}{$version} or die "no version $version in the table (it holds @{ $self->{versions} })\n";
+    return { %$cells };
 }
 
 # The record of one product row at a version, or undef.
 sub lookup {
     my ($self, $row, $version) = @_;
-    return $self->{cells}{$version}{$row};
+    return $self->{cells}{$version}{ join("\t", @{ $self->parts($row) }) };
 }
 
 # The rows whose records differ between two versions (a row absent at one of them counts as differing): a list of
-# [row name, record at A, record at B].
+# [row (axis values), record at A, record at B].
 sub diff {
     my ($self, $va, $vb) = @_;
     for ($va, $vb) { die "no version $_ in the table\n" unless $self->{cells}{$_} }
     my @out;
     for my $row ($self->rows) {
-        my ($a, $b) = ($self->{cells}{$va}{$row}, $self->{cells}{$vb}{$row});
+        my $key = join("\t", @$row);
+        my ($a, $b) = ($self->{cells}{$va}{$key}, $self->{cells}{$vb}{$key});
         next if defined $a && defined $b && $a eq $b;
         push @out, [ $row, $a // '(absent)', $b // '(absent)' ];
     }

@@ -30,14 +30,18 @@ every ordered pair of the five contexts that can differ (121,800 rows, untainted
 harness's compiled `ctype_utf8`, `ctype_latin1` and `posix` locales and the built-in `C` (`lib/Perl/Conformance/
 Locales.pm`); a locale that cannot be selected is fatal, never a silently degraded row.
 
-    PERL_CONFORMANCE_PERL=/path/to/perl TAG=<tag> DEPTH=1 perl generators/pv_gen.pl   # rows=6272 ok=... bad=...
-    PERL_CONFORMANCE_PERL=/path/to/perl TAG=<tag> DEPTH=2 perl generators/pv_gen.pl   # rows=121800 ok=... bad=...
+    PERL_CONFORMANCE_PERL=/path/to/perl TAG=<version> DEPTH=1 perl generators/pv_gen.pl   # rows=6272 ok=... bad=...
+    PERL_CONFORMANCE_PERL=/path/to/perl TAG=<version> DEPTH=2 perl generators/pv_gen.pl   # rows=121800 ok=... bad=...
+    REPLAY=1 TAG=<version> perl generators/pv_gen.pl           # the model against the table, no perl involved
 
-Recorded (`reports/`): 6,272/6,272 at depth 1 and 121,800/121,800 at depth 2 on 5.44.0.  Every depth-1 row at every
-version is in the factored table `reports/table.tsv` (`lib/Perl/Conformance/Table.pm`: one line per distinct result with
-its set of contexts and set of versions; `perl-conformance table StringFlags expand|lookup|diff` expands, looks up and
-compares); a depth-1 run whose `TAG` is a version merges itself into it.  The 5.38.2 rows differ from the 5.44.0 rows on
-131 (`perl-conformance table StringFlags diff 5.38.2 5.44.0`: `unpack "C0U*"` on malformed octets, 0 on 5.38 and U+FFFD
-on 5.44; `tr///` on a malformed string; a few readers' strictness); the model follows 5.44.  The depth-2 run is recorded
+Recorded (`reports/`): 6,272/6,272 at depth 1 on every 5.44.0 build (`pv.5.44.0.txt`, `pv.5.44.0-noreuse.txt`, ...) and
+121,800/121,800 at depth 2 on the stock build.  Every depth-1 row at every version and build is in the factored table
+`reports/table.tsv` (`lib/Perl/Conformance/Table.pm`, `../README.md` Tables and replay): one line per distinct result
+with its set of contexts and set of versions, the six 5.44.0 builds agreeing on every row (`5.44.0-*`);
+`perl-conformance table StringFlags expand|lookup|diff` expands, looks up and compares it, `perl-conformance replay
+StringFlags` runs the model against it, and a depth-1 run whose `TAG` is a version merges itself into it.  The 5.38.2
+rows differ from the 5.44.0 rows on 131 (`perl-conformance table StringFlags diff 5.38.2 5.44.0`: `unpack "C0U*"` on
+malformed octets, 0 on 5.38 and U+FFFD on 5.44; `tr///` on a malformed string; a few readers' strictness); the model
+follows 5.44, so `replay StringFlags --target 5.38.2` reports those 131 as its gaps there.  The depth-2 run is recorded
 by its row count and the SHA-256 of its table in `reports/pv2.5.44.0.txt`.  Section text: `section.md`.  Open items are
 listed in `status.md`.

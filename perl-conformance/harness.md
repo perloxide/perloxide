@@ -16,9 +16,9 @@ The seed corpus is every probe from the value/type design research that produced
 
 | Path                                          | Contents                                                                                                                                          |
 |-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| `bin/perl-conformance`                        | driver: `list`, `run`, `verdict`, `bless`, `selftest`, `gaps`, `check`; `explain`, `cite-check` (`facts.md`); `table`                             |
+| `bin/perl-conformance`                        | driver: `list`, `run`, `verdict`, `bless`, `selftest`, `gaps`, `check`; `explain`, `cite-check` (`facts.md`); `table`, `replay`                   |
 | `lib/Perl/Conformance/Facts.pm`               | the fact index as data: ids, areas, evidence, citations                                                                                           |
-| `lib/Perl/Conformance/Table.pm`               | a model's factored result table: one line per distinct result with its context set and version set; expand, lookup, diff                          |
+| `lib/Perl/Conformance/Table.pm`               | a model's factored result table: one column per axis, one line per distinct result with its folded-axis set and version set (builds included); expand, lookup, diff |
 | `lib/Perl/Conformance/Run.pm`                 | runs one program: pinned environment, stdout, stderr, fd 3, exit record, timeout                                                                  |
 | `lib/Perl/Conformance/Normalize.pm`           | address bijection (`exact`) and line-order canonicalization (`canonical`)                                                                         |
 | `lib/Perl/Conformance/Verdict.pm`             | the classification rules below                                                                                                                    |

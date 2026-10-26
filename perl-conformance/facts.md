@@ -656,9 +656,9 @@ Entries:
 ## The UTF-8 flag and taint [string-flags]
 
 Section: `models/StringFlags/section.md`.  Model: `models/StringFlags/StringFlags.pm`.  Reports:
-`models/StringFlags/reports/table.tsv`, the factored table of every depth-1 row at every version (`perl-conformance
-table StringFlags lookup ROW` prints a row's record, `expand` the whole product), and `pv2.5.44.0.txt`, the
-cross-context depth-2 run's count and table hash.
+`models/StringFlags/reports/table.tsv`, the factored table of every depth-1 row at every version and build
+(`perl-conformance table StringFlags lookup ROW` prints a row's record, `expand` the whole product, `replay StringFlags`
+the model's gaps against it), and `pv2.5.44.0.txt`, the cross-context depth-2 run's count and table hash.
 
 Entries (model rows: a depth-1 row is named `family.context.taint.op`, a depth-2 row `family.context1.op1+context2.op2`;
 the families are `A` `"abc"`, `B` `"\xB5\xE9"`, `L` the same upgraded, `H` `"a\x{100}"`, `M` `"\xC3\x28"` flagged by

@@ -25,12 +25,17 @@
 # flag, length, ords, tainted, warnings, croak; an empty field is written as "-", so that no line ends in whitespace (an
 # editor or git would strip a trailing empty field and corrupt the record).
 #
-# When TAG is a Perl version, a depth-1 run is also merged into the model's factored table, reports/table.tsv
-# (lib/Perl/Conformance/Table.pm): one line per distinct result with the set of contexts and the set of versions it
-# holds for, the full product expandable on demand with `perl-conformance table expand`.  Its records are terse: `=`
-# for length and ords where they are the standard decode of the bytes under the flag, and one notes column holding the
-# warnings and the croak, or `-`.  A depth-2 run is recorded by its row count and the SHA-256 of its table in the
-# report, the table itself being one run away.
+# When TAG is a Perl version -- a perlbrew build name such as 5.44.0 or 5.44.0-threads -- a depth-1 run is also merged
+# into the model's factored table, reports/table.tsv (lib/Perl/Conformance/Table.pm): one line per distinct result with
+# the set of contexts and the set of versions it holds for, the full product expandable on demand with `perl-conformance
+# table StringFlags expand`.  Its records are terse: `=` for length and ords where they are the standard decode of the
+# bytes under the flag, and one notes column holding the warnings and the croak, or `-`.  A depth-2 run is recorded by
+# its row count and the SHA-256 of its table in the report, the table itself being one run away.
+#
+#   REPLAY=1 TAG=<version> perl generators/pv_gen.pl   # replay=... rows=... ok=... bad=... absent=...
+#
+# replays the model against the rows the factored table holds at TAG, running no perl at all: the mismatches it prints
+# are the model's open gaps at that version as the repository records them.
 use strict;
 use warnings;
 use FindBin;
@@ -47,9 +52,19 @@ use Digest::SHA qw(sha256_hex);
 my $PERL  = $ENV{PERL_CONFORMANCE_PERL} || 'perl';
 my $TAG   = $ENV{TAG} || 'x';
 my $DEPTH = $ENV{DEPTH} || 1;
+my $REPLAY = $ENV{REPLAY} ? 1 : 0;
+my $TABLE_PATH = "$MODEL_ROOT/reports/table.tsv";
+my $VERSION_RE = qr/^\d+\.\d+\.\d+(?:-[\w-]+)?\z/;
+die "REPLAY needs TAG to name a version the table holds, not `$TAG`\n" if $REPLAY && $TAG !~ $VERSION_RE;
+die "REPLAY is a depth-1 replay; the depth-2 grid is not stored\n" if $REPLAY && $DEPTH != 1;
+my $REPLAY_TABLE = $REPLAY ? Perl::Conformance::Table->load($TABLE_PATH) : undef;
+die "the factored table holds no version $TAG (it holds @{ $REPLAY_TABLE->{versions} })\n"
+    if $REPLAY && !grep { $_ eq $TAG } @{ $REPLAY_TABLE->{versions} };
 
-# The compiled locales are required: a context that cannot select its locale is a wrong row, not a skipped one.
-my $LOCPATH = Perl::Conformance::Locales::compile("$WORK/locales") or die "cannot compile the harness locales: $Perl::Conformance::Locales::WHY\n";
+# The compiled locales are required: a context that cannot select its locale is a wrong row, not a skipped one.  A
+# replay runs no perl and needs none.
+my $LOCPATH = $REPLAY ? '' : Perl::Conformance::Locales::compile("$WORK/locales")
+    || die "cannot compile the harness locales: $Perl::Conformance::Locales::WHY\n";
 my %LOCALE = map { $_ => Perl::Conformance::Locales::locale_name($_) } Perl::Conformance::Locales::names();
 
 my %fam = (
@@ -141,11 +156,24 @@ sub row_code {
 }
 
 # Runs one child over the given rows (each [key, model steps, child code, family]) and compares every row with the model.
-my ($ok, $bad, $n) = (0, 0, 0);
+# Under REPLAY the rows are looked up in the factored table at TAG instead, a row the table lacks counting as absent.
+my ($ok, $bad, $n, $absent) = (0, 0, 0, 0);
 my @rep;
 my %table;
 sub run_child {
     my ($taint, $rows) = @_;
+    if ($REPLAY) {
+        for my $row (@$rows) {
+            my ($key, $steps, undef, $fam) = @$row;
+            $n++;
+            my $g = $REPLAY_TABLE->lookup($key, $TAG);
+            if (!defined $g) { $absent++; next }
+            my $m = terse(Perl::Conformance::Model::StringFlags::Harness::Run($fam, $taint, $steps));
+            my ($gc, $mc) = map { my @f = split /\t/, $_, -1; $f[5] = ""; join("\t", @f) } ($g, $m);
+            if ($gc eq $mc) { $ok++ } else { $bad++; push @rep, "MISMATCH $key\n  table: $g\n  model: $m" }
+        }
+        return;
+    }
     my $code = $head . "\n" . join('', map { $_->[2] } @$rows);
     open my $fh, '>', "$WORK/pv_child.pl" or die "cannot write $WORK/pv_child.pl: $!\n";
     print $fh $code;
@@ -207,6 +235,11 @@ else {
     }
 }
 
+if ($REPLAY) {
+    print "replay=$TAG depth=1 rows=$n ok=$ok bad=$bad absent=$absent\n";
+    print "$_\n" for @rep;
+    exit($bad ? 1 : 0);
+}
 my $table = $DEPTH == 1 ? "$WORK/pv_table.$TAG.tsv" : "$WORK/pv_table2.$TAG.tsv";
 open my $t, '>', $table or die "cannot write $table: $!\n";
 print $t "$_\t", show($table{$_}), "\n" for sort keys %table;
@@ -236,8 +269,8 @@ sub terse {
     return join("\t", $bytes, $flag, $len, $ords, $taint, (@notes ? join(' | ', @notes) : '-'));
 }
 
-if ($DEPTH == 1 && $TAG =~ /^\d+\.\d+\.\d+\z/) {
-    my $path = "$MODEL_ROOT/reports/table.tsv";
+if ($DEPTH == 1 && $TAG =~ $VERSION_RE) {
+    my $path = $TABLE_PATH;
     my $ft = -e $path ? Perl::Conformance::Table->load($path)
            : Perl::Conformance::Table->new(axes => [qw(family context taint op)], folded => 'context', fields => [qw(bytes flag length ords tainted notes)]);
     $ft->merge($TAG, { map { $_ => terse($table{$_}) } keys %table });

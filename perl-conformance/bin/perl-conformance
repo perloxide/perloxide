@@ -16,10 +16,13 @@
 #                                                      id), and --run also runs the cited probes and cases
 #   perl-conformance explain  --grep RE [-v]            one line per entry whose id or text matches; -v prints them in full
 #   perl-conformance cite-check FILE...                 verify that every [fact:ID] citation in FILE names an entry
-#   perl-conformance table    MODEL expand [--target V]  the full product of MODEL's factored table at one version
-#   perl-conformance table    MODEL lookup ROW... [--target V]  the record of each product row at one version
-#   perl-conformance table    MODEL diff V1 V2          the rows whose records differ between two versions
-#   perl-conformance table    MODEL versions            the versions the table holds
+#   perl-conformance table    MODEL[/NAME] expand [--target V]      the full product of a model's factored table at
+#                                                      one version (reports/table.tsv, or reports/NAME.tsv)
+#   perl-conformance table    MODEL[/NAME] lookup ROW... [--target V]  the record of each product row at one version
+#   perl-conformance table    MODEL[/NAME] diff V1 V2   the rows whose records differ between two versions
+#   perl-conformance table    MODEL[/NAME] versions     the versions the table holds
+#   perl-conformance replay   MODEL[/NAME] [--target V]  replay the model against its table at one version, no perl
+#                                                      involved; prints the mismatches (the model's open gaps)
 #
 # Common options: --target VERSION (default: the newest version in supported-versions; also PERL_CONFORMANCE_TARGET),
 # --results DIR (default ./results; runs land in DIR/VERSION), --config FILE (default perl-conformance.conf beside bin/).
@@ -94,7 +97,8 @@ sub build_path {
 sub usage {
     die "usage: perl-conformance list|run|verdict|bless|selftest|gaps|check CORPUS [options]\n"
       . "       perl-conformance explain [ID|AREA...|-a] [-v] [--run] | explain --grep RE [-v] | cite-check FILE...\n"
-      . "       perl-conformance table MODEL expand|lookup ROW...|diff V1 V2|versions [--target V]\n";
+      . "       perl-conformance table MODEL[/NAME] expand|lookup ROW...|diff V1 V2|versions [--target V]\n"
+      . "       perl-conformance replay MODEL[/NAME] [--target V]\n";
 }
 
 sub slurp {
@@ -659,7 +663,7 @@ sub indent_block {
 my %TABLES;
 sub table_record {
     my ($row) = @_;
-    for my $path (glob "$FACTS_ROOT/models/*/reports/table.tsv") {
+    for my $path (sort glob "$FACTS_ROOT/models/*/reports/*.tsv") {
         $TABLES{$path} //= Perl::Conformance::Table->load($path);
         my $table = $TABLES{$path};
         my $rec = $table->lookup($row, $table->{versions}[-1]);
@@ -686,13 +690,23 @@ sub cmd_cite_check {
     return $unknown ? 1 : 0;
 }
 
-# `table MODEL ...`: the model's factored table (lib/Perl/Conformance/Table.pm), expanded, looked up or diffed.  The
-# target version defaults as for every other command: the newest supported version.
+# A model's factored table by name: `MODEL` is models/MODEL/reports/table.tsv, `MODEL/NAME` is
+# models/MODEL/reports/NAME.tsv (a model with several tables names each).
+sub model_table_path {
+    my ($spec) = @_;
+    my ($model, $name) = split m{/}, $spec, 2;
+    $name = 'table' unless defined $name && length $name;
+    my $path = "$FACTS_ROOT/models/$model/reports/$name.tsv";
+    die "no factored table `$spec` ($path)\n" unless -e $path;
+    return ($model, $name, $path);
+}
+
+# `table MODEL[/NAME] ...`: the factored table (lib/Perl/Conformance/Table.pm), expanded, looked up or diffed.  The
+# target version defaults to the newest version the table holds.
 sub cmd_table {
-    my ($target, $model, $what, @args) = @_;
-    usage() unless defined $model && defined $what;
-    my $path = "$FACTS_ROOT/models/$model/reports/table.tsv";
-    die "no factored table for model $model ($path)\n" unless -e $path;
+    my ($target, $spec, $what, @args) = @_;
+    usage() unless defined $spec && defined $what;
+    my ($model, $name, $path) = model_table_path($spec);
     my $table = Perl::Conformance::Table->load($path);
     my @versions = @{ $table->{versions} };
     if ($what eq 'versions') {
@@ -703,14 +717,14 @@ sub cmd_table {
         my ($va, $vb) = @args;
         usage() unless defined $va && defined $vb;
         my @d = $table->diff($va, $vb);
-        print join("\t", $_->[0], $_->[1]), "\n", "\t", $_->[2], "\n" for @d;
+        print $table->name($_->[0]), "\t", $_->[1], "\n", "\t", $_->[2], "\n" for @d;
         printf STDERR "%d row(s) differ between %s and %s\n", scalar @d, $va, $vb;
         return 0;
     }
     $target = $versions[-1] unless defined $target && length $target;
-    die "the $model table holds no version $target (it holds @versions)\n" unless grep { $_ eq $target } @versions;
+    die "the $spec table holds no version $target (it holds @versions)\n" unless grep { $_ eq $target } @versions;
     if ($what eq 'expand') {
-        print "# $model at $target: @{ $table->{axes} }; fields @{ $table->{fields} }\n";
+        print "# $spec at $target: @{ $table->{axes} }; fields @{ $table->{fields} }\n";
         print join("\t", @$_), "\n" for $table->expand($target);
         return 0;
     }
@@ -724,6 +738,26 @@ sub cmd_table {
         return $missing ? 1 : 0;
     }
     usage();
+}
+
+# `replay MODEL[/NAME] [--target V]`: runs the model's generator in replay mode against the rows its factored table
+# holds at V, with no perl involved, and prints the mismatches -- the model's open gaps at V as the repository records
+# them.  The generator is models/MODEL/generators/*_gen.pl, one per model; a model with several tables is told which
+# by TABLE.
+sub cmd_replay {
+    my ($target, $spec) = @_;
+    usage() unless defined $spec;
+    my ($model, $name, $path) = model_table_path($spec);
+    my @gen = glob "$FACTS_ROOT/models/$model/generators/*_gen.pl";
+    die "model $model has @{[ scalar @gen ]} generators, not one: @gen\n" unless @gen == 1;
+    my $table = Perl::Conformance::Table->load($path);
+    $target = $table->{versions}[-1] unless defined $target && length $target;
+    local $ENV{REPLAY} = 1;
+    local $ENV{TAG} = $target;
+    local $ENV{TABLE} = $name;
+    local $ENV{MODEL_ROOT} = "$FACTS_ROOT/models/$model";
+    system($^X, $gen[0]);
+    return $? >> 8;
 }
 
 # The target version, its config, and the compiled locales, for every command that runs a Perl.
@@ -787,6 +821,9 @@ if ($command eq 'cite-check') {
 if ($command eq 'table') {
     binmode $_, ':encoding(UTF-8)' for \*STDOUT, \*STDERR;
     exit cmd_table($target, @args);
+}
+if ($command eq 'replay') {
+    exit cmd_replay($target, @args);
 }
 my $corpus = shift @args;
 usage() unless defined $corpus && -d $corpus;

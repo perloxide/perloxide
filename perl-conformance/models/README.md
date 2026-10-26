@@ -26,3 +26,26 @@ reproduces perl's key order for a seed and an insertion sequence without running
 implementing perl-compatible hashing elsewhere; the string-flags model predicts UTF-8 flag and taint propagation through
 string operations.  Across all of them, a replay that disagrees with a new perl is a change in perl's implementation
 since the transcribed tag, found without a test that happened to cover it (`source-validation.txt` in each directory).
+
+## Tables and replay
+
+Each model's generator records what perl did -- never what the model said -- in a factored table under `reports/`
+(`lib/Perl/Conformance/Table.pm`): one column per axis of the enumeration, one line per distinct result with the set of
+values of one folded axis and the set of versions it holds for, so the full product is never stored and a new version
+adds only the lines it changed.  A version is a Perl named as its perlbrew build is (`5.44.0`, `5.44.0-threads`,
+`5.44.0-noreuse`); `5.44.0-*` is every build of 5.44.0 the table holds and `*` every version, and a row that an
+enumeration does not produce on some build (one that needs ithreads, on an unthreaded build) is simply absent there.  A
+model with one enumeration keeps it in `reports/table.tsv`; one with several names each (`reports/NAME.tsv`).
+
+    perl-conformance table MODEL[/NAME] expand [--target V]        the product at one version
+    perl-conformance table MODEL[/NAME] lookup ROW... [--target V] one row's record
+    perl-conformance table MODEL[/NAME] diff V1 V2                 the rows whose records differ
+    perl-conformance table MODEL[/NAME] versions                   the versions the table holds
+    perl-conformance replay MODEL[/NAME] [--target V]              the model against the table, no perl involved
+
+A generator run whose `TAG` is a version merges that run into the table and prints a report line with the run's row
+counts and the SHA-256 of its raw table; `reports/<code>.<version>.txt` is that report with the mismatches.  `replay`
+runs the same generator with `REPLAY=1`, which looks every row up in the table instead of running perl: its mismatches
+are the model's open gaps at that version as the repository records them, and a row the enumeration would produce that
+the table lacks is counted as absent.  A gap is therefore a fact about the repository, computable at any time, not only
+a line in the report of the run that found it.
