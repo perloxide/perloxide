@@ -658,19 +658,38 @@ sub indent_block {
     return $text;
 }
 
-# What a cited model row resolves to at the newest version its table holds: the row's record when the citation names
-# one row, or "(N rows)" when it is a pattern -- `*` for any value of an axis, and fewer values than axes for any value
-# of the trailing ones (`plain/aeP/*/unshift1`).  The first factored table with a match wins; undef when none has one,
-# and rows of a model without a factored table are cited by name alone.
+# The version a table command reads when none is named: the newest version the table holds, as its stock build when
+# the table has that build, else the last build of it.
+sub default_version {
+    my ($table) = @_;
+    my @versions = @{ $table->{versions} };
+    my ($base) = split /-/, $versions[-1], 2;
+    return (grep { $_ eq $base } @versions) ? $base : $versions[-1];
+}
+
+# What a cited model row resolves to at the newest version its table holds -- that version's stock build when the
+# table has one: the row's record when the citation names one row, followed by the other builds of that version whose
+# record differs, or "(N rows)" when it is a pattern -- `*` for any value of an axis, and fewer values than axes for any
+# value of the trailing ones (`plain/aeP/*/unshift1`).  The first factored table with a match wins; undef when none
+# has one, and rows of a model without a factored table are cited by name alone.
 my %TABLES;
 sub table_record {
     my ($row) = @_;
     for my $path (sort glob "$FACTS_ROOT/models/*/reports/*.tsv") {
         $TABLES{$path} //= Perl::Conformance::Table->load($path);
         my $table = $TABLES{$path};
-        my $version = $table->{versions}[-1];
+        my @versions = @{ $table->{versions} };
+        my $version = default_version($table);
+        my ($base) = split /-/, $version, 2;
         my $rec = $table->lookup($row, $version);
-        return $rec if defined $rec;
+        if (defined $rec) {
+            my @differ = grep {
+                my $r = $table->lookup($row, $_);
+                $_ ne $version && index($_, "$base-") == 0 && !(defined $r && $r eq $rec)
+            } @versions;
+            $rec .= "  [differs on @{[ join(',', @differ) ]}]" if @differ;
+            return $rec;
+        }
         my @pat = @{ $table->parts($row) };
         next if @pat > @{ $table->{axes} } || !grep { $_ eq '*' } @pat, (@pat < @{ $table->{axes} } ? '*' : ());
         my $n = grep {
@@ -712,7 +731,7 @@ sub model_table_path {
 }
 
 # `table MODEL[/NAME] ...`: the factored table (lib/Perl/Conformance/Table.pm), expanded, looked up or diffed.  The
-# target version defaults to the newest version the table holds.
+# target version defaults to the newest version the table holds, its stock build when it has one.
 sub cmd_table {
     my ($target, $spec, $what, @args) = @_;
     usage() unless defined $spec && defined $what;
@@ -731,7 +750,7 @@ sub cmd_table {
         printf STDERR "%d row(s) differ between %s and %s\n", scalar @d, $va, $vb;
         return 0;
     }
-    $target = $versions[-1] unless defined $target && length $target;
+    $target = default_version($table) unless defined $target && length $target;
     die "the $spec table holds no version $target (it holds @versions)\n" unless grep { $_ eq $target } @versions;
     if ($what eq 'expand') {
         print "# $spec at $target: @{ $table->{axes} }; fields @{ $table->{fields} }\n";
@@ -761,7 +780,7 @@ sub cmd_replay {
     my @gen = glob "$FACTS_ROOT/models/$model/generators/*_gen.pl";
     die "model $model has @{[ scalar @gen ]} generators, not one: @gen\n" unless @gen == 1;
     my $table = Perl::Conformance::Table->load($path);
-    $target = $table->{versions}[-1] unless defined $target && length $target;
+    $target = default_version($table) unless defined $target && length $target;
     local $ENV{REPLAY} = 1;
     local $ENV{TAG} = $target;
     local $ENV{TABLE} = $name;
