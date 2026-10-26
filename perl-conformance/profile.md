@@ -74,10 +74,13 @@ separate allocations in every case.
 
 - Numeric-radix probes and lanes use a locale the harness compiles from its own source (`radix_comma`: `LC_NUMERIC` with
   `decimal_point ","`, every other category POSIX); ctype probes use `ctype_utf8` (`LC_CTYPE` from the glibc `i18n`
-  classification, every other category POSIX).  The sources are `locales/`;
-  `lib/Perl/Conformance/Locales.pm` compiles them with the system's `localedef` against the system's own `i18n`
-  sources at startup, so no probe depends on which locales the system has generated.  The compiled form is keyed by the
-  sources and the `localedef` version, so a changed glibc recompiles.
+  classification, every other category POSIX), `ctype_latin1` (the same classification under the ISO-8859-1 charmap, a
+  locale that is not UTF-8), and `posix` (the glibc POSIX source under the ASCII charmap, to compare with the C
+  library's built-in `C` rather than assume they agree: they do on every string operation but `cmp`, which perl exempts
+  from collation only for the locale named `C`).  Each source names its charmap in a `% charmap:` line and compiles to
+  `<name>.<charmap>`.  The sources are `locales/`; `lib/Perl/Conformance/Locales.pm` compiles them with the system's
+  `localedef` against the system's own `i18n` sources at startup, so no probe depends on which locales the system has
+  generated.  The compiled form is keyed by the sources and the `localedef` version, so a changed glibc recompiles.
 
 ## Environment
 

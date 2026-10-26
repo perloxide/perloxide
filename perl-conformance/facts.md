@@ -655,33 +655,63 @@ Entries:
 
 ## The UTF-8 flag and taint [string-flags]
 
-Section: `models/StringFlags/section.md`.  Model: `models/StringFlags/StringFlags.pm` (in progress; `status.md`).
+Section: `models/StringFlags/section.md`.  Model: `models/StringFlags/StringFlags.pm`.  Reports:
+`models/StringFlags/reports/table.tsv`, the factored table of every depth-1 row at every version (`perl-conformance
+table StringFlags lookup ROW` prints a row's record, `expand` the whole product), and `pv2.5.44.0.txt`, the
+cross-context depth-2 run's count and table hash.
 
-Entries (model rows only; the model is in progress and only rows that match are cited, `status.md`):
+Entries (model rows: a depth-1 row is named `family.context.taint.op`, a depth-2 row `family.context1.op1+context2.op2`;
+the families are `A` `"abc"`, `B` `"\xB5\xE9"`, `L` the same upgraded, `H` `"a\x{100}"`, `M` `"\xC3\x28"` flagged by
+`Encode::_utf8_on`, `E` `""` and `S` `"\xDF"`; the contexts `none`, `feature` for `unicode_strings`, `bytes` for `use
+bytes`, and `use locale` under the harness's compiled locales `locale_utf8`, `locale_latin1`, `locale_posix` and the
+built-in `locale_c`; `U` untainted or `T` tainted; the columns bytes, flag, length, ords, tainted):
 
 - `string-flags.flag-is-interpretation`: The UTF-8 flag (`SVf_UTF8`) is a claim about how to read a string's bytes, not
   a property of its content: with it off each byte is one character whose code point is the byte value; with it on the
   bytes are decoded as UTF-8 (`utf8n_to_uvchr`, `Perl_utf8_length`), and `length`, `substr`, `reverse`, `chop`, `ord`,
   `index`, `split //` and `tr///` operate on the decoded characters, their string results keeping the flag.  The same
   bytes under different flags are different strings: `"\xC2\xB5\xC3\xA9"` flagged is the two characters U+00B5 U+00E9,
-  unflagged it is four.  Model rows `models/StringFlags/reports/table.5.44.0.tsv`, named `family.context.taint.op`
-  (families `A` `"abc"`, `B` `"\xB5\xE9"`, `L` the same upgraded, `H` `"a\x{100}"`, `M` `"\xC3\x28"` flagged by
-  `Encode::_utf8_on`, `E` `""`; context `none`, `feature` for `unicode_strings`, or `locale`; `U` untainted or `T`
-  tainted; columns bytes, flag, length, ords, tainted): `L.none.U.copy` (bytes `c2b5c3a9`, flag 1, length 2, ords
-  181,233) against `L.none.U.enc` (the same bytes, flag 0, length 4, ords 194,181,195,169); `L.none.U.sub1`,
-  `L.none.U.rev`, `L.none.U.chop`, `L.none.U.tr` and `L.none.U.split` work character by character and return flagged
-  strings, `B.none.U.sub1`, `B.none.U.rev`, `B.none.U.chop` and `B.none.U.tr` byte by byte and return bytes. [5.44.0]
+  unflagged it is four.  `DO_UTF8` (sv.h) is the test each reader makes: the flag on and `use bytes` off.  Rows
+  `L.none.U.copy` (bytes `c2b5c3a9`, flag 1, length 2, ords 181,233) against `L.none.U.enc` (the same bytes, flag 0,
+  length 4, ords 194,181,195,169); `L.none.U.sub1`, `L.none.U.rev`, `L.none.U.chop`, `L.none.U.tr` and `L.none.U.split`
+  work character by character and return flagged strings, `B.none.U.sub1`, `B.none.U.rev`, `B.none.U.chop` and
+  `B.none.U.tr` byte by byte and return bytes. [5.44.0]
 - `string-flags.malformed-lenient-readers`: The claim need not be true: `Encode::_utf8_on` can flag malformed bytes, and
   the lenient readers accept them.  `Perl_utf8_length` advances by the `UTF8SKIP` of the lead byte, so a malformed
   sequence counts as one character, `ord` of it reads 0 (`utf8n_to_uvchr`), and its bytes travel with the character
   unchanged through `substr` and concatenation.  Rows `M.none.U.len` (1), `M.none.U.ord` (0), `M.none.U.sub1` (`c328`,
   flag 1, one character), `M.none.U.split` (one field, ord 0), `M.none.U.catb` (`c328c2b5`, ords 0,181); `utf8::encode`
   hands the bytes back as they are (`M.none.U.enc`: `c328`, flag 0, length 2). [5.44.0]
-- `string-flags.equality-by-code-point`: Two strings are `eq`, and `cmp` 0, when their code point sequences are equal
-  whatever their flags, and `index` finds an unflagged needle in a flagged string: `"\xB5\xE9"` unflagged equals its
-  upgrade both ways, and `index($s, "\xB5")` is 0 on either form.  `Perl_sv_eq_flags`, `Perl_sv_cmp_flags` (a flag
-  mismatch is resolved by comparing code points, not bytes).  Rows `B.none.U.eql`, `L.none.U.eqb` (1), `B.none.U.cmpb`,
-  `L.none.U.cmpb` (0), `B.none.U.idx`, `L.none.U.idx` (0); `H.none.U.eqb` (0). [5.44.0]
+- `string-flags.utf8-length-partial`: `Perl_utf8_length` counts characters by `UTF8SKIP`, but a final sequence cut short
+  by the end of the string stops the count, and what `length` returns then is the number of bytes consumed before that
+  sequence, not a character count: `length` of the flagged `"\xC3"` (what `chop` leaves of `"\xC3\x28"`) is 0, and of
+  the flagged `"\xA9\xC3\xB5\xC2"` 3.  `Perl_utf8_length` (the `warn_and_return` arm, `s - s0`).  Rows `M.none.U.chop`
+  (`c3`, flag 1, length 0), `L.bytes.T.rev` (`a9c3b5c2`, flag 1, length 3). [5.44.0]
+- `string-flags.unpack-decoding-reader`: `unpack` reads a flagged string through `utf8n_to_uvchr` rather than by
+  `UTF8SKIP`: a malformed sequence consumes only its first byte and reads as U+FFFD, and the bytes after it are read on
+  their own, so `"\xC3\x28"` unpacks `"U*"` and `"C*"` as 65533, 40 where `length` says one character and `ord` says 0.
+  `pp_unpack`, `utf8n_to_uvchr`.  Rows `M.none.U.unpU`, `M.none.U.unpC` (65533,40) against `M.none.U.len` (1),
+  `M.none.U.ord` (0). [5.44.0]
+- `string-flags.substr-ascii-unflagged`: `substr` returns a flagged string only when its source is read as UTF-8 and the
+  source's character count differs from its byte count: the first character of the flagged `"abc"` is an unflagged
+  `"a"`, the first character of `"a\x{100}"` a flagged `"a"`, and the flagged `"a"` so obtained yields an unflagged one
+  in turn.  `pp_substr` (`utf8_curlen == curlen` is treated as not UTF-8).  Rows `A.none.up+none.sub1` (`61`, flag 0),
+  `H.none.U.sub1` (`61`, flag 1), `H.none.sub1+none.sub1` (`61`, flag 0). [5.44.0]
+- `string-flags.reverse-two-paths`: `reverse` in scalar context copies a plain source character by character in reverse,
+  so a malformed character travels whole and under `use bytes` the copy is bytes, unflagged; a magical source -- a
+  tainted string carries taint magic -- is copied by `sv_setsv`, flag included, and reversed in place, each well-formed
+  character's bytes first and the whole buffer after, stopping the per-character pass at the first malformed one: the
+  tainted `"\xC3\x28"` reverses to `"\x28\xC3"` where the untainted one is unchanged, and a tainted flagged string under
+  `use bytes` keeps its flag over reversed bytes.  `pp_reverse` (the `sv_setsv_flags` fallback for `SvGMAGICAL`
+  sources).  Rows `M.none.U.rev` (`c328`) against `M.none.T.rev` (`28c3`), `L.bytes.U.rev` (`a9c3b5c2`, flag 0) against
+  `L.bytes.T.rev` (flag 1). [5.44.0]
+- `string-flags.equality-by-utf8-bytes`: Two strings are `eq`, and `cmp` 0, when they have the same UTF-8 bytes once the
+  unflagged side is upgraded (`Perl_sv_eq_flags`, `Perl_sv_cmp_flags`), which is code-point equality for well-formed
+  strings and differs from it only for a malformed one; `index` finds an unflagged needle in a flagged string the same
+  way.  `"\xB5\xE9"` unflagged equals its upgrade both ways, `index($s, "\xB5")` is 0 on either form, and the malformed
+  `"\xC3\x28"` sorts after `"\xB5\xE9"` by its bytes though its one character reads as 0.  Rows `B.none.U.eql`,
+  `L.none.U.eqb` (1), `B.none.U.cmpb`, `L.none.U.cmpb` (0), `M.none.U.cmpb` (1), `B.none.U.idx`, `L.none.U.idx` (0);
+  `H.none.U.eqb` (0). [5.44.0]
 - `string-flags.upgrade-downgrade`: `utf8::upgrade` (`sv_utf8_upgrade_flags_grow`) re-encodes each byte as a UTF-8
   character and sets the flag without changing the character sequence, on an empty string too, and does nothing to a
   string already flagged; `utf8::downgrade` (`sv_utf8_downgrade_flags`) replaces each character by its byte and clears
@@ -709,49 +739,123 @@ Entries (model rows only; the model is in progress and only rows that match are 
   (flag 0); `B.none.U.joinu` (flag 1) and `B.none.U.joinb` (flag 0), `H.none.U.rep` and `B.none.U.rep`, `L.none.U.sps`
   and `B.none.U.sps`, `L.none.U.packa` and `L.none.U.packA`; `B.none.U.chr` and `B.none.U.spc` (`b5`, flag 0),
   `B.none.U.packU` (`c2b5`, flag 1) and `A.none.U.packU` (`61`, flag 1). [5.44.0]
-- `string-flags.unicode-bug`: Whether a character in 0x80–0xFF has a case mapping or belongs to `\w` depends on the
-  string's flag unless something else decides.  With no feature an unflagged string gets ASCII rules — `uc("\xB5\xE9")`
-  is unchanged and `"\xB5\xE9" !~ /\w/` — and a flagged one Unicode rules; under `use feature 'unicode_strings'` the
-  unflagged string gets Latin-1 rules, `uc("\xB5\xE9")` is U+039C U+00C9 and the result is flagged, `fc` maps U+00B5 to
-  U+03BC, and `"\xB5\xE9" =~ /\w/`; under `use locale` with a UTF-8 locale the case functions use Unicode rules on the
-  unflagged string too.  `pp_uc`, `pp_lc`, `pp_ucfirst`, `pp_lcfirst`, `pp_fc`.  Rows `B.none.U.uc` (`b5e9`, flag 0)
-  against `B.feature.U.uc`, `B.locale.U.uc` and `L.none.U.uc` (all `ce9cc389`, flag 1, ords 924,201); `B.none.U.fc`
-  (unchanged) against `B.feature.U.fc` and `L.none.U.fc` (ords 956,233); `B.none.U.ucf` against `B.feature.U.ucf`
-  (924,233); `B.none.U.rew` (0) against `B.feature.U.rew` and `L.none.U.rew` (1). [5.44.0]
-- `string-flags.regex-charset-modifiers`: The regex charset modifiers override the string's flag: `/u` applies Unicode
-  rules to unflagged bytes, and `/a` restricts `\w` to ASCII on a flagged string and under the feature alike.  A pattern
-  containing a code point above 0xFF is compiled under Unicode rules, so `/\x{39C}/i` matches `"\xB5\xE9"` flagged or
-  not, with or without the feature (the fold of U+00B5 and U+039C is U+03BC), and `/a` does not disable that fold.
-  `Perl_re_op_compile` (regcomp.c, `RExC_uni_semantics`).  Rows `B.none.U.rewu` (1), `B.feature.U.rewa` and
-  `L.none.U.rewa` (0); `B.none.U.rei`, `B.feature.U.rei`, `L.none.U.rei`, `B.none.U.reia`, `L.none.U.reia` and
-  `B.none.U.reiu` (all 1). [5.44.0]
-- `string-flags.unpack-modes`: `unpack "U*"` reads the characters of the string as they are, flagged or not; `"U0C*"`
-  gives the bytes of the UTF-8 encoding, upgrading an unflagged string to get them; and `"C*"` on a flagged Latin-1
-  string gives the code points, not the encoding bytes, the same as on the unflagged form.  `pp_unpack`.  Rows
-  `B.none.U.unpU` and `L.none.U.unpU` (181,233), `H.none.U.unpU` (97,256); `B.none.U.unpU0C` and `L.none.U.unpU0C`
-  (194,181,195,169), `H.none.U.unpU0C` (97,196,128); `B.none.U.unpC` and `L.none.U.unpC` (181,233). [5.44.0]
+- `string-flags.use-bytes`: Under `use bytes` every reader tests `DO_UTF8` false, so a flagged string is its bytes:
+  `length` counts bytes, `ord` reads the first byte, `substr`, `reverse`, `chop`, `split //` and `index` work on bytes,
+  the case functions map ASCII alone, and every result built from the bytes is unflagged -- concatenation and `.=` (`.=
+  ""` included), `join`, `x`, `sprintf "%s"`, a capture, `pack "a*"` -- while a copy, `chomp` and a hash key keep the
+  flag.  `tr///` is the exception: `do_trans` reads the flag directly, so it still works on characters.
+  `utf8::upgrade`, `utf8::downgrade`, `utf8::encode` and `utf8::decode` do what they do without it.  `DO_UTF8` (sv.h),
+  `IN_BYTES`.  Rows `L.bytes.U.len` (4), `L.bytes.U.ord` (194), `L.bytes.U.sub1` (`c2`, flag 0), `L.bytes.U.rev`
+  (`a9c3b5c2`, flag 0), `L.bytes.U.uc` (`c2b5c3a9`, flag 0), `A.bytes.U.uc` (`ABC`), `L.bytes.U.catb` (`c2b5c3a9b5`,
+  flag 0), `E.bytes.U.apl` (`c2b5`, flag 0), `L.bytes.U.copy` and `L.bytes.U.chomp` (flag 1), `L.bytes.U.hkey` (flag 1),
+  `L.bytes.U.tr` (`58c3a9`, flag 1), `B.bytes.U.up` (`c2b5c3a9`, flag 1), `L.bytes.U.eql` (1: the bytes compared, the
+  flag no part of it), `L.bytes.U.eqb` (0). [5.44.0]
+- `string-flags.multiconcat-bytes-constant`: A constant segment of a multiconcat that is UTF-8 and cannot be downgraded
+  has no byte form, and under `use bytes` the fast path of `pp_multiconcat` appends nothing for it: `$s . "\x{100}"` and
+  `$s .= "\x{100}"` leave `$s` as it was.  A magical operand -- a tainted string carries taint magic -- takes the
+  `sv_catsv` path, which appends the constant's UTF-8 bytes; `join` is not a multiconcat and appends them either way.
+  `pp_multiconcat` (`PERL_MULTICONCAT_IX_PLAIN_PV`), `sv_catsv_flags`.  Rows `B.bytes.U.catu` and `B.bytes.U.apu`
+  (`b5e9`, unchanged) against `B.bytes.T.catu` (`b5e9c480`) and `B.bytes.U.joinu` (`b5e92cc480`). [5.44.0]
+- `string-flags.unicode-bug`: Perl's native encoding for an unflagged string is Latin-1 -- upgrading maps the byte 0xE9
+  to U+00E9 -- but under no pragma the case functions and the default regex charset give the 0x80-0xFF range of an
+  unflagged string no properties at all, the C locale's answer from before Unicode support frozen in place:
+  `uc("\xB5\xE9")` is unchanged and `"\xB5\xE9" !~ /\w/`, while the same characters flagged get Unicode rules.  `use
+  feature 'unicode_strings'` gives the unflagged string Unicode rules too (`uc` is U+039C U+00C9 and the result is
+  flagged, `fc` maps U+00B5 to U+03BC, `"\xB5\xE9" =~ /\w/`, `uc("\xDF")` is `SS`); `use bytes` gives both forms ASCII
+  rules on their bytes; `use locale` under a UTF-8 locale gives Unicode rules; under the Latin-1 locale the C library's
+  tables (`uc("\xE9")` is `"\xC9"`, `"\xB5"` is a letter, `uc("\xB5")` and `uc("\xDF")` are themselves, for a flagged
+  string's 0x80-0xFF too); under the C or POSIX locale none.  A character above 0xFF has its Unicode properties in every
+  context but `use bytes`.  `pp_uc`, `pp_lc`, `pp_ucfirst`, `pp_lcfirst`, `pp_fc`, `IN_UNI_8_BIT`, `IN_LC`.  Rows
+  `B.none.U.uc` (`b5e9`, flag 0) against `B.feature.U.uc`, `B.locale_utf8.U.uc` and `L.none.U.uc` (all `ce9cc389`, flag
+  1, ords 924,201), `B.locale_latin1.U.uc` (`b5c9`, flag 0), `L.locale_latin1.U.uc` (`c2b5c389`, flag 1),
+  `B.locale_posix.U.uc` and `B.locale_c.U.uc` (unchanged), `L.locale_c.U.uc` (unchanged); `S.feature.U.uc` (`SS`),
+  `S.feature.U.ucf` (`Ss`), `S.feature.U.fc` (`ss`), `S.locale_latin1.U.uc` (`df`); `B.none.U.fc` (unchanged) against
+  `B.feature.U.fc` (ords 956,233); `B.none.U.rew` (0) against `B.feature.U.rew`, `L.none.U.rew`, `B.locale_utf8.U.rew`
+  and `B.locale_latin1.U.rew` (1), `L.locale_posix.U.rew` and `L.locale_c.U.rew` (0); `H.locale_c.U.rew` (1). [5.44.0]
+- `string-flags.regex-charsets`: A pattern's charset is its explicit modifier, else `/l` under `use locale`, `/u` under
+  `unicode_strings`, else `/d` -- except that a `/d` pattern holding a code point above 0xFF compiles under Unicode
+  rules.  `/d` decides by the string's flag (the Unicode bug); `/u` applies Unicode rules to bytes; `/a` and `/aa` make
+  `\w`, `\s` and `\d` ASCII-only for every code point while case-insensitive matching still folds under Unicode rules,
+  so `/a` lets the unflagged `"\xDF"` match `/ss/i` where `/d` does not, and `/aa` forbids a fold between an ASCII and a
+  non-ASCII character, so it does not; an explicit `/d` under the feature is still `/d`.  Under `/l` the runtime locale
+  decides, `use locale` or not: a UTF-8 locale gives Unicode rules, the Latin-1 locale the C library's classes, the C or
+  POSIX locale none for 0x80-0xFF, and above 0xFF Unicode rules in every locale.  So `/\x{39C}/i` matches `"\xB5\xE9"`
+  flagged or not under `/d`, `/u`, `/a` and in a UTF-8 locale, and not under `/l` in any other locale, where only U+039C
+  and U+03BC themselves match it.  `Perl_re_op_compile` (regcomp.c, `RExC_uni_semantics`), `regexec.c`.  Rows
+  `B.none.U.rewu` (1), `B.feature.U.rewa`, `B.feature.U.rewaa`, `L.none.U.rewa` (0), `H.none.U.rewa` (1),
+  `B.feature.U.rewd` (0) against `B.feature.U.rew` (1); `S.none.U.reiss` (0), `S.feature.U.reiss`, `S.none.U.reissu`,
+  `S.none.U.reissa` (1), `S.none.U.reissaa`, `S.feature.U.reissaa` (0), `S.none.up+none.reiss` (1); `B.none.U.rewl`,
+  `L.none.U.rewl`, `B.feature.U.rewl` (0: the runtime locale is C), `B.locale_utf8.U.rewl`, `B.locale_latin1.U.rewl`,
+  `L.locale_latin1.U.rewl` (1), `B.locale_posix.U.rewl`, `L.locale_c.U.rewl` (0), `B.none.catu+none.rewl` (1: U+0100 is
+  a word character under `/l` in the C locale); `B.none.U.rei`, `B.feature.U.rei`, `L.none.U.rei`, `B.none.U.reia`,
+  `B.none.U.reiu`, `B.locale_utf8.U.rei` (1), `B.locale_latin1.U.rei`, `B.locale_c.U.rei` (0),
+  `L.feature.uc+locale_latin1.rei` (1). [5.44.0]
+- `string-flags.regex-strict-reads`: The regex engine reads a flagged target strictly, croaking `Malformed UTF-8
+  character (fatal)` on a malformed one, exactly where the match needs the character decoded: always for a
+  case-insensitive match; for `\w`, `\s` or `\d` under Unicode rules (`/u`, or `/d` on a flagged target); never under
+  `/a` or `/aa`; and under `/l` only for `\w` in a locale with classes above 0x7F, `\d` and `\s` being decided without
+  decoding.  Under `use bytes` nothing is decoded and nothing croaks.  `regexec.c`.  Rows `M.none.U.rew`,
+  `M.none.U.res`, `M.none.U.red`, `M.none.U.rewu`, `M.none.U.rei`, `M.none.U.reia`, `M.none.U.reiss`,
+  `M.locale_c.U.rei`, `M.locale_utf8.U.rewl` (the croak) against `M.none.U.rewa`, `M.none.U.rewaa`,
+  `M.locale_utf8.U.res`, `M.locale_utf8.U.red`, `M.locale_c.U.rewl`, `M.none.U.rewl`, `M.bytes.U.rew`, `M.bytes.U.rei`
+  (0, no croak). [5.44.0]
+- `string-flags.unpack-modes`: `unpack "U*"` and `"C*"` read the characters of the string as they are, flagged or not
+  (`"C*"` gives full code points without wrapping); `"U0C*"` gives the bytes of the UTF-8 encoding, upgrading an
+  unflagged string to get them and, under `use bytes`, encoding each byte of a flagged one; `"C0U*"` re-reads the
+  characters as octets and decodes them, so on a byte string the bytes decode with malformed ones as U+FFFD, while on a
+  flagged string a character in 0x80-0xFF is a stray continuation byte and croaks `Malformed UTF-8 character (fatal)`, a
+  character above 0xFF reads as 0, and a malformed string yields nothing.  `pack "a*"` and `"A*"` copy the string with
+  its flag and croak on a malformed one.  `pp_unpack`, `pp_pack`.  Rows `B.none.U.unpU` and `L.none.U.unpU` (181,233),
+  `H.none.U.unpU` and `H.none.U.unpC` (97,256); `B.none.U.unpU0C` and `L.none.U.unpU0C` (194,181,195,169),
+  `L.bytes.U.unpU0C` (195,130,194,181,195,131,194,169); `B.none.U.unpC0U` (65533,65533), `L.none.U.unpC0U` (the croak),
+  `H.none.U.unpC0U` (97,0), `M.none.U.unpC0U` (empty), `M.bytes.U.unpC0U` (65533,40); `M.none.U.packa` (the croak),
+  `L.none.U.packa` (flag 1). [5.44.0]
 - `string-flags.hash-keys-and-captures`: A flagged key whose characters all fit Latin-1 is stored downgraded with
   `HVhek_WASUTF8` and returned by `keys` upgraded again; a key that does not fit stays flagged; an unflagged key stays
   bytes.  So `"\xB5\xE9"` and its upgrade are one key, and the flagged `"\xB5\xE9"` and its UTF-8 encoding
-  `"\xC2\xB5\xC3\xA9"` are two.  A regex capture inherits the flag of the string matched against.  `Perl_hv_common`
-  (`models/HashEngine/section.md` §1), `pp_match`.  Rows `L.none.U.hkey` (the key read back is `c2b5c3a9`, flag 1),
-  `H.none.U.hkey` (flag 1), `B.none.U.hkey` (flag 0); `B.none.U.hkey2` and `A.none.U.hkey2` (1 key), `L.none.U.hkey2`
-  and `H.none.U.hkey2` (2); `L.none.U.cap` (flag 1), `B.none.U.cap` (flag 0), `H.none.U.cap` (flag 1). [5.44.0]
+  `"\xC2\xB5\xC3\xA9"` are two, and a flagged key of ASCII alone is the same key as its unflagged self.  `use bytes`
+  changes none of this.  A regex capture inherits the flag of the string matched against as it was read, so under `use
+  bytes` a capture of a flagged string is unflagged bytes.  `Perl_hv_common` (`models/HashEngine/section.md` §1),
+  `pp_match`.  Rows `L.none.U.hkey` (the key read back is `c2b5c3a9`, flag 1), `H.none.U.hkey` (flag 1), `B.none.U.hkey`
+  (flag 0); `B.none.U.hkey2` and `A.none.U.hkey2` (1 key), `L.none.U.hkey2` and `H.none.U.hkey2` (2),
+  `A.none.up+none.hkey2` (1), `L.bytes.U.hkey2` (2); `L.none.U.cap` (flag 1), `B.none.U.cap` (flag 0), `H.none.U.cap`
+  (flag 1), `L.bytes.U.cap` (flag 0). [5.44.0]
+- `string-flags.locale-cmp-collation`: Under `use locale`, `cmp` compares collation keys from the C library's `strxfrm`
+  -- `memcmp` over the shorter key, then the raw strings as the tie-breaker -- except in the built-in `C` locale, which
+  perl exempts from collation; a compiled POSIX locale is not exempt, which is the one operation on which the two
+  differ.  Under the POSIX collating sequence the harness's compiled locales all carry, a byte above 0x7F is undefined
+  and weighs below every defined character, so `"abc" cmp "\xB5\xE9"` is 1 there and -1 with no locale or under the
+  built-in `C`.  `Perl_sv_cmp_locale_flags`, `sv_collxfrm_flags`, `PL_collation_standard`.  Rows `A.locale_utf8.U.cmpb`,
+  `A.locale_latin1.U.cmpb`, `A.locale_posix.U.cmpb` (1) against `A.locale_c.U.cmpb` and `A.none.U.cmpb` (-1);
+  `S.locale_posix.U.cmpb` (1: equal keys, `"\xDF"` above `"\xB5"` by its bytes). [5.44.0]
+- `string-flags.context-attaches-to-the-operation`: A lexical pragma -- `use bytes`, `unicode_strings`, `use locale` --
+  attaches to the operation, never to the value: a string crosses from one context to another carrying nothing but its
+  bytes, its flag and its taint, so what a reader under one context makes of a value produced under another is decided
+  entirely by the producer's result (its bytes and flag) and the reader's own rules.  Every producer under every context
+  handed to every reader under every other, for the five contexts that can differ, is the depth-2 grid, 121,800 rows
+  that the model reproduces from the depth-1 rules alone.  `models/StringFlags/reports/pv2.5.44.0.txt` (the run's count
+  and the SHA-256 of its table, which `DEPTH=2` regenerates); rows `B.feature.uc+none.rew` (the flagged U+039C U+00C9
+  made under the feature is a word under no pragma), `L.bytes.sub1+none.len` (the unflagged byte cut under `use bytes`
+  is one character outside it), `B.none.up+bytes.len` (4). [5.44.0]
 - `string-flags.taint-propagates`: Taint is a bit on the value (`SVs_TAINT`), copied with the value — `my $c = $t` is
   tainted — and propagated by every operation that builds a string or number from a tainted operand: concatenation and
-  `.=`, `join`, `x`, `sprintf "%s"`, `substr`, `reverse`, `chop`, `chomp`, the case functions, `tr///` and its count,
-  `length` and arithmetic on it, `index`, `split`'s fields, `unpack`, `pack "a*"`, upgrade, downgrade, encode, decode,
-  and the three-way `cmp`.  `PL_tainted` is a per-statement accumulator, set by every read of a tainted value and
-  cleared by `pp_nextstate` (`TAINT_NOT`), and `SvTAINT` marks each result built while it is set.  Every `T` row of
-  families `A`, `B` and `L` for `copy`, `catb`, `catu`, `apb`, `joinb`, `rep`, `sps`, `sub1`, `rev`, `chop`, `chomp`,
-  `uc`, `lc`, `fc`, `tr`, `trcnt`, `len`, `arith`, `idx`, `split`, `unpU`, `unpU0C`, `packa`, `up`, `down`, `enc`, `dec`
-  and `cmpb` has tainted 1 (`A.none.T.copy`, `B.none.T.catu`, `L.none.T.sub1`, `B.none.T.len`, `B.none.T.cmpb` among
-  them), as do the `H` rows of every operation that does not croak on it (`H.none.T.len`, `H.none.T.rev`).  [5.44.0]
+  `.=`, `join`, `x`, `sprintf` (`"%s"`, `"%c"` and `"%d"`), `ord`, `substr`, `reverse`, `chop`, `chomp`, the case
+  functions, `tr///` and its count, `length` and arithmetic on it, `index`, `split`'s fields, `unpack`, `pack`, upgrade,
+  downgrade, encode, decode, and the three-way `cmp`.  It is a property of the operation alone: the flag, the context
+  and the locale never change what is tainted.  `PL_tainted` is a per-statement accumulator, set by every read of a
+  tainted value and cleared by `pp_nextstate` (`TAINT_NOT`), and `SvTAINT` marks each result built while it is set.
+  Every `T` row of families `A`, `B` and `L` for `copy`, `catb`, `catu`, `apb`, `joinb`, `rep`, `sps`, `sub1`, `rev`,
+  `chop`, `chomp`, `uc`, `lc`, `fc`, `tr`, `trcnt`, `len`, `arith`, `idx`, `split`, `unpU`, `unpU0C`, `packa`, `up`,
+  `down`, `enc`, `dec`, `cmpb`, `ord`, `spc`, `spd` and `packU` has tainted 1 (`A.none.T.copy`, `B.none.T.catu`,
+  `L.none.T.sub1`, `B.none.T.len`, `B.none.T.cmpb` among them), as do the `H` rows of every operation that does not
+  croak on it (`H.none.T.len`, `H.none.T.rev`).  [5.44.0]
 - `string-flags.taint-launder`: Results that carry no taint from a tainted string: a hash key read back by `keys` after
   being stored from it (the key lives in a `HEK`, and `Perl_hv_iterkeysv` builds a fresh SV from it), a regex capture of
-  it (`pp_match`; `RXp_MATCH_TAINTED` is not set by a tainted target alone), and `chr(ord $t)` (`pp_chr` taints
-  nothing).  Rows `B.none.T.hkey`, `L.none.T.hkey` and `H.none.T.hkey` (tainted 0), `A.none.T.cap`, `B.none.T.cap` and
-  `L.none.T.cap` (0), `A.none.T.chr`, `B.none.T.chr` and `L.none.T.chr` (0). [5.44.0]
+  it (`pp_match`; `RXp_MATCH_TAINTED` is not set by a tainted target alone), `chr(ord $t)` (`pp_chr` taints nothing,
+  though `ord($t)` is tainted: the launder is at `chr`), and the empty list `split` returns for an empty tainted string.
+  Rows `B.none.T.hkey`, `L.none.T.hkey` and `H.none.T.hkey` (tainted 0), `A.none.T.cap`, `B.none.T.cap` and
+  `L.none.T.cap` (0), `A.none.T.chr`, `B.none.T.chr` and `L.none.T.chr` (0), `B.none.T.ord` (1), `E.none.T.split` (0).
+  [5.44.0]
 
 ## Element aliasing [aliasing]
 

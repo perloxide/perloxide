@@ -6,34 +6,35 @@ against Perl is meaningful.  The three builds come in two families, unthreaded a
 unthreaded family unless it requires ithreads, and the other family's stock build is its configuration cross-check.  It
 then checks an implementation under test against the stored expected outputs, lane by lane.  Every run, verdict and
 blessing is per version: the *target* is selected with `--target VERSION` or `PERL_CONFORMANCE_TARGET` and defaults to
-the newest line of `supported-versions` (5.44.0, the only one at this writing).  A Perl that is not a supported
-version (`profile.md`) is never a reference; it is run only as the implementation under `check`.
+the newest line of `supported-versions` (5.44.0, the only one at this writing).  A Perl that is not a supported version
+(`profile.md`) is never a reference; it is run only as the implementation under `check`.
 
 The seed corpus is every probe from the value/type design research that produced this reference, with expected outputs.
 `sources.md` lists the Perl source behind each probe's rule.
 
 ## Layout
 
-| Path                                          | Contents                                                                                                                     |
-|-----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
-| `bin/perl-conformance`                        | driver: `list`, `run`, `verdict`, `bless`, `selftest`, `gaps`, `check`; `explain`, `cite-check` (`facts.md`)                 |
-| `lib/Perl/Conformance/Facts.pm`               | the fact index as data: ids, areas, evidence, citations                                                                      |
-| `lib/Perl/Conformance/Run.pm`                 | runs one program: pinned environment, stdout, stderr, fd 3, exit record, timeout                                             |
-| `lib/Perl/Conformance/Normalize.pm`           | address bijection (`exact`) and line-order canonicalization (`canonical`)                                                    |
-| `lib/Perl/Conformance/Verdict.pm`             | the classification rules below                                                                                               |
-| `probe-lib/Perl/Conformance/Probe.pm`         | `__PROBE__($scalar, $label)`: flag projection written to fd 3                                                                |
-| `lib/Perl/Conformance/Locales.pm`, `locales/` | compiles the harness's own locales (`radix_comma`: comma radix, else POSIX; `ctype_utf8`: i18n ctype, else POSIX)            |
-| `perls/build-perls.sh`                        | builds the six Perls (two families of three) from the GitHub tag; `--prepare-only` stops before compiling                    |
-| `perls/noreuse.patch`                         | `plant_SV` never returns freed SV heads to `PL_sv_root`                                                                      |
-| `perls/descending.patch`                      | `S_sv_add_arena` threads each new arena's free list from the highest slot down                                               |
-| `probes/corpus/*.pl`                          | seed corpus                                                                                                                  |
-| `probes/corpus/expected/<test>/`              | blessed verdict and normalized outputs per test                                                                              |
-| `tools/gd_predict.pl`                         | arena-walk predictor for global destruction order (`gd_01_order.pl`)                                                         |
-| `tools/impl-wrong-seed.sh`                    | a deliberately wrong implementation, for exercising `check`                                                                  |
-| `tools/lint-blessed.sh`                       | fails if any blessed output, corpus or suite, ends a line in whitespace                                                      |
-| `tools/source-validate.pl`                    | which tags a model's transcribed routines are unchanged across, from the C source; per-model records                         |
-| `tools/sources.tsv`, `tools/make-sources.pl`  | citation table and the generator for `sources.md`                                                                            |
-| `perl-conformance.conf`                       | one `[VERSION]` section of build paths per supported version; the target's keys overridable by `PERL_CONFORMANCE_STOCK`, ... |
+| Path                                          | Contents                                                                                                                                          |
+|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| `bin/perl-conformance`                        | driver: `list`, `run`, `verdict`, `bless`, `selftest`, `gaps`, `check`; `explain`, `cite-check` (`facts.md`); `table`                             |
+| `lib/Perl/Conformance/Facts.pm`               | the fact index as data: ids, areas, evidence, citations                                                                                           |
+| `lib/Perl/Conformance/Table.pm`               | a model's factored result table: one line per distinct result with its context set and version set; expand, lookup, diff                          |
+| `lib/Perl/Conformance/Run.pm`                 | runs one program: pinned environment, stdout, stderr, fd 3, exit record, timeout                                                                  |
+| `lib/Perl/Conformance/Normalize.pm`           | address bijection (`exact`) and line-order canonicalization (`canonical`)                                                                         |
+| `lib/Perl/Conformance/Verdict.pm`             | the classification rules below                                                                                                                    |
+| `probe-lib/Perl/Conformance/Probe.pm`         | `__PROBE__($scalar, $label)`: flag projection written to fd 3                                                                                     |
+| `lib/Perl/Conformance/Locales.pm`, `locales/` | compiles the harness's own locales: `radix_comma` (comma radix), `ctype_utf8` and `ctype_latin1` (i18n ctype under UTF-8 and ISO-8859-1), `posix` |
+| `perls/build-perls.sh`                        | builds the six Perls (two families of three) from the GitHub tag; `--prepare-only` stops before compiling                                         |
+| `perls/noreuse.patch`                         | `plant_SV` never returns freed SV heads to `PL_sv_root`                                                                                           |
+| `perls/descending.patch`                      | `S_sv_add_arena` threads each new arena's free list from the highest slot down                                                                    |
+| `probes/corpus/*.pl`                          | seed corpus                                                                                                                                       |
+| `probes/corpus/expected/<test>/`              | blessed verdict and normalized outputs per test                                                                                                   |
+| `tools/gd_predict.pl`                         | arena-walk predictor for global destruction order (`gd_01_order.pl`)                                                                              |
+| `tools/impl-wrong-seed.sh`                    | a deliberately wrong implementation, for exercising `check`                                                                                       |
+| `tools/lint-blessed.sh`                       | fails if any blessed output, corpus or suite, ends a line in whitespace                                                                           |
+| `tools/source-validate.pl`                    | which tags a model's transcribed routines are unchanged across, from the C source; per-model records                                              |
+| `tools/sources.tsv`, `tools/make-sources.pl`  | citation table and the generator for `sources.md`                                                                                                 |
+| `perl-conformance.conf`                       | one `[VERSION]` section of build paths per supported version; the target's keys overridable by `PERL_CONFORMANCE_STOCK`, ...                      |
 
 ## Requirements
 
@@ -142,18 +143,18 @@ Comment lines anywhere in a test file:
     # perl-conformance-timeout: SECONDS
 
 After adding or changing tests: `bin/perl-conformance run probes/corpus --only RE`, `bin/perl-conformance bless
-probes/corpus --only RE`, review `git diff probes/corpus/expected`, commit.  `expected/<test>/<version>/` holds
-the verdict, the family, `also_lane_b`, and only the channels a comparison uses: the exact seed0 channels (with the
+probes/corpus --only RE`, review `git diff probes/corpus/expected`, commit.  `expected/<test>/<version>/` holds the
+verdict, the family, `also_lane_b`, and only the channels a comparison uses: the exact seed0 channels (with the
 `xconfig` ones beside them) for a lane-A test, and the canonical seed0 and seed1 channels for a lane-B test or a lane-A
 test with `also_lane_b`.  An allocator-sensitive or nondeterministic test records only its verdict.  `bless` refuses a
 channel with a line ending in whitespace.
 
 **Bringing a supported version up to date.**  A version is blessed on every test that exists when it is added; tests
-added later may be blessed on the newest version only.  `bin/perl-conformance gaps probes/corpus --target VERSION`
-lists the tests that version lacks (exit status 1 if any); closing the gap is `bin/perl-conformance run probes/corpus
---target VERSION --only RE` and `bin/perl-conformance bless probes/corpus --target VERSION --only RE` for those
-tests, against that version's six builds, then commit `expected/`.  `check --target VERSION` reports a test the target
-lacks as `UNBLESSED` rather than comparing it.
+added later may be blessed on the newest version only.  `bin/perl-conformance gaps probes/corpus --target VERSION` lists
+the tests that version lacks (exit status 1 if any); closing the gap is `bin/perl-conformance run probes/corpus --target
+VERSION --only RE` and `bin/perl-conformance bless probes/corpus --target VERSION --only RE` for those tests, against
+that version's six builds, then commit `expected/`.  `check --target VERSION` reports a test the target lacks as
+`UNBLESSED` rather than comparing it.
 
 ## Seed corpus verdicts (target 5.44.0)
 
@@ -237,5 +238,5 @@ These are harness decisions made while building it.  Each lives in one place and
 - No program generator and no minimizer yet.  The research specification for both is in the design thread.
 - The allocator gate uses two perturbations, reuse and fresh-address order.  A program sensitive only to some other
   allocator property would pass it.
-- `perls/build-perls.sh` has been run end to end on Ubuntu 24.04 (two cores, about three minutes per build); the
-  patches apply to a fresh v5.44.0 checkout in both families.
+- `perls/build-perls.sh` has been run end to end on Ubuntu 24.04 (two cores, about three minutes per build); the patches
+  apply to a fresh v5.44.0 checkout in both families.

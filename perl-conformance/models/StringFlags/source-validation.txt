@@ -1,6 +1,9 @@
-# PV.pm: 4 routines against v5.38.2 v5.40.2 v5.42.0 v5.44.0
+# StringFlags.pm: 7 routines against v5.38.2 v5.40.2 v5.42.0 v5.44.0
 uvchr_to_utf8                      function utf8.c         differs at v5.42.0 v5.44.0
-sv_len_utf8                        function sv.c           reordered at v5.44.0
+utf8_length                        function utf8.c         differs at v5.42.0 v5.44.0
+utf8_hop_back                      function inline.h       differs at v5.44.0; reordered at v5.40.2; absent at v5.42.0
 sv_utf8_upgrade_flags_grow         function sv.c           identical
 sv_utf8_downgrade_flags            function sv.c           differs at v5.42.0 v5.44.0
-# PV.pm: 1 identical across v5.38.2/v5.40.2/v5.42.0/v5.44.0, 1 reordered or reviewed neutral, 2 differ, 0 without a C definition
+sv_utf8_encode                     function sv.c           differs at v5.44.0
+sv_utf8_decode                     function sv.c           differs at v5.40.2 v5.42.0 v5.44.0
+# StringFlags.pm: 1 identical across v5.38.2/v5.40.2/v5.42.0/v5.44.0, 0 reordered or reviewed neutral, 6 differ, 0 without a C definition

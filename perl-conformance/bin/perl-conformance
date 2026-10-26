@@ -16,6 +16,10 @@
 #                                                      id), and --run also runs the cited probes and cases
 #   perl-conformance explain  --grep RE [-v]            one line per entry whose id or text matches; -v prints them in full
 #   perl-conformance cite-check FILE...                 verify that every [fact:ID] citation in FILE names an entry
+#   perl-conformance table    MODEL expand [--target V]  the full product of MODEL's factored table at one version
+#   perl-conformance table    MODEL lookup ROW... [--target V]  the record of each product row at one version
+#   perl-conformance table    MODEL diff V1 V2          the rows whose records differ between two versions
+#   perl-conformance table    MODEL versions            the versions the table holds
 #
 # Common options: --target VERSION (default: the newest version in supported-versions; also PERL_CONFORMANCE_TARGET),
 # --results DIR (default ./results; runs land in DIR/VERSION), --config FILE (default perl-conformance.conf beside bin/).
@@ -39,6 +43,7 @@ use Perl::Conformance::Run;
 use Perl::Conformance::Normalize;
 use Perl::Conformance::Locales;
 use Perl::Conformance::Facts;
+use Perl::Conformance::Table;
 use Text::Wrap ();
 
 # The LOCPATH holding the harness's compiled locales, set at startup; undef when they could not be compiled.
@@ -88,7 +93,8 @@ sub build_path {
 
 sub usage {
     die "usage: perl-conformance list|run|verdict|bless|selftest|gaps|check CORPUS [options]\n"
-      . "       perl-conformance explain [ID|AREA...|-a] [-v] [--run] | explain --grep RE [-v] | cite-check FILE...\n";
+      . "       perl-conformance explain [ID|AREA...|-a] [-v] [--run] | explain --grep RE [-v] | cite-check FILE...\n"
+      . "       perl-conformance table MODEL expand|lookup ROW...|diff V1 V2|versions [--target V]\n";
 }
 
 sub slurp {
@@ -553,6 +559,10 @@ sub cmd_explain {
             for my $e (@cited) {
                 my $flag = exists $e->{exists} && !$e->{exists} ? 'MISSING ' : '';
                 my $where = $e->{kind} eq 'case' && $e->{path} ? "  ($e->{path})" : '';
+                if ($e->{kind} eq 'rows') {
+                    my $record = table_record($e->{name});
+                    $where = "  $record" if defined $record;
+                }
                 printf "  %s%-5s %s%s\n", $flag, $e->{kind}, $e->{name}, $where;
             }
         }
@@ -644,6 +654,20 @@ sub indent_block {
     return $text;
 }
 
+# A cited model row's record at the newest version the table holds, from whichever model's factored table has the row;
+# undef when none does.  Rows of a model without a factored table are cited by name alone.
+my %TABLES;
+sub table_record {
+    my ($row) = @_;
+    for my $path (glob "$FACTS_ROOT/models/*/reports/table.tsv") {
+        $TABLES{$path} //= Perl::Conformance::Table->load($path);
+        my $table = $TABLES{$path};
+        my $rec = $table->lookup($row, $table->{versions}[-1]);
+        return $rec if defined $rec;
+    }
+    return undef;
+}
+
 # `cite-check FILE...`: every `[fact:ID]` in each file must name an entry.
 sub cmd_cite_check {
     my ($facts, @files) = @_;
@@ -660,6 +684,46 @@ sub cmd_cite_check {
     }
     printf STDERR "%d citation(s) in %d file(s), %d unknown\n", $count, scalar @files, $unknown;
     return $unknown ? 1 : 0;
+}
+
+# `table MODEL ...`: the model's factored table (lib/Perl/Conformance/Table.pm), expanded, looked up or diffed.  The
+# target version defaults as for every other command: the newest supported version.
+sub cmd_table {
+    my ($target, $model, $what, @args) = @_;
+    usage() unless defined $model && defined $what;
+    my $path = "$FACTS_ROOT/models/$model/reports/table.tsv";
+    die "no factored table for model $model ($path)\n" unless -e $path;
+    my $table = Perl::Conformance::Table->load($path);
+    my @versions = @{ $table->{versions} };
+    if ($what eq 'versions') {
+        print "$_\n" for @versions;
+        return 0;
+    }
+    if ($what eq 'diff') {
+        my ($va, $vb) = @args;
+        usage() unless defined $va && defined $vb;
+        my @d = $table->diff($va, $vb);
+        print join("\t", $_->[0], $_->[1]), "\n", "\t", $_->[2], "\n" for @d;
+        printf STDERR "%d row(s) differ between %s and %s\n", scalar @d, $va, $vb;
+        return 0;
+    }
+    $target = $versions[-1] unless defined $target && length $target;
+    die "the $model table holds no version $target (it holds @versions)\n" unless grep { $_ eq $target } @versions;
+    if ($what eq 'expand') {
+        print "# $model at $target: @{ $table->{axes} }; fields @{ $table->{fields} }\n";
+        print join("\t", @$_), "\n" for $table->expand($target);
+        return 0;
+    }
+    if ($what eq 'lookup') {
+        usage() unless @args;
+        my $missing = 0;
+        for my $row (@args) {
+            my $rec = $table->lookup($row, $target);
+            if (defined $rec) { print "$row\t$rec\n" } else { print STDERR "no row $row at $target\n"; $missing++ }
+        }
+        return $missing ? 1 : 0;
+    }
+    usage();
 }
 
 # The target version, its config, and the compiled locales, for every command that runs a Perl.
@@ -719,6 +783,10 @@ if ($command eq 'explain') {
 }
 if ($command eq 'cite-check') {
     exit cmd_cite_check(load_facts(), @args);
+}
+if ($command eq 'table') {
+    binmode $_, ':encoding(UTF-8)' for \*STDOUT, \*STDERR;
+    exit cmd_table($target, @args);
 }
 my $corpus = shift @args;
 usage() unless defined $corpus && -d $corpus;

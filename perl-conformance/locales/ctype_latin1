@@ -1,0 +1,75 @@
+comment_char %
+escape_char /
+% charmap: ISO-8859-1
+% A Latin-1 locale whose LC_CTYPE is the glibc i18n classification restricted to ISO-8859-1 and whose other
+% categories are POSIX: the byte 0xE9 is a letter and 0xB5 is a letter here, as the C library says, and the locale
+% is not UTF-8.  The string-flag probes use it as the non-UTF-8 locale whose character classes differ from C.
+LC_IDENTIFICATION
+title      "Latin-1 ctype test locale"
+source     ""
+address    ""
+contact    ""
+email      ""
+tel        ""
+fax        ""
+language   ""
+territory  ""
+revision   "1.0"
+date       "2026-10-02"
+category   "i18n:2012";LC_IDENTIFICATION
+category   "i18n:2012";LC_CTYPE
+category   "i18n:2012";LC_COLLATE
+category   "i18n:2012";LC_TIME
+category   "i18n:2012";LC_NUMERIC
+category   "i18n:2012";LC_MONETARY
+category   "i18n:2012";LC_MESSAGES
+category   "i18n:2012";LC_PAPER
+category   "i18n:2012";LC_NAME
+category   "i18n:2012";LC_ADDRESS
+category   "i18n:2012";LC_TELEPHONE
+category   "i18n:2012";LC_MEASUREMENT
+END LC_IDENTIFICATION
+
+LC_CTYPE
+copy "i18n"
+END LC_CTYPE
+
+LC_COLLATE
+copy "POSIX"
+END LC_COLLATE
+
+LC_NUMERIC
+copy "POSIX"
+END LC_NUMERIC
+
+LC_TIME
+copy "POSIX"
+END LC_TIME
+
+LC_MONETARY
+copy "POSIX"
+END LC_MONETARY
+
+LC_MESSAGES
+copy "POSIX"
+END LC_MESSAGES
+
+LC_PAPER
+copy "POSIX"
+END LC_PAPER
+
+LC_NAME
+copy "POSIX"
+END LC_NAME
+
+LC_ADDRESS
+copy "POSIX"
+END LC_ADDRESS
+
+LC_TELEPHONE
+copy "POSIX"
+END LC_TELEPHONE
+
+LC_MEASUREMENT
+copy "POSIX"
+END LC_MEASUREMENT

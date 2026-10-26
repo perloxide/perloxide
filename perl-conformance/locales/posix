@@ -1,0 +1,75 @@
+comment_char %
+escape_char /
+% charmap: ANSI_X3.4-1968
+% The POSIX locale compiled from the glibc POSIX source with the ASCII charmap: every category POSIX, every byte
+% above 0x7F undefined.  It exists so that the probes can compare a compiled POSIX locale with the C library's built-in
+% "C" locale and with no locale at all, instead of assuming the three agree.
+LC_IDENTIFICATION
+title      "POSIX test locale"
+source     ""
+address    ""
+contact    ""
+email      ""
+tel        ""
+fax        ""
+language   ""
+territory  ""
+revision   "1.0"
+date       "2026-10-02"
+category   "i18n:2012";LC_IDENTIFICATION
+category   "i18n:2012";LC_CTYPE
+category   "i18n:2012";LC_COLLATE
+category   "i18n:2012";LC_TIME
+category   "i18n:2012";LC_NUMERIC
+category   "i18n:2012";LC_MONETARY
+category   "i18n:2012";LC_MESSAGES
+category   "i18n:2012";LC_PAPER
+category   "i18n:2012";LC_NAME
+category   "i18n:2012";LC_ADDRESS
+category   "i18n:2012";LC_TELEPHONE
+category   "i18n:2012";LC_MEASUREMENT
+END LC_IDENTIFICATION
+
+LC_CTYPE
+copy "POSIX"
+END LC_CTYPE
+
+LC_COLLATE
+copy "POSIX"
+END LC_COLLATE
+
+LC_NUMERIC
+copy "POSIX"
+END LC_NUMERIC
+
+LC_TIME
+copy "POSIX"
+END LC_TIME
+
+LC_MONETARY
+copy "POSIX"
+END LC_MONETARY
+
+LC_MESSAGES
+copy "POSIX"
+END LC_MESSAGES
+
+LC_PAPER
+copy "POSIX"
+END LC_PAPER
+
+LC_NAME
+copy "POSIX"
+END LC_NAME
+
+LC_ADDRESS
+copy "POSIX"
+END LC_ADDRESS
+
+LC_TELEPHONE
+copy "POSIX"
+END LC_TELEPHONE
+
+LC_MEASUREMENT
+copy "POSIX"
+END LC_MEASUREMENT

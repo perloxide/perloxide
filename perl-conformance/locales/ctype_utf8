@@ -1,5 +1,6 @@
 comment_char %
 escape_char /
+% charmap: UTF-8
 % A UTF-8 locale whose LC_CTYPE is the glibc i18n character classification and whose other
 % categories are POSIX. The character-class and case-mapping probes use it in place of C.UTF-8,
 % which not every glibc provides.

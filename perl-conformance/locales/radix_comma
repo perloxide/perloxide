@@ -1,5 +1,6 @@
 comment_char %
 escape_char /
+% charmap: UTF-8
 % A locale whose only departure from POSIX is a comma decimal point. The numeric-radix probes and
 % lanes use it so that no test depends on which locales a system happens to have generated. Every
 % category other than LC_NUMERIC is POSIX.
