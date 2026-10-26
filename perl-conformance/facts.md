@@ -557,11 +557,10 @@ Entries:
   `Perl_get_hash_seed` fills the 32-byte seed from the hex digits of `PERL_HASH_SEED` (a value of `0` is thirty-two zero
   bytes); `PVT_PERL_HASH_SEED_STATE` expands its first sixteen bytes into the SipHash state and its last sixteen into
   the SBOX32 table.  `Perl_get_hash_seed`, `PVT_PERL_HASH_WITH_STATE`, `sbox32_hash_with_state`,
-  `S_perl_hash_siphash_1_3_with_state`, `sbox32_seed_state128`, `S_perl_siphash_seed_state`.  Model rows
-  `structure.seed0.*` and `structure.seedX_perturb0.*` of `models/HashEngine/generators/hv_gen.pl` (5, 40, 700 and 5,000
-  keys, one key in seven longer than 24 bytes), every key's `Hash::Util::hash_value` against the model, 28 of 28 in
-  `models/HashEngine/reports/hv.5.44.0.txt`; the `EXCLUDED structure.seedX_perturb2.*` lines of the same report, where
-  the hash values still match while the buckets do not.  [5.44.0]
+  `S_perl_hash_siphash_1_3_with_state`, `sbox32_seed_state128`, `S_perl_siphash_seed_state`.  Model rows `*.hash.*`
+  (every key of the 40-key set, one in seven longer than 24 bytes) and `*.hashes.*` (digests of the 700- and 5,000-key
+  sets) of `models/HashEngine/reports/table.tsv`: `Hash::Util::hash_value` against the model in all three lanes,
+  DETERMINISTIC included, on every build (`perl-conformance replay HashEngine`).  [5.44.0]
 - `hash-engine.perturbation-modes`: `PERL_HASH_SEED=0` implies `PERL_PERTURB_KEYS=0` unless overridden, and under
   `PERL_PERTURB_KEYS=0` the perturbation value `PL_hash_rand_bits` never changes from its seed-derived start (the
   constant `0xbe49d17f` with the leading seed bytes folded in through `ROTL_UV(…, 8)`), so chain placement, split points
@@ -572,16 +571,16 @@ Entries:
   interpreters or builds.  `Perl_get_hash_seed`, `UPDATE_HASH_RAND_BITS_KEY`, `MAYBE_UPDATE_HASH_RAND_BITS`.  Probe:
   `probes/corpus/order_02_modes.pl` (lane A; its `noise0`, `noise3` and `noise50` variants, which fill an unrelated hash
   with 0, 3 or 50 keys first, print the same 16-key order at seed 0, on the other family's build too, while the seed
-  ladder does not agree with seed 0, `also_lane_b` 0); the `EXCLUDED structure.seedX_perturb2.*` lines of
-  `models/HashEngine/reports/hv.5.44.0.txt`, whose buckets differ from the model's while every per-key hash value
-  matches.  [5.44.0]
+  ladder does not agree with seed 0, `also_lane_b` 0); model rows `seedX_perturb2.mask.*` and `seedX_perturb2.buckets.*`
+  of `models/HashEngine/reports/table.tsv`, which differ from the model's while every per-key hash value matches, and
+  differ among the 5.44.0 builds themselves (`perl-conformance table HashEngine diff 5.44.0 5.44.0-noreuse`).  [5.44.0]
 - `hash-engine.seed0-reproducible`: Under `PERL_HASH_SEED=0`, and under any explicit seed with `PERL_PERTURB_KEYS=0`,
   iteration order, chain order, split points, the traversal mask and destruction order are reproduced exactly by the
   transcription in `models/HashEngine/HashEngine.pm` for the profile (64-bit, `PERL_HASH_FUNC_SIPHASH13` with `SBOX32`,
   `PERL_HASH_RANDOMIZE_KEYS`, `PERL_HASH_DEFAULT_HvMAX` = 7).  `Perl_hv_common`, `S_hsplit`, `S_hv_auxinit`,
-  `Perl_hv_iternext_flags`.  Every `structure.*` and `program.*` row of `models/HashEngine/generators/hv_gen.pl` in both
-  lanes, `ok=28 bad=0` in `models/HashEngine/reports/hv.5.44.0.txt`; probe `probes/corpus/order_01_model.pl` (lane A).
-  [5.44.0]
+  `Perl_hv_iternext_flags`.  Every `seed0.*` and `seedX_perturb0.*` row of `models/HashEngine/reports/table.tsv` —
+  masks, bucket arrays and program outputs — on every 5.44.0 build and on 5.38.2 (`perl-conformance replay HashEngine`);
+  probe `probes/corpus/order_01_model.pl` (lane A). [5.44.0]
 - `hash-engine.head-insert-and-split`: A hash is an array of `HvMAX + 1` buckets, 8 to begin with, each a singly linked
   chain, and `Perl_hv_common` links a new entry at the head of its bucket (`HeNEXT(entry) = *oentry; *oentry = entry`).
   The insert then tests `DO_HSPLIT`, `keys + keys/2 > max`, and only when it collided with an occupied bucket

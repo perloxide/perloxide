@@ -1,0 +1,9 @@
+oracle=/opt/perlbrew/perls/perl-5.44.0-noreuse/bin/perl rows=170 ok=162 bad=0 excluded=8 table-sha256=f789dddd5009e59adb1645193a11cb229313fb6f6b0439011f1c6764baa682d8
+EXCLUDED seedX_perturb2.mask.5 (DETERMINISTIC perturbation depends on all prior hash activity in the process): differs
+EXCLUDED seedX_perturb2.buckets.5 (DETERMINISTIC perturbation depends on all prior hash activity in the process): matches
+EXCLUDED seedX_perturb2.mask.40 (DETERMINISTIC perturbation depends on all prior hash activity in the process): differs
+EXCLUDED seedX_perturb2.buckets.40 (DETERMINISTIC perturbation depends on all prior hash activity in the process): differs
+EXCLUDED seedX_perturb2.mask.700 (DETERMINISTIC perturbation depends on all prior hash activity in the process): differs
+EXCLUDED seedX_perturb2.buckets.700 (DETERMINISTIC perturbation depends on all prior hash activity in the process): differs
+EXCLUDED seedX_perturb2.mask.5000 (DETERMINISTIC perturbation depends on all prior hash activity in the process): differs
+EXCLUDED seedX_perturb2.buckets.5000 (DETERMINISTIC perturbation depends on all prior hash activity in the process): differs

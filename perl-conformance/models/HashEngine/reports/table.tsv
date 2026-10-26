@@ -1,0 +1,130 @@
+# axes: lane kind item
+# folded: lane
+# folded-values: seed0 seedX_perturb0 seedX_perturb2
+# versions: 5.38.2 5.44.0 5.44.0-descending 5.44.0-noreuse 5.44.0-threads 5.44.0-threads-descending 5.44.0-threads-noreuse
+# fields: value
+*	*	hash	k1	2017656364
+*	*	hash	k11	3620338884
+*	*	hash	k12	1802607766
+*	*	hash	k13	4095889990
+*	*	hash	k14	1268696043
+*	*	hash	k15	359690935
+*	*	hash	k16	1613238973
+*	*	hash	k18	671233114
+*	*	hash	k19	3815611794
+*	*	hash	k2	2805010663
+*	*	hash	k20	1432346072
+*	*	hash	k21	146412047
+*	*	hash	k22	3020059229
+*	*	hash	k23	726776973
+*	*	hash	k25	3389234300
+*	*	hash	k26	3210476662
+*	*	hash	k27	3207518734
+*	*	hash	k28	4151433873
+*	*	hash	k29	1008628569
+*	*	hash	k30	335794328
+*	*	hash	k32	4116610845
+*	*	hash	k33	1779282381
+*	*	hash	k34	3585155168
+*	*	hash	k35	2338296124
+*	*	hash	k36	4261933366
+*	*	hash	k37	4268939086
+*	*	hash	k39	2101509657
+*	*	hash	k4	374622249
+*	*	hash	k40	3829040406
+*	*	hash	k5	2278117274
+*	*	hash	k6	660172645
+*	*	hash	k7	3977398021
+*	*	hash	k8	3494246931
+*	*	hash	k9	1327863048
+*	seed0	buckets	40	4|k11|k7|k13|1|k9|4|k33,longkey_xxxxxxxxxxxxxxxxxxxx_24,k23|k37,k27|k21|1|longkey_xxxxxxxxxxxxxxxxxxxx_31,k28|k19|k8|2|k40,k12|1|k30,k20|k39,k29|k18,k5|1|longkey_xxxxxxxxxxxxxxxxxxxx_38|k32,k22|2|k34,longkey_xxxxxxxxxxxxxxxxxxxx_17|1|longkey_xxxxxxxxxxxxxxxxxxxx_10|2|k6|1|k2|1|k4|1|k14|k1|9|k36,k26|k15|4|k35,k25|k16|longkey_xxxxxxxxxxxxxxxxxxxx_3|1
+*	seed0	buckets	5	1|k4|k5|1|k1|1|longkey_xxxxxxxxxxxxxxxxxxxx_3|k2
+*	seed0	buckets	5000	sha256:8638cc9ee0668f1992956a07638dd95d07a8d35fd75c239a8d8a234291857c06
+*	seed0	buckets	700	sha256:5c5b5fa2dcb513725e0a47839443b11c4e5ddd1689ad4045ec340a4052eec320
+*	seed0	hash	longkey_xxxxxxxxxxxxxxxxxxxx_10	804123170
+*	seed0	hash	longkey_xxxxxxxxxxxxxxxxxxxx_17	3307094816
+*	seed0	hash	longkey_xxxxxxxxxxxxxxxxxxxx_24	3318965965
+*	seed0	hash	longkey_xxxxxxxxxxxxxxxxxxxx_3	2299814846
+*	seed0	hash	longkey_xxxxxxxxxxxxxxxxxxxx_31	791900369
+*	seed0	hash	longkey_xxxxxxxxxxxxxxxxxxxx_38	847337948
+*	seed0	hashes	5000	sha256:0bbfedef3751d817a9561a90361ca06716e50c2d37238eaf5d40eff13b12aef7
+*	seed0	hashes	700	sha256:e67458caf26b193a55c51c4b8ad8442d0536c314534a3334717916f7b17d36cf
+*	seed0	mask	40	3192508799
+*	seed0	mask	5	3192508799
+*	seed0	mask	5000	3192508799
+*	seed0	mask	700	3192508799
+*	seed0	program	clearfill	k16,k35,k25,k15,k36,k26,k1,k14,k4,k3,k2,k6,k34,k24,k32,k22,k18,k5,k39,k29,k30,k20,k40,k12,k10,k8,k19,k38,k28,k31,k21,k37,k27,k33,k23,k9,k13,k17,k7,k11\n
+*	seed0	program	delcur	k16 k18 k5 k20 k15 k12 k8 k10 k19 k1 k14 k4 k9 k3 k2 k13 k17 k7 k6 k11 | 0\n
+*	seed0	program	delother	k16 k18 k20 k15 k12 k8 k10 k19 k14 k9 k13 k17 k7 k6 k11 | k10,k11,k12,k13,k14,k15,k16,k17,k18,k19,k20,k6,k7,k8,k9\n
+*	seed0	program	each20	k16 k18 k5 k20 k15 k12 k8 k10 k19 k1 k14 k4 k9 k3 k2 k13 k17 k7 k6 k11 \n
+*	seed0	program	inseach	k16 k18 k5 k15 k1 k14 k4 k2 k3 k6 n3 n2 k18 k5 k20 k12 n1 k8 k10 k19 k9 k13 k17 k7 k11 \n
+*	seed0	program	keys20	k16,k18,k5,k20,k15,k12,k8,k10,k19,k1,k14,k4,k9,k3,k2,k13,k17,k7,k6,k11\n
+*	seed0	program	reset	k16 k18 k16\n
+*	seed0	program	undeffill	k16,k35,k25,k15,k36,k26,k1,k14,k4,k2,k3,k6,k34,k24,k32,k22,k18,k5,k39,k29,k30,k20,k40,k12,k8,k10,k19,k38,k28,k31,k21,k37,k27,k33,k23,k9,k13,k17,k7,k11\n
+*	seedX_perturb0	buckets	40	4|k11|k7|k13|1|k9|1|longkey_xxxxxxxxxxxxxxxxxxxx_3|2|k33,k23|k37,k27|k21|1|k28|k19|k8|2|k40,longkey_xxxxxxxxxxxxxxxxxxxx_24,k12|1|k30,k20|k39,k29|k18,k5|2|k32,k22|2|k34|2|longkey_xxxxxxxxxxxxxxxxxxxx_10|1|k6|longkey_xxxxxxxxxxxxxxxxxxxx_38|k2|longkey_xxxxxxxxxxxxxxxxxxxx_31|k4|1|k14|k1|9|k36,k26|k15|4|k35,k25,longkey_xxxxxxxxxxxxxxxxxxxx_17|k16|2
+*	seedX_perturb0	buckets	5	1|k4|k5,longkey_xxxxxxxxxxxxxxxxxxxx_3|1|k1|2|k2
+*	seedX_perturb0	buckets	5000	sha256:2563b1eb75e1e90eb0183b03f6fae253cce7873c2ff2cf9206a85c5cdec8dc5f
+*	seedX_perturb0	buckets	700	sha256:70a0ed63df5a5b39731a72d58fa4bdbedc4759e3ec5574f1ac6f971c34c8eb90
+*	seedX_perturb0	mask	40	2634856097
+*	seedX_perturb0	mask	5	2634856097
+*	seedX_perturb0	mask	5000	2634856097
+*	seedX_perturb0	mask	700	2634856097
+*	seedX_perturb0	program	clearfill	k34,k24,k6,k3,k2,k4,k14,k1,k15,k36,k26,k16,k35,k25,k17,k7,k11,k13,k9,k33,k23,k31,k21,k37,k27,k38,k28,k10,k8,k19,k40,k12,k39,k29,k30,k20,k18,k5,k32,k22\n
+*	seedX_perturb0	program	delcur	k17 k7 k6 k11 k3 k2 k13 k4 k9 k14 k1 k8 k10 k19 k15 k12 k20 k18 k5 k16 | 0\n
+*	seedX_perturb0	program	delother	k17 k7 k6 k11 k13 k9 k14 k8 k10 k19 k15 k12 k20 k18 k16 | k10,k11,k12,k13,k14,k15,k16,k17,k18,k19,k20,k6,k7,k8,k9\n
+*	seedX_perturb0	program	each20	k17 k7 k6 k11 k3 k2 k13 k4 k9 k14 k1 k8 k10 k19 k15 k12 k20 k18 k5 k16 \n
+*	seedX_perturb0	program	inseach	k17 k7 k6 k2 k3 k4 k14 k1 k15 k16 k17 k7 k11 k13 k9 k8 k10 k19 n1 k12 k20 k18 k5 n3 n2 \n
+*	seedX_perturb0	program	keys20	k17,k7,k6,k11,k3,k2,k13,k4,k9,k14,k1,k8,k10,k19,k15,k12,k20,k18,k5,k16\n
+*	seedX_perturb0	program	reset	k17 k7 k17\n
+*	seedX_perturb0	program	undeffill	k34,k24,k6,k2,k3,k4,k14,k1,k15,k36,k26,k16,k35,k25,k17,k7,k11,k13,k9,k33,k23,k31,k21,k37,k27,k38,k28,k8,k10,k19,k40,k12,k39,k29,k30,k20,k18,k5,k32,k22\n
+5.38.2	seedX_perturb2	buckets	40	4|k11|k7|k13|1|k9|1|longkey_xxxxxxxxxxxxxxxxxxxx_3|2|k33,k23|k27,k37|k21|1|k28|k19|k8|2|longkey_xxxxxxxxxxxxxxxxxxxx_24,k40,k12|1|k30,k20|k39,k29|k5,k18|2|k32,k22|2|k34|2|longkey_xxxxxxxxxxxxxxxxxxxx_10|1|k6|longkey_xxxxxxxxxxxxxxxxxxxx_38|k2|longkey_xxxxxxxxxxxxxxxxxxxx_31|k4|1|k14|k1|9|k36,k26|k15|4|k35,k25,longkey_xxxxxxxxxxxxxxxxxxxx_17|k16|2
+5.44.0	seedX_perturb2	buckets	40	4|k11|k7|k13|1|k9|1|longkey_xxxxxxxxxxxxxxxxxxxx_3|2|k33,k23|k37,k27|k21|1|k28|k19|k8|2|k40,longkey_xxxxxxxxxxxxxxxxxxxx_24,k12|1|k30,k20|k29,k39|k5,k18|2|k32,k22|2|k34|2|longkey_xxxxxxxxxxxxxxxxxxxx_10|1|k6|longkey_xxxxxxxxxxxxxxxxxxxx_38|k2|longkey_xxxxxxxxxxxxxxxxxxxx_31|k4|1|k14|k1|9|k26,k36|k15|4|k25,k35,longkey_xxxxxxxxxxxxxxxxxxxx_17|k16|2
+5.44.0-descending	seedX_perturb2	buckets	40	4|k11|k7|k13|1|k9|1|longkey_xxxxxxxxxxxxxxxxxxxx_3|2|k33,k23|k37,k27|k21|1|k28|k19|k8|2|k12,k40,longkey_xxxxxxxxxxxxxxxxxxxx_24|1|k30,k20|k29,k39|k5,k18|2|k32,k22|2|k34|2|longkey_xxxxxxxxxxxxxxxxxxxx_10|1|k6|longkey_xxxxxxxxxxxxxxxxxxxx_38|k2|longkey_xxxxxxxxxxxxxxxxxxxx_31|k4|1|k14|k1|9|k36,k26|k15|4|k35,k25,longkey_xxxxxxxxxxxxxxxxxxxx_17|k16|2
+5.44.0-noreuse	seedX_perturb2	buckets	40	4|k11|k7|k13|1|k9|1|longkey_xxxxxxxxxxxxxxxxxxxx_3|2|k33,k23|k27,k37|k21|1|k28|k19|k8|2|longkey_xxxxxxxxxxxxxxxxxxxx_24,k40,k12|1|k30,k20|k39,k29|k18,k5|2|k32,k22|2|k34|2|longkey_xxxxxxxxxxxxxxxxxxxx_10|1|k6|longkey_xxxxxxxxxxxxxxxxxxxx_38|k2|longkey_xxxxxxxxxxxxxxxxxxxx_31|k4|1|k14|k1|9|k26,k36|k15|4|k35,k25,longkey_xxxxxxxxxxxxxxxxxxxx_17|k16|2
+5.44.0-threads-*	seedX_perturb2	buckets	40	4|k11|k7|k13|1|k9|1|longkey_xxxxxxxxxxxxxxxxxxxx_3|2|k33,k23|k37,k27|k21|1|k28|k19|k8|2|k40,longkey_xxxxxxxxxxxxxxxxxxxx_24,k12|1|k30,k20|k39,k29|k18,k5|2|k22,k32|2|k34|2|longkey_xxxxxxxxxxxxxxxxxxxx_10|1|k6|longkey_xxxxxxxxxxxxxxxxxxxx_38|k2|longkey_xxxxxxxxxxxxxxxxxxxx_31|k4|1|k14|k1|9|k26,k36|k15|4|k25,k35,longkey_xxxxxxxxxxxxxxxxxxxx_17|k16|2
+5.38.2,5.44.0-descending,5.44.0-threads-*	seedX_perturb2	buckets	5	1|k4|longkey_xxxxxxxxxxxxxxxxxxxx_3,k5|1|k1|2|k2
+5.44.0,5.44.0-noreuse	seedX_perturb2	buckets	5	1|k4|k5,longkey_xxxxxxxxxxxxxxxxxxxx_3|1|k1|2|k2
+5.38.2	seedX_perturb2	buckets	5000	sha256:e8e6bcfbd57deb01fb6a98afe377e478d807316b062a51be53b472983026fba9
+5.44.0	seedX_perturb2	buckets	5000	sha256:312dde260f1f3b7fdf58b1ac9a1c587115df8323fdac9e1e969f62acb081fc2e
+5.44.0-descending	seedX_perturb2	buckets	5000	sha256:242125ce5be7140079564328dfba61904f5d6acbea0e7951ba0f56eec29ef1b0
+5.44.0-noreuse	seedX_perturb2	buckets	5000	sha256:854250977cce9223f37988033b8a5108423e046a1b67d2263f58e3079d5155c6
+5.44.0-threads	seedX_perturb2	buckets	5000	sha256:7a38be04b7ee7676bf5b254ea2df57063d05ef966eff411991b945ada68bc53e
+5.44.0-threads-descending	seedX_perturb2	buckets	5000	sha256:c9e956f55c21c3706ce4595cbb58d5b70533c26d7060ad3041de5a1a3992bfef
+5.44.0-threads-noreuse	seedX_perturb2	buckets	5000	sha256:497043ce0cb47cd208446be3f94b4f54a840bfddf7429451c4d1b61febe3e6eb
+5.38.2	seedX_perturb2	buckets	700	sha256:1a665f3be693afdfb25845bc7563d489fe027ba901d6fa9dbd91c49fd29eabcf
+5.44.0	seedX_perturb2	buckets	700	sha256:5eb14be597b58ff4e70fbbbe7a0d6534028bd8c2d9e6bc5de974d75b7ed331dc
+5.44.0-descending	seedX_perturb2	buckets	700	sha256:6745e203d2fcef6f778ae83a25ae83ef21ca90d4e3b4fb39de9af5ec238e802a
+5.44.0-noreuse	seedX_perturb2	buckets	700	sha256:8bda1658d386fbc3d81cca4bdda482d71a18ec91fceae6cd34b3e2b704af6bee
+5.44.0-threads-*	seedX_perturb2	buckets	700	sha256:9e66e3a3fee4564e8937ff080c90ac0fe390c68bf92accf3df62770e00aa4f55
+5.38.2	seedX_perturb2	mask	40	3981702442
+5.44.0	seedX_perturb2	mask	40	2939993516
+5.44.0-descending	seedX_perturb2	mask	40	3919051442
+5.44.0-noreuse	seedX_perturb2	mask	40	3953552500
+5.44.0-threads-*	seedX_perturb2	mask	40	1870281441
+5.38.2	seedX_perturb2	mask	5	630694860
+5.44.0	seedX_perturb2	mask	5	3387410930
+5.44.0-descending	seedX_perturb2	mask	5	2566409357
+5.44.0-noreuse	seedX_perturb2	mask	5	3172445226
+5.44.0-threads-*	seedX_perturb2	mask	5	3981702442
+5.38.2	seedX_perturb2	mask	5000	2593062310
+5.44.0	seedX_perturb2	mask	5000	3386419760
+5.44.0-descending	seedX_perturb2	mask	5000	2370996712
+5.44.0-noreuse	seedX_perturb2	mask	5000	1430589770
+5.44.0-threads	seedX_perturb2	mask	5000	2916482055
+5.44.0-threads-descending	seedX_perturb2	mask	5000	470533779
+5.44.0-threads-noreuse	seedX_perturb2	mask	5000	1291436992
+5.38.2	seedX_perturb2	mask	700	1730215750
+5.44.0	seedX_perturb2	mask	700	2656120762
+5.44.0-descending	seedX_perturb2	mask	700	3463367222
+5.44.0-noreuse	seedX_perturb2	mask	700	775820822
+5.44.0-threads-*	seedX_perturb2	mask	700	3321417316
+*	{seed0,seedX_perturb0}	program	destroy	Dk11 Dk17 Dk7 Dk6 Dk13 Dk3 Dk2 Dk9 Dk4 Dk14 Dk1 Dk19 Dk8 Dk10 Dk12 Dk15 Dk20 Dk18 Dk5 Dk16 \n
+*	{seed0,seedX_perturb0}	program	destroy_after_iter	Dk11 Dk17 Dk7 Dk6 Dk13 Dk3 Dk2 Dk9 Dk4 Dk14 Dk1 Dk19 Dk8 Dk10 Dk12 Dk15 Dk20 Dk18 Dk5 Dk16 \n
+*	{seedX_perturb0,seedX_perturb2}	hash	longkey_xxxxxxxxxxxxxxxxxxxx_10	1667383075
+*	{seedX_perturb0,seedX_perturb2}	hash	longkey_xxxxxxxxxxxxxxxxxxxx_17	2333128316
+*	{seedX_perturb0,seedX_perturb2}	hash	longkey_xxxxxxxxxxxxxxxxxxxx_24	3079617302
+*	{seedX_perturb0,seedX_perturb2}	hash	longkey_xxxxxxxxxxxxxxxxxxxx_3	3597094346
+*	{seedX_perturb0,seedX_perturb2}	hash	longkey_xxxxxxxxxxxxxxxxxxxx_31	4123219496
+*	{seedX_perturb0,seedX_perturb2}	hash	longkey_xxxxxxxxxxxxxxxxxxxx_38	3135787750
+*	{seedX_perturb0,seedX_perturb2}	hashes	5000	sha256:14657ace6284943fd00e4f18e862510c41caf6b913616ca2ce792e61628e2f8f
+*	{seedX_perturb0,seedX_perturb2}	hashes	700	sha256:1b0285bc941162b18dbf8d61972534120e1b304fd2b0752ba622178d59732de3
