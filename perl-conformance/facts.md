@@ -422,7 +422,7 @@ Entries:
 
 ## Finalization and temporary lifetime [finalization]
 
-Section: `models/Finalization/section.md`.  Model: `models/Finalization/Finalization.pm` (114 scenarios).  Probes:
+Section: `models/Finalization/section.md`.  Model: `models/Finalization/Finalization.pm` (115 scenarios).  Probes:
 `probes/research/value-model/` (04-06, 16, 19, 21), `probes/corpus/destroy_*`, `probes/corpus/gd_*`.
 
 Entries (the transition function is the section text; these are the facts a reader looks for by name):
@@ -435,8 +435,8 @@ Entries (the transition function is the section text; these are the facts a read
   mortalizes a referent whose count would reach zero, so the object dies at the statement's end instead; overwriting a
   weak reference takes the same path.  `Perl_sv_setsv_flags`, `Perl_sv_set_undef`, `Perl_av_clear`,
   `Perl_sv_unref_flags`.  Model rows `assign.*`, `undef.*`, `clear.*`, `delete.*` against `cat.*` in
-  `models/Finalization/reports/traces.5.44.0.txt`; probes `probes/research/value-model/21_destroy_subop.pl` (`D(5) |
-  D(7) | D(undef) | D(gone)`), `04_destroy_nontemp.pl`. [5.44.0]
+  `models/Finalization/reports/table.tsv`; probes `probes/research/value-model/21_destroy_subop.pl` (`D(5) | D(7) |
+  D(undef) | D(gone)`), `04_destroy_nontemp.pl`. [5.44.0]
 - `finalization.temporaries-die-at-drains`: Every value made as a temporary — a sub's return value, an anonymous
   constructor, a `delete` in non-void context, the mortalized referent above — sits on `PL_tmps_stack` above the current
   floor and dies when `Perl_free_tmps` pops it, in LIFO order: at the next statement boundary (`pp_nextstate`), at the
@@ -480,7 +480,7 @@ Entries (the transition function is the section text; these are the facts a read
   that stores `$_[0]` somewhere leaves the count positive, `sv_clear` stops, the object lives on and its next death runs
   `DESTROY` again (a reference made and dropped inside the destructor does not count).  `S_curse`, `Perl_sv_clear`.
   Model rows `*.X` (the destructor dies: `plainstmt.X`, `eval.X`), `*.R` (rebless: the trace `Da:R[1]` then `Da:P[1]`),
-  `*.K` (resurrection: `Da:K[1]` at each of two deaths), in `models/Finalization/reports/traces.5.44.0.txt`. [5.44.0]
+  `*.K` (resurrection: a `Da:K` at each of two deaths), in `models/Finalization/reports/table.tsv`. [5.44.0]
 - `finalization.file-lexicals-before-end`: When the main program's scope is left its file-scope lexicals die in reverse
   declaration order, in phase `RUN`, before any `END` block runs; objects held only by package variables die in global
   destruction, phase `DESTRUCT`, after `END`.  `S_my_exit_jump` (`LEAVE_SCOPE(0)` unwinds the main program's scope),
@@ -489,14 +489,16 @@ Entries (the transition function is the section text; these are the facts a read
   phase=DESTRUCT`). [5.44.0]
 - `finalization.weak-cleared-after-destroy`: Weak references to a dying object are cleared after its `DESTROY` returns,
   not before: inside the destructor every weak reference to the object is still defined.  `Perl_sv_clear` runs `S_curse`
-  first and `Perl_sv_kill_backrefs` after it.  Probe: `probes/corpus/destroy_01_weak.pl`; model rows `undef.*`,
-  `assign.*`, `cat.*` in `models/Finalization/reports/traces.*.txt` (the `[1]` after each `D` is the weak holder,
-  defined). [5.44.0]
+  first and `Perl_sv_kill_backrefs` after it.  This holds for every death outside global destruction; inside it the
+  arena walk may clear a weak reference first ([fact:identity.global-destruction-order]).  Probe:
+  `probes/corpus/destroy_01_weak.pl`; model rows `undef.*`, `assign.*`, `cat.*` in
+  `models/Finalization/reports/table.tsv` (the `[1]` after the first `D` is the weak holder, defined). [5.44.0]
 - `finalization.resurrection-keeps-weak`: If `DESTROY` resurrects the object (stores `$_[0]` somewhere), its weak
   references are not cleared: `S_curse` returns false when the count is still positive and `sv_clear` stops before the
   kill, so the weak references keep pointing at the live object and the next death runs `DESTROY` again.  Model rows
-  `undef.K`, `assign.K`, `cat.K` (class `K` copies `$_[0]` into a global; the second `Da:K[1]` is the weak holder still
-  defined at the next death). [5.44.0]
+  `undef.K`, `assign.K`, `cat.K` (class `K` copies `$_[0]` into a global, so the next death is in global destruction,
+  where whether the weak holder is still defined follows arena order: [fact:identity.global-destruction-order]).
+  [5.44.0]
 - `finalization.weak-flag-on-holder`: The weak flag belongs to the holder SV, never to the value: a copy of a weak
   reference by assignment, list assignment, `shift` or `pop` of a weak element, a sub's return, or a hash value read out
   is a strong reference that keeps the referent alive, while the holder it was copied from stays weak and is cleared at
@@ -1017,9 +1019,13 @@ allocator rather than of the language):
   reference is cleared without a decrement while a strong one is decremented, so an object's `DESTROY` runs when the
   walk reaches the holder that drops its last count, wherever that holder's head sits.  Every object reachable only from
   package variables, a blessed glob scalar, and an object with no holder at all is destroyed in phase `DESTRUCT`; the
-  order among them depends on head positions, which allocation history before the holders decides.  Probe
-  `probes/corpus/gd_01_order.pl` (variants `plain` and `prime`, which scrambles the free list first: both `lane-B-only`,
-  the set of `DESTROY`s fixed, their order not). [5.44.0]
+  order among them depends on head positions, which allocation history before the holders decides.  For the same reason
+  a weak reference to an object is still defined inside its `DESTROY` in global destruction only if the walk reached the
+  strong holder first (`S_do_clean_objs` clears a weak holder it reaches without a decrement): model rows `global.weak`,
+  `undef.K`, `assign.K`, `cat.K` read `[1]` on the stock, noreuse and threads builds and `[0]` on both descending builds
+  (`perl-conformance table Finalization diff 5.44.0 5.44.0-descending`).  Probe `probes/corpus/gd_01_order.pl` (variants
+  `plain` and `prime`, which scrambles the free list first: both `lane-B-only`, the set of `DESTROY`s fixed, their order
+  not). [5.44.0]
 - `identity.resurrection-in-global-destruction-croaks`: A `DESTROY` that stores its invocant somewhere during the
   object-cleaning pass of global destruction dies with `DESTROY created new reference to dead object 'Obj' during global
   destruction`: `S_curse` refuses a resurrection while `PL_in_clean_objs` is set, where the same store during normal

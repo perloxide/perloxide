@@ -2,6 +2,10 @@
 # fz_gen.pl -- scenario generator + differential runner for Finalization.pm (finalization / temporary lifetime).
 # Each scenario is an IR program; the same IR is emitted as perl source (the reference run) and executed by FZ.
 use strict; use warnings; use FindBin; my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/.."; my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK; require "$MODEL_ROOT/Finalization.pm";
+use File::Spec;
+use lib File::Spec->catdir($FindBin::Bin, '..', '..', '..', 'lib');
+use Perl::Conformance::Table;
+use Digest::SHA qw(sha256_hex);
 my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl';
 
 # ---------------- IR -> perl source ----------------
@@ -117,21 +121,74 @@ $S->("global.lex", [ ["stmt",["myasg","p",["new","a","O"]]], ["stmt",["myasg","q
 $S->("global.weak", [ ["stmt",["our","WEAK"]], ["stmt",["ourasg","h",["new","a","O"]]], ["stmt",["ourasg","w",["var","h"]]], ['stmt',['weaken','w','h']], ['stmt',['expr',['call','push_weak',[]]]], ['stmt',['mark',1]] ]);
 
 # ---------------- run ----------------
-my ($ok,$bad,$allowed)=(0,0,0); my @rep; my %out;
-for my $s (@scen) { my ($name,$ir)=@$s;
-  my $src = emit_program($ir); $src =~ s/sub cnt \{/sub push_weak { push \@WEAK, \\\$_ for grep { defined } (\$main::w_ref); }\nsub cnt {/;
-  # weak refs are registered by name: the generator knows which lexicals were weakened
-  my @weak = map { $_->[1] } grep { $_->[0] eq 'weaken' } map { @{$_}[1..$#$_] } grep { $_->[0] eq 'stmt' } @$ir;
-  $src =~ s/sub push_weak \{.*?\}\n/"sub push_weak { \@WEAK = (" . join(",", map { "\\\$$_" } @weak) . "); }\n"/e;
-  $src =~ s/^(sub push_weak)/$1/m; $src = "no strict 'refs';\n$src" if 0;
-  # lexical weak holders must be visible to push_weak: hoist them to file-scope 'our' vars for the reference run
-  open my $fh, '>', "$WORK/fz_child.pl" or die; print $fh $src; close $fh;
-  my $got = `timeout 10 $PERL $WORK/fz_child.pl 2>&1`; $got =~ s/^[ \t]*\(in cleanup\)[^\n]*\n/W\n/mg; $got =~ s{ at \Q$WORK\E/fz_child\.pl line \d+\.\n}{\n}g;
-  my $exp = Perl::Conformance::Model::Finalization::Harness::Run($ir, {weak=>\@weak});
-  my $isglobal = $name =~ /^global/;
-  my $cmp = sub { my ($a,$b)=@_; return $a eq $b unless $isglobal; my @x = sort split /\n/, $a; my @y = sort split /\n/, $b; "@x" eq "@y" };
-  if ($cmp->($got,$exp)) { $ok++; $allowed++ if $isglobal } else { $bad++; push @rep, "MISMATCH $name\n--- perl:\n$got--- FZ:\n$exp" }
-  $out{$name} = $got;
+# Every scenario's perl trace goes to work/fz_traces.<TAG>.txt.  When TAG is a version (a perlbrew build name such as
+# 5.44.0 or 5.44.0-threads) the run is also merged into the factored table reports/table.tsv: axes scenario and
+# variant (the two parts of the scenario name, `undef` and `K` for `undef.K`), folded over variant, one field, the trace
+# with each newline written as `|` (`-` for an empty trace).  REPLAY=1 replays the model against the traces that table
+# holds at TAG instead of running perl.  The global-destruction scenarios compare as sets of lines, since perl's order
+# there is the arena walk's.
+my $TAG = $ENV{TAG} || 'x';
+my $REPLAY = $ENV{REPLAY} ? 1 : 0;
+my $TABLE_PATH = "$MODEL_ROOT/reports/table.tsv";
+my $VERSION_RE = qr/^\d+\.\d+\.\d+(?:-[\w-]+)?\z/;
+die "REPLAY needs TAG to name a version the table holds, not `$TAG`\n" if $REPLAY && $TAG !~ $VERSION_RE;
+my $ft = $REPLAY || ($TAG =~ $VERSION_RE && -e $TABLE_PATH) ? Perl::Conformance::Table->load($TABLE_PATH)
+       : Perl::Conformance::Table->new(axes => [qw(scenario variant)], folded => 'variant', fields => ['trace']);
+die "the factored table holds no version $TAG (it holds @{ $ft->{versions} })\n"
+    if $REPLAY && !grep { $_ eq $TAG } @{ $ft->{versions} };
+sub encode_trace { my ($t) = @_; return length $t ? join('|', split /\n/, $t, -1) : '-' }
+sub decode_trace { my ($r) = @_; return $r eq '-' ? '' : join("\n", split /\|/, $r, -1) }
+my ($ok, $bad, $allowed, $absent) = (0, 0, 0, 0);
+my @rep;
+my %out;
+for my $s (@scen) {
+    my ($name, $ir) = @$s;
+
+    # Weak refs are registered by name: the generator knows which lexicals were weakened.
+    my @weak = map { $_->[1] } grep { $_->[0] eq 'weaken' } map { @{$_}[1 .. $#$_] } grep { $_->[0] eq 'stmt' } @$ir;
+    my $got;
+    if ($REPLAY) {
+        my $rec = $ft->lookup($name, $TAG);
+        if (!defined $rec) { $absent++; next }
+        $got = decode_trace($rec);
+    }
+    else {
+        my $src = emit_program($ir);
+        $src =~ s/sub cnt \{/"sub push_weak { \@WEAK = (" . join(",", map { "\\\$$_" } @weak) . "); }\nsub cnt {"/e;
+        open my $fh, '>', "$WORK/fz_child.pl" or die;
+        print $fh $src;
+        close $fh;
+        $got = `timeout 10 $PERL $WORK/fz_child.pl 2>&1`;
+        $got =~ s/^[ \t]*\(in cleanup\)[^\n]*\n/W\n/mg;
+        $got =~ s{ at \Q$WORK\E/fz_child\.pl line \d+\.\n}{\n}g;
+    }
+    my $exp = Perl::Conformance::Model::Finalization::Harness::Run($ir, { weak => \@weak });
+    my $isglobal = $name =~ /^global/;
+    my $cmp = sub {
+        my ($a, $b) = @_;
+        return $a eq $b unless $isglobal;
+        my @x = sort split /\n/, $a;
+        my @y = sort split /\n/, $b;
+        return "@x" eq "@y";
+    };
+    if ($cmp->($got, $exp)) { $ok++; $allowed++ if $isglobal }
+    else { $bad++; push @rep, "MISMATCH $name\n--- perl:\n$got--- FZ:\n" . ($exp =~ s/\n\z//r) }
+    $out{$name} = $got;
 }
-print "oracle=$PERL scenarios=".scalar(@scen)." ok=$ok bad=$bad (allowed-state rows: $allowed)\n"; print "$_\n" for @rep;
-open my $t, '>', "$WORK/fz_traces.$ENV{TAG}.txt" or die; for (sort keys %out) { print $t "### $_\n$out{$_}" } close $t;
+if ($REPLAY) {
+    print "replay=$TAG scenarios=" . scalar(@scen) . " ok=$ok bad=$bad absent=$absent (allowed-state rows: $allowed)\n";
+    print "$_\n" for @rep;
+    exit($bad ? 1 : 0);
+}
+my $raw = "$WORK/fz_traces.$TAG.txt";
+open my $t, '>', $raw or die "cannot write $raw: $!\n";
+print $t "### $_\n$out{$_}" for sort keys %out;
+close $t;
+my $digest = do { open my $fh, '<', $raw or die; local $/; sha256_hex(<$fh>) };
+print "oracle=$PERL scenarios=" . scalar(@scen) . " ok=$ok bad=$bad (allowed-state rows: $allowed) table-sha256=$digest\n";
+print "$_\n" for @rep;
+if ($TAG =~ $VERSION_RE) {
+    $ft->merge($TAG, { map { $_ => encode_trace($out{$_}) } keys %out });
+    $ft->write($TABLE_PATH);
+    print STDERR "merged $TAG into $TABLE_PATH\n";
+}

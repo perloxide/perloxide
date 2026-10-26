@@ -1,0 +1,66 @@
+oracle=/opt/perlbrew/perls/perl-5.44.0-threads-descending/bin/perl scenarios=115 ok=111 bad=4 (allowed-state rows: 1) table-sha256=cf8bd8bcfc52dcaaab127befaa219674fa355c1b97a498b98aade4fcabb2483f
+MISMATCH undef.K
+--- perl:
+m1
+Da:K[1]
+m2
+m-end
+END
+Da:K[0]
+DESTROY created new reference to dead object 'K' during global destruction.
+--- FZ:
+m1
+Da:K[1]
+m2
+m-end
+END
+Da:K[1]
+DESTROY created new reference to dead object 'K' during global destruction.
+
+MISMATCH assign.K
+--- perl:
+m1
+Da:K[1]
+m2
+m-end
+END
+Da:K[0]
+DESTROY created new reference to dead object 'K' during global destruction.
+--- FZ:
+m1
+Da:K[1]
+m2
+m-end
+END
+Da:K[1]
+DESTROY created new reference to dead object 'K' during global destruction.
+
+MISMATCH cat.K
+--- perl:
+m1
+Da:K[1]
+m2
+m-end
+END
+Da:K[0]
+DESTROY created new reference to dead object 'K' during global destruction.
+--- FZ:
+m1
+Da:K[1]
+m2
+m-end
+END
+Da:K[1]
+DESTROY created new reference to dead object 'K' during global destruction.
+
+MISMATCH global.weak
+--- perl:
+m1
+m-end
+END
+Da:O[0]
+--- FZ:
+m1
+m-end
+END
+Da:O[1]
