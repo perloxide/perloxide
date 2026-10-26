@@ -658,16 +658,26 @@ sub indent_block {
     return $text;
 }
 
-# A cited model row's record at the newest version the table holds, from whichever model's factored table has the row;
-# undef when none does.  Rows of a model without a factored table are cited by name alone.
+# What a cited model row resolves to at the newest version its table holds: the row's record when the citation names
+# one row, or "(N rows)" when it is a pattern -- `*` for any value of an axis, and fewer values than axes for any value
+# of the trailing ones (`plain/aeP/*/unshift1`).  The first factored table with a match wins; undef when none has one,
+# and rows of a model without a factored table are cited by name alone.
 my %TABLES;
 sub table_record {
     my ($row) = @_;
     for my $path (sort glob "$FACTS_ROOT/models/*/reports/*.tsv") {
         $TABLES{$path} //= Perl::Conformance::Table->load($path);
         my $table = $TABLES{$path};
-        my $rec = $table->lookup($row, $table->{versions}[-1]);
+        my $version = $table->{versions}[-1];
+        my $rec = $table->lookup($row, $version);
         return $rec if defined $rec;
+        my @pat = @{ $table->parts($row) };
+        next if @pat > @{ $table->{axes} } || !grep { $_ eq '*' } @pat, (@pat < @{ $table->{axes} } ? '*' : ());
+        my $n = grep {
+            my $r = $_;
+            !grep { $pat[$_] ne '*' && $pat[$_] ne $r->[$_] } 0 .. $#pat
+        } map { [ @$_[0 .. $#{ $table->{axes} }] ] } $table->expand($version);
+        return "($n rows)" if $n;
     }
     return undef;
 }
