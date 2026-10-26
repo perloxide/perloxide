@@ -3,10 +3,10 @@
 **Source.**  Transcribed from the perl5 repository at tag `v5.44.0`: scope.c, mg.c (`mg_localize`) and the localizing
 arms of pp_hot.c and pp.c.  Validated by replay against the supported 5.44.0 builds; results in `reports/`, with the
 5.38.2 observation lines beside them from the unsupported 5.38.2 (`../../unsupported-perls.md`).  Source-validated with
-`tools/source-validate.pl` against v5.38.2, v5.40.2, v5.42.0, v5.44.0 (`source-validation.txt`): of the routines
-with a C definition, 2 are identical across all four tags and so transcribed equally validly for each, 12 differ only by
-moved declarations or added assertions, and 24 differ in code at one or more of the tags and must be read before any of
-those versions can be supported by this model — each such reading ends either in a `source-equivalences.tsv` line
+`tools/source-validate.pl` against v5.38.2, v5.40.2, v5.42.0, v5.44.0 (`source-validation.txt`): of the routines with a
+C definition, 2 are identical across all four tags and so transcribed equally validly for each, 12 differ only by moved
+declarations or added assertions, and 24 differ in code at one or more of the tags and must be read before any of those
+versions can be supported by this model — each such reading ends either in a `source-equivalences.tsv` line
 (functionally neutral) or in a version check inside the model; 2 names are the model's own labels, arms and helpers.  A
 replay mismatch on a supported version is therefore either a model gap or a change in perl's own implementation since
 the transcribed tag, and the validation record says which routines could carry the second kind.
@@ -33,14 +33,18 @@ array the methods a structural operation calls (`SHIFT`, `UNSHIFT`, `PUSH`, `POP
 the trace, and the tie class's own semantics for them -- a store keyed by index that `SHIFT`, `UNSHIFT` and `SPLICE`
 renumber -- are part of the test, transcribed into the model beside perl's.
 
-    PERL_CONFORMANCE_PERL=/path/to/perl perl generators/ss_gen.pl        # prints cells=488 ok=... mismatch=... crash=...
-    PERL_CONFORMANCE_PERL=... TABLE=reports/table.<ver>.tsv perl generators/ss_gen.pl
+    PERL_CONFORMANCE_PERL=/path/to/perl TAG=<version> perl generators/ss_gen.pl   # cells=488 ok=... mismatch=... crash=...
+    REPLAY=1 TAG=<version> perl generators/ss_gen.pl                              # the model against the table, no perl
 
-Recorded: 488/488 on 5.38.2 and 5.44.0, byte-identical observation lines (`reports/`).  The section text is
-`section.md`.  A snake_case routine in `SaveStack.pm` mirrors the perl function or macro of that name (`Perl_`/`S_`
-removed: `SvREFCNT_inc`, `sv_2mortal`, `av_fetch`, `mg_find`, `pp_nextstate`, `pp_aelem`); what has no C counterpart is
-harness glue in `Perl::Conformance::Model::SaveStack::Harness` (`Read`, `Store`, `StoreRef`, `RetainPayload`,
-`ReleasePayload`, `Trace`, `Show`, `Reset`).  The key is audited below.
+Recorded: 488/488 on 5.38.2 and on every 5.44.0 build (`reports/ss.<version>.txt`), byte-identical observations.  Perl's
+observation of every cell at every version is in the factored table `reports/table.tsv` (axes kind, site, mode,
+mutation, exception, depth, folded over mode; `../README.md`, Tables and replay), every line holding for every version
+(`*`); `perl-conformance table SaveStack lookup plain/aeP/bare/none/ok/d1` prints one cell's record and
+`perl-conformance replay SaveStack` runs the model against it.  A run whose `TAG` is a version merges itself into the
+table.  The section text is `section.md`.  A snake_case routine in `SaveStack.pm` mirrors the perl function or macro of
+that name (`Perl_`/`S_` removed: `SvREFCNT_inc`, `sv_2mortal`, `av_fetch`, `mg_find`, `pp_nextstate`, `pp_aelem`); what
+has no C counterpart is harness glue in `Perl::Conformance::Model::SaveStack::Harness` (`Read`, `Store`, `StoreRef`,
+`RetainPayload`, `ReleasePayload`, `Trace`, `Show`, `Reset`).  The key is audited below.
 
 ## Key
 

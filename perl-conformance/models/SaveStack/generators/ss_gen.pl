@@ -17,8 +17,12 @@
 # references captured inside the scope: one to the SV the local installed,
 # one to the SV a removing operation handed back. Those show where the
 # installed SV went and that it outlives the scope.
-use strict; use warnings; use FindBin; my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/.."; my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK;
+use strict; use warnings; no warnings 'once'; use FindBin; my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/.."; my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK;
 require "$MODEL_ROOT/SaveStack.pm";
+use File::Spec;
+use lib File::Spec->catdir($FindBin::Bin, '..', '..', '..', 'lib');
+use Perl::Conformance::Table;
+use Digest::SHA qw(sha256_hex);
 my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl';
 
 my @cells;
@@ -553,32 +557,72 @@ sub replay_struct {
 }
 
 # ---------------- drive ----------------
-my ($n, $ok, $bad, $crash) = (0, 0, 0, 0);
+# Every cell's perl observation goes to work/ss_table.<TAG>.tsv; when TAG is a version (a perlbrew build name such as
+# 5.44.0 or 5.44.0-threads) the run is also merged into the factored table reports/table.tsv (axes kind site mode
+# mutation exception depth, folded over mode; one field, the observation record), and REPLAY=1 replays the model
+# against the rows that table holds at TAG instead of running perl.  A crashed child is recorded as CRASH.
+my $TAG = $ENV{TAG} || 'x';
+my $REPLAY = $ENV{REPLAY} ? 1 : 0;
+my $TABLE_PATH = "$MODEL_ROOT/reports/table.tsv";
+my $VERSION_RE = qr/^\d+\.\d+\.\d+(?:-[\w-]+)?\z/;
+die "REPLAY needs TAG to name a version the table holds, not `$TAG`\n" if $REPLAY && $TAG !~ $VERSION_RE;
+my $ft = $REPLAY || ($TAG =~ $VERSION_RE && -e $TABLE_PATH) ? Perl::Conformance::Table->load($TABLE_PATH)
+       : Perl::Conformance::Table->new(axes => [qw(kind site mode mutation exception depth)], folded => 'mode',
+                                       fields => ['record'], separator => '/');
+die "the factored table holds no version $TAG (it holds @{ $ft->{versions} })\n"
+    if $REPLAY && !grep { $_ eq $TAG } @{ $ft->{versions} };
+my ($n, $ok, $bad, $crash, $absent) = (0, 0, 0, 0, 0);
 my @report;
-open my $tab, '>', ($ENV{TABLE} || '/dev/null') or die $!;
+my %table;
 for my $c (@cells) {
     my $key = join('/', @$c{qw(k s m mu ex)}, "d$c->{d}");
-    my $code = $c->{st} ? render_struct_child($c) : render_child($c);
-    open my $fh, '>', "$WORK/ss_child.pl" or die $!;
-    print $fh $code; close $fh;
-    my $out = `timeout 5 $PERL $WORK/ss_child.pl 2>/dev/null`;
-    my $st = $?;
     $n++;
-    if ($st & 127 || ($st >> 8) >= 124 || $out !~ /\S/) {
-        $crash++; push @report, "CRASH $key (status $st)";
-        print $tab "$key\tCRASH\tCRASH\n";
-        next;
+    my $out;
+    if ($REPLAY) {
+        $out = $ft->lookup($key, $TAG);
+        if (!defined $out) { $absent++; next }
+        if ($out eq 'CRASH') { $crash++; next }
     }
-    chomp $out; $out = norm_ids($out);
+    else {
+        my $code = $c->{st} ? render_struct_child($c) : render_child($c);
+        open my $fh, '>', "$WORK/ss_child.pl" or die $!;
+        print $fh $code; close $fh;
+        $out = `timeout 5 $PERL $WORK/ss_child.pl 2>/dev/null`;
+        my $st = $?;
+        if ($st & 127 || ($st >> 8) >= 124 || $out !~ /\S/) {
+            $crash++; push @report, "CRASH $key (status $st)";
+            $table{$key} = 'CRASH';
+            next;
+        }
+        chomp $out; $out = norm_ids($out);
+    }
+
+    # The model raises perl's "(in cleanup)" warning for a dying destructor as a real warning; the child's stderr is
+    # not part of the observation, so neither is the model's.  Any other warning still reaches stderr.
+    local $SIG{__WARN__} = sub { warn @_ unless $_[0] eq "D\n" };
     my $mod = eval { $c->{st} ? replay_struct($c) : replay($c) };
     $mod = "REPLAY-DIED: " . fmte($@) unless defined $mod;
     if ($c->{k} eq 'tied' && $c->{s} ne 'pkg') {
         $_ =~ s/I=[^|]*/I=masked/ for $out, $mod;
     }
-    print $tab "$key\t$out\t$mod\n";
+    $table{$key} = $out;
     if ($out eq $mod) { $ok++ }
     else { $bad++; push @report, "MISMATCH $key\n  perl: $out\n  SS  : $mod" }
 }
+if ($REPLAY) {
+    print "replay=$TAG cells=$n ok=$ok bad=$bad crash=$crash absent=$absent\n";
+    print "$_\n" for @report;
+    exit($bad ? 1 : 0);
+}
+my $raw = "$WORK/ss_table.$TAG.tsv";
+open my $tab, '>', $raw or die "cannot write $raw: $!\n";
+print $tab "$_\t$table{$_}\n" for sort keys %table;
 close $tab;
-print "cells=$n ok=$ok mismatch=$bad crash=$crash\n";
+my $digest = do { open my $fh, '<', $raw or die; local $/; sha256_hex(<$fh>) };
+print "oracle=$PERL cells=$n ok=$ok mismatch=$bad crash=$crash table-sha256=$digest\n";
 print "$_\n" for @report;
+if ($TAG =~ $VERSION_RE) {
+    $ft->merge($TAG, \%table);
+    $ft->write($TABLE_PATH);
+    print STDERR "merged $TAG into $TABLE_PATH\n";
+}

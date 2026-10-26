@@ -1,0 +1,1 @@
+oracle=/opt/perlbrew/perls/perl-5.44.0-threads-descending/bin/perl cells=488 ok=488 mismatch=0 crash=0 table-sha256=1671177201fc0d735158b2e247cd702b93becfe407dcb0cd96c9aa7ff4c250b0

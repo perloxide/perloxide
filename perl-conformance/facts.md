@@ -280,8 +280,8 @@ line, with the flag set and the value as the suite prints them):
 ## `local` and the save stack [save-stack]
 
 Section: `models/SaveStack/section.md`.  Model: `models/SaveStack/SaveStack.pm` (488 cells; the 176 structural cells are
-the `models/SaveStack/reports/table.*.tsv` rows whose mutation is `keep`, `shift1`, `shift2`, `unshift1`, `pop1`,
-`push1`, `splice_rm`, `splice_ins`, `fill_neg1`, `fill0` or `refill`).  Probes: `probes/research/value-model/` (01-03),
+the `models/SaveStack/reports/table.tsv` rows whose mutation is `keep`, `shift1`, `shift2`, `unshift1`, `pop1`, `push1`,
+`splice_rm`, `splice_ins`, `fill_neg1`, `fill0` or `refill`).  Probes: `probes/research/value-model/` (01-03),
 `probes/corpus/local_*`, `probes/corpus/tie_*`.
 
 Entries:
@@ -929,7 +929,7 @@ Entries:
   returned value has the address the element had in the array.  So does `splice` in list context for every element it
   removes; in scalar context it returns the last removed one and frees the rest at once.  `Perl_av_shift`,
   `Perl_av_pop`, `pp_splice`.  Probe: `probes/corpus/local_elem_sv_identity.pl`; model rows
-  `models/SaveStack/reports/table.*.tsv` with mutation `shift1`, `pop1`, `splice_rm` (the second `E=` reference).
+  `models/SaveStack/reports/table.tsv` with mutation `shift1`, `pop1`, `splice_rm` (the second `E=` reference).
   [5.44.0]
 - `arrays.insert-copies`: What `unshift`, `push` and `splice` insert are fresh copies of their arguments (`newSVsv` in
   `pp_unshift`, `pp_push` and `pp_splice`), never the argument SVs.  The same rows with mutation `unshift1`, `push1`,
