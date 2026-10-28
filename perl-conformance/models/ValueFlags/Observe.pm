@@ -19,7 +19,7 @@ package Perl::Conformance::Model::ValueFlags::Observe;
 use strict; use warnings; no warnings qw(experimental::builtin); use B; require Devel::Peek;
 our $PROJ = $ENV{PROJ} || 'flags';
 sub child_head { my $proj = shift || $PROJ; my $root = $ENV{MODEL_ROOT} || '.'; return <<"H" }
-use strict; no warnings; require '$root/Observe.pm'; binmode STDOUT, ":utf8"; \$Perl::Conformance::Model::ValueFlags::Observe::PROJ = '$proj';
+use strict; no warnings; BEGIN { require '$root/Observe.pm'; Perl::Conformance::Model::ValueFlags::Observe->import } binmode STDOUT, ":utf8"; \$Perl::Conformance::Model::ValueFlags::Observe::PROJ = '$proj';
 our \@WARN; \$SIG{__WARN__} = sub { my \$m=\$_[0]; \$m =~ s/ at .*//s; \$m =~ s/\\n//; push \@WARN, \$m };
 H
 my @F=(IOK=>B::SVf_IOK(),NOK=>B::SVf_NOK(),POK=>B::SVf_POK(),pIOK=>B::SVp_IOK(),pNOK=>B::SVp_NOK(),pPOK=>B::SVp_POK(),IsUV=>B::SVf_IVisUV(),ROK=>B::SVf_ROK(),UTF8=>B::SVf_UTF8(),IsCOW=>B::SVf_IsCOW());
