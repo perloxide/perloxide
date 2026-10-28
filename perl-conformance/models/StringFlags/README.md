@@ -14,14 +14,14 @@ are the model's own labels, arms and helpers.  A replay mismatch on a supported 
 or a change in perl's own implementation since the transcribed tag, and the validation record says which routines could
 carry the second kind.
 
-`StringFlags.pm` transcribes the string-flag and taint semantics: `sv_utf8_upgrade_flags_grow`,
-`sv_utf8_downgrade_flags`, `sv_utf8_encode`, `sv_utf8_decode`, `utf8_length` and the lenient, strict and decoding UTF-8
-readers, `DO_UTF8` under `use bytes`, case mapping and the regex charsets under every context (the Unicode bug, the
-feature, `use bytes`, and `use locale` with the runtime locale's character repertoire), `/aa`, `unpack` modes,
-`pp_multiconcat`, `pp_substr`, both paths of `pp_reverse`, `sv_cmp_locale_flags` with the POSIX collating sequence, hash
-keys, and taint propagation with the launder list.  Routines named after a C function transcribe it; the CamelCase
-routines are glue.  Still open: the warning column is recorded but not compared, and the I/O flag boundary is described
-from source rather than enumerated.
+`StringFlags.pm` (`../../lib/Perl/Conformance/Model/StringFlags.pm`) transcribes the string-flag and taint semantics:
+`sv_utf8_upgrade_flags_grow`, `sv_utf8_downgrade_flags`, `sv_utf8_encode`, `sv_utf8_decode`, `utf8_length` and the
+lenient, strict and decoding UTF-8 readers, `DO_UTF8` under `use bytes`, case mapping and the regex charsets under every
+context (the Unicode bug, the feature, `use bytes`, and `use locale` with the runtime locale's character repertoire),
+`/aa`, `unpack` modes, `pp_multiconcat`, `pp_substr`, both paths of `pp_reverse`, `sv_cmp_locale_flags` with the POSIX
+collating sequence, hash keys, and taint propagation with the launder list.  Routines named after a C function
+transcribe it; the CamelCase routines are glue.  Still open: the warning column is recorded but not compared, and the
+I/O flag boundary is described from source rather than enumerated.
 
 `generators/pv_gen.pl` enumerates seven string families x seven lexical contexts x tainted or not x 61 operations at
 depth 1 (6,272 rows), observing bytes, flag, `length`, every character's `ord`, `tainted`, warnings and croaks; at depth

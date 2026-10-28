@@ -11,12 +11,12 @@ versions can be supported by this model — each such reading ends either in a `
 replay mismatch on a supported version is therefore either a model gap or a change in perl's own implementation since
 the transcribed tag, and the validation record says which routines could carry the second kind.
 
-`HashEngine.pm` transcribes hv.c and hv_func.h for the profile in `profile.md`: the seed expansion
-(`perl_siphash_seed_state`, `sbox32_seed_state128`), the two hash functions (`perl_hash_siphash_1_3_with_state`,
-`sbox32_hash_with_state`), `hv_common` (head insertion, `DO_HSPLIT` gated on collision), `hsplit`, `hv_auxinit`,
-`PERL_HASH_ITER_BUCKET`, `hv_iternext_flags` (including `HvLAZYDEL` and the each-after-insert warning's `xhv_last_rand
-!= xhv_rand` guard), `hv_delete_common`, `hv_clear`, `hv_undef_flags`, `hfree_next_entry`'s raw-bucket destruction
-order, and key normalization.
+`HashEngine.pm` (`../../lib/Perl/Conformance/Model/HashEngine.pm`) transcribes hv.c and hv_func.h for the profile in
+`profile.md`: the seed expansion (`perl_siphash_seed_state`, `sbox32_seed_state128`), the two hash functions
+(`perl_hash_siphash_1_3_with_state`, `sbox32_hash_with_state`), `hv_common` (head insertion, `DO_HSPLIT` gated on
+collision), `hsplit`, `hv_auxinit`, `PERL_HASH_ITER_BUCKET`, `hv_iternext_flags` (including `HvLAZYDEL` and the
+each-after-insert warning's `xhv_last_rand != xhv_rand` guard), `hv_delete_common`, `hv_clear`, `hv_undef_flags`,
+`hfree_next_entry`'s raw-bucket destruction order, and key normalization.
 
 `generators/hv_gen.pl` validates below program level against `Hash::Util::bucket_array`, `hash_traversal_mask`, and
 `hash_value` for 5, 40, 700, and 5000 keys under seed 0, a nonzero seed with `PERL_PERTURB_KEYS=0`, and that seed in

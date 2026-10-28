@@ -2,7 +2,9 @@
 our $ROOT = $ENV{MODEL_ROOT} || '.';
 # BFS over (start value, op sequence): records every (state, op) -> state transition observed on the reference perl via
 # B::FLAGS plus a side-effect-free value fingerprint, then replays the same recipes through ValueFlags.pm and reports mismatches.
-use strict; use warnings; require "$ROOT/ValueFlags.pm";
+use strict; use warnings;
+use FindBin; use lib "$FindBin::Bin/../../../lib";
+use Perl::Conformance::Model::ValueFlags; use Perl::Conformance::Model::ValueFlags::Observe;
 my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl'; my $DEPTH = $ENV{DEPTH} || 3; my $TAG = $ENV{TAG} || 'x';
 my %starts = ( s10=>q{"10"}, sUV=>q{"18446744073709551615"}, s1_5=>q{"1.5"}, s1e19=>q{"1e19"}, sabc=>q{"abc"}, s12x=>q{"12x"},
   sInf=>q{"Inf"}, sNaN=>q{"NaN"}, sInfx=>q{"Infx"}, sEmpty=>q{""}, sNeg0=>q{"-0"}, s09=>q{"09"}, sAz=>q{"Az"},
@@ -22,7 +24,7 @@ my @ops = (iv=>q{my $t = $x | 0;}, nv=>q{my $t = sprintf "%.17g", $x;}, str=>q{m
   vec=>q{vec($x, 0, 8) = 65;}, chop=>q{chop $x;}, chomp=>q{chomp $x;}, catl=>q{my $t = $x . "y";}, catr=>q{my $t = "y" . $x;},
   local=>q{{ local $x = 5; }}, asgs=>q{$x = "10";}, asgi=>q{$x = 10;}, asgn=>q{$x = 3.5;}, asgu=>q{$x = undef;}, undefx=>q{undef $x;}, chopl=>q{substr($x, 0, 1, "");});
 my %opcode = @ops; my @opnames = map { $ops[$_*2] } 0..$#ops/2; if ($ENV{OPS}) { my %k = map { $_=>1 } split /,/, $ENV{OPS}; @opnames = grep { $k{$_} } @opnames }
-require "$ROOT/Observe.pm"; my $PROJ = $ENV{PROJ} || "flags"; my $head = Perl::Conformance::Model::ValueFlags::Observe::child_head($PROJ);
+my $PROJ = $ENV{PROJ} || "flags"; my $head = Perl::Conformance::Model::ValueFlags::Observe::child_head($PROJ);
 my (%edges, %rep, %full); my $SEP = "\x01"; my %startkey;
 my $WALK = $ENV{WALK}; my $SEED = $ENV{SEED} // 20260924; srand($SEED) if $WALK;
 for my $c (@only) {

@@ -1,9 +1,11 @@
 # Models
 
 Executable transcriptions of one area each of perl's C, validated by replaying perl's own observed behavior through them
-(`../README.md`, Models).  Each lives in its own directory with the model, its section text, its generators, its reports
-and its source-validation record; the package is `Perl::Conformance::Model::<Name>`, loaded by path from the model's
-directory.
+(`../README.md`, Models).  Each model's code is the module `Perl::Conformance::Model::<Name>`, at
+`../lib/Perl/Conformance/Model/<Name>.pm` beside the harness's own modules (with any helper module of the model under
+`../lib/Perl/Conformance/Model/<Name>/`), so that a generator, a child program or any other user loads it with `use lib`
+and `use`; everything else of a model -- its section text, generators, reports and source-validation record -- lives in
+its directory here.
 
 | Directory       | Package                                  | Area                                                        | Former code |
 |-----------------|------------------------------------------|-------------------------------------------------------------|-------------|

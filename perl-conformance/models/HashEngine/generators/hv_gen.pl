@@ -22,9 +22,9 @@
 use strict; use warnings; use FindBin;
 my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/..";
 my $WORK = $ENV{MODEL_WORK} || "$MODEL_ROOT/work"; mkdir $WORK unless -d $WORK;
-require "$MODEL_ROOT/HashEngine.pm";
 use File::Spec;
 use lib File::Spec->catdir($FindBin::Bin, '..', '..', '..', 'lib');
+use Perl::Conformance::Model::HashEngine;
 use Perl::Conformance::Table;
 use Digest::SHA qw(sha256_hex);
 my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl'; my $TAG = $ENV{TAG} || 'x';

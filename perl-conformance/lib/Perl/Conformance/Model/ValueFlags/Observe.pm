@@ -18,8 +18,14 @@ package Perl::Conformance::Model::ValueFlags::Observe;
 # destructively, at the block's end on the original.  The key is identical under both projections.
 use strict; use warnings; no warnings qw(experimental::builtin); use B; require Devel::Peek;
 our $PROJ = $ENV{PROJ} || 'flags';
-sub child_head { my $proj = shift || $PROJ; my $root = $ENV{MODEL_ROOT} || '.'; return <<"H" }
-use strict; no warnings; BEGIN { require '$root/Observe.pm'; Perl::Conformance::Model::ValueFlags::Observe->import } binmode STDOUT, ":utf8"; \$Perl::Conformance::Model::ValueFlags::Observe::PROJ = '$proj';
+
+# The lib directory this module was loaded from (it is lib/Perl/Conformance/Model/ValueFlags/Observe.pm), so that a
+# child program run from anywhere can load it too.
+use File::Spec; use File::Basename ();
+my $LIB = File::Spec->rel2abs(File::Spec->catdir(File::Basename::dirname(__FILE__), (File::Spec->updir) x 4));
+sub lib_dir { $LIB }
+sub child_head { my $proj = shift || $PROJ; my $lib = lib_dir(); return <<"H" }
+use strict; no warnings; use lib '$lib'; use Perl::Conformance::Model::ValueFlags::Observe; binmode STDOUT, ":utf8"; \$Perl::Conformance::Model::ValueFlags::Observe::PROJ = '$proj';
 our \@WARN; \$SIG{__WARN__} = sub { my \$m=\$_[0]; \$m =~ s/ at .*//s; \$m =~ s/\\n//; push \@WARN, \$m };
 H
 my @F=(IOK=>B::SVf_IOK(),NOK=>B::SVf_NOK(),POK=>B::SVf_POK(),pIOK=>B::SVp_IOK(),pNOK=>B::SVp_NOK(),pPOK=>B::SVp_POK(),IsUV=>B::SVf_IVisUV(),ROK=>B::SVf_ROK(),UTF8=>B::SVf_UTF8(),IsCOW=>B::SVf_IsCOW());

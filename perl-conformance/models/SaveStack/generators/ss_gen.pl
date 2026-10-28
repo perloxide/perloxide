@@ -18,9 +18,9 @@
 # one to the SV a removing operation handed back. Those show where the
 # installed SV went and that it outlives the scope.
 use strict; use warnings; no warnings 'once'; use FindBin; my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/.."; my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK;
-require "$MODEL_ROOT/SaveStack.pm";
 use File::Spec;
 use lib File::Spec->catdir($FindBin::Bin, '..', '..', '..', 'lib');
+use Perl::Conformance::Model::SaveStack;
 use Perl::Conformance::Table;
 use Digest::SHA qw(sha256_hex);
 my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl';

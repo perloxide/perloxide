@@ -11,11 +11,12 @@ versions can be supported by this model — each such reading ends either in a `
 replay mismatch on a supported version is therefore either a model gap or a change in perl's own implementation since
 the transcribed tag, and the validation record says which routines could carry the second kind.
 
-`SaveStack.pm` transcribes scope.c's `local` machinery -- `save_scalar_at`, `save_scalar`, `save_aelem_flags`,
-`save_helem_flags`, `save_adelete`/`save_hdelete`, `save_gp`, `save_clearsv`, `mg_localize`, `restore_sv`, `leave_scope`
-and its record types -- plus the `pp_gvsv`/`pp_aelem`/`pp_helem` localizing arms that decide the entry `mg_set`, and the
-structural operations the restore can land on (`av_shift`, `av_pop`, `av_fill`, `pp_unshift`, `pp_push`, `pp_splice`,
-`pp_aassign` to an array), each routing a tied array to its method.
+`SaveStack.pm` (`../../lib/Perl/Conformance/Model/SaveStack.pm`) transcribes scope.c's `local` machinery --
+`save_scalar_at`, `save_scalar`, `save_aelem_flags`, `save_helem_flags`, `save_adelete`/`save_hdelete`, `save_gp`,
+`save_clearsv`, `mg_localize`, `restore_sv`, `leave_scope` and its record types -- plus the
+`pp_gvsv`/`pp_aelem`/`pp_helem` localizing arms that decide the entry `mg_set`, and the structural operations the
+restore can land on (`av_shift`, `av_pop`, `av_fill`, `pp_unshift`, `pp_push`, `pp_splice`, `pp_aassign` to an array),
+each routing a tied array to its method.
 
 `generators/ss_gen.pl` enumerates 488 cells in two blocks.  The first is 312 cells: {plain, tied, magical (`$/`, `$0`),
 glob-aliased} x {package scalar, element present, element absent, whole glob} x {bare, assignment, self-assignment} x

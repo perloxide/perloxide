@@ -134,7 +134,8 @@ sub summary {
 }
 
 # The backtick spans of a fact, classified.  Returns a list of { kind, name, path?, exists? }:
-#   path    a file or directory under the reference, or a glob pattern there; `path` is relative to the root
+#   path    a file or directory under the reference, or a glob pattern there; `path` is relative to the root (a span
+#           under `lib/Perl/Conformance/` is the reference's own module, any other `lib/...` a Perl source path)
 #   case    a suite case named by its basename (`R01_literal_list_members`), resolved to `suites/*/cases/NAME.pl`
 #   doc     a document of the reference named by its file name (`undefined.md`), resolved at the root
 #   rows    a model row pattern (`plain/aeP/*/unshift1`, `undef.K`, `tiedweak.order`, `assign.*`, `*.hash.*`,
@@ -148,7 +149,7 @@ sub evidence {
     my %seen;
     for my $span (@spans) {
         next if $seen{$span}++;
-        if ($span =~ m{^(?:probes|models|suites|harness|measurements|perls)/}) {
+        if ($span =~ m{^(?:probes|models|suites|harness|measurements|perls|lib/Perl/Conformance)/}) {
             my @hits = glob "$self->{root}/$span";
             @hits = grep { -e } @hits;
             push @out, { kind => 'path', name => $span, path => $span, exists => (@hits ? 1 : 0), matches => scalar @hits };

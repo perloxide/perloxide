@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 our $ROOT = $ENV{MODEL_ROOT} || '.';
-use strict; use warnings; require "$ROOT/ValueFlags.pm";
+use strict; use warnings;
+use FindBin; use lib "$FindBin::Bin/../../../lib";
+use Perl::Conformance::Model::ValueFlags; use Perl::Conformance::Model::ValueFlags::Observe;
 my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl'; my $DEPTH = $ENV{DEPTH} || 3; my $TAG = $ENV{TAG} || 'loc';
 my %starts = ( c35=>q{"3,5"}, d35=>q{"3.5"}, c35x=>q{"3,5x"}, e35=>q{"1e3,5"}, c15=>q{"1,5"}, s10=>q{"10"}, f35=>q{3.5}, abc=>q{"abc"}, c0=>q{"0,5"} );
 my @ops = (de_iv=>q{{ use locale; POSIX::setlocale(POSIX::LC_NUMERIC(),"de_DE.UTF-8"); my $t = $x | 0; POSIX::setlocale(POSIX::LC_NUMERIC(),"C"); }}, de_nv=>q{{ use locale; POSIX::setlocale(POSIX::LC_NUMERIC(),"de_DE.UTF-8"); my $t = sprintf "%.17g", $x; POSIX::setlocale(POSIX::LC_NUMERIC(),"C"); }},
@@ -12,8 +14,9 @@ my %opcode = @ops; my @opnames = map { $ops[$_*2] } 0..$#ops/2;
 my $head = <<'H';
 use strict; no warnings; use B; use POSIX qw(setlocale LC_NUMERIC); binmode STDOUT, ":utf8";
 my @F=(IOK=>B::SVf_IOK,NOK=>B::SVf_NOK,POK=>B::SVf_POK,pIOK=>B::SVp_IOK,pNOK=>B::SVp_NOK,pPOK=>B::SVp_POK,IsUV=>B::SVf_IVisUV,UTF8=>B::SVf_UTF8);
-require(($ENV{MODEL_ROOT} || ".") . "/Observe.pm"); *fl = \&Perl::Conformance::Model::ValueFlags::Observe::flags; *fp = \&Perl::Conformance::Model::ValueFlags::Observe::slots;
+use lib '__LIB__'; use Perl::Conformance::Model::ValueFlags::Observe; *fl = \&Perl::Conformance::Model::ValueFlags::Observe::flags; *fp = \&Perl::Conformance::Model::ValueFlags::Observe::slots;
 H
+$head =~ s/__LIB__/Perl::Conformance::Model::ValueFlags::Observe::lib_dir()/e;
 my (%edges, %rep); my $SEP = "\x01";
 for my $c (sort keys %starts) {
   my @frontier = ([]); my %seen;

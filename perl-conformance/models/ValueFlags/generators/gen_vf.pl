@@ -3,6 +3,8 @@ our $ROOT = $ENV{MODEL_ROOT} || '.'; my $TAG = $ENV{TAG} || "matrix";
 # Differential generator: perl (the reference run) vs the design's value flags model, for
 # __WARN__ handlers that mutate the scalar being converted.
 use strict; use warnings; use POSIX ();
+use FindBin; use lib "$FindBin::Bin/../../../lib";
+use Perl::Conformance::Model::ValueFlags; use Perl::Conformance::Model::ValueFlags::Observe;
 my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl';
 my @inputs = (['12x',q{'12x'}],['12.5x',q{'12.5x'}],['abc',q{'abc'}],['empty',q{''}],['sp12x',q{' 12x'}],
   ['1e3x',q{'1e3x'}],['Infx',q{'Infx'}],['nanx',q{'nanx'}],['-0x',q{'-0x'}],['0x1A',q{'0x1A'}],['1_000',q{'1_000'}],
@@ -14,7 +16,7 @@ my @outers = (['add',q{0+$x}],['bor',q{$x|0}],['spg',q{sprintf('%g',$x)}],['cat'
 my $child_tmpl = <<'CHILD';
 use strict; use warnings; use B; binmode(STDOUT, ":utf8");
 my @F=(IOK=>B::SVf_IOK,NOK=>B::SVf_NOK,POK=>B::SVf_POK,pIOK=>B::SVp_IOK,pNOK=>B::SVp_NOK,pPOK=>B::SVp_POK,IsUV=>B::SVf_IVisUV,ROK=>B::SVf_ROK);
-require(($ENV{MODEL_ROOT} || ".") . "/Observe.pm"); *fl = \&Perl::Conformance::Model::ValueFlags::Observe::flags;
+use lib '__LIB__'; use Perl::Conformance::Model::ValueFlags::Observe; *fl = \&Perl::Conformance::Model::ValueFlags::Observe::flags;
 my $ADDR; sub num { my $v=shift; ref $v ? "ADDR" : (defined $ADDR && $v == $ADDR) ? "ADDR" : sprintf("%.17g",$v) }
 my $x = __INPUT__;
 my $calls=0; my $depth=0;
@@ -32,7 +34,7 @@ my $n; my $died=0;
 CHILD
 
 # ---------------- model of the design ----------------
-require "$ROOT/ValueFlags.pm";
+$child_tmpl =~ s/__LIB__/Perl::Conformance::Model::ValueFlags::Observe::lib_dir()/e;
 package Perl::Conformance::Model::ValueFlags;
 # handler-matrix driver (uses the M2 primitives)
 sub run_model { my ($in,$repl,$then,$outer)=@_;

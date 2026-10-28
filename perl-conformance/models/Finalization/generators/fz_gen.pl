@@ -1,9 +1,10 @@
 #!/usr/bin/perl
 # fz_gen.pl -- scenario generator + differential runner for Finalization.pm (finalization / temporary lifetime).
 # Each scenario is an IR program; the same IR is emitted as perl source (the reference run) and executed by FZ.
-use strict; use warnings; use FindBin; my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/.."; my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK; require "$MODEL_ROOT/Finalization.pm";
+use strict; use warnings; use FindBin; my $MODEL_ROOT = $ENV{MODEL_ROOT} || "$FindBin::Bin/.."; my $WORK = $ENV{MODEL_WORK} || ($ENV{MODEL_ROOT} || "$FindBin::Bin/..") . "/work"; mkdir $WORK unless -d $WORK;
 use File::Spec;
 use lib File::Spec->catdir($FindBin::Bin, '..', '..', '..', 'lib');
+use Perl::Conformance::Model::Finalization;
 use Perl::Conformance::Table;
 use Digest::SHA qw(sha256_hex);
 my $PERL = $ENV{PERL_CONFORMANCE_PERL} || 'perl';

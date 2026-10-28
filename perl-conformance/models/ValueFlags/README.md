@@ -4,10 +4,10 @@
 `sv_2pv_flags`, `S_sv_2iuv_common`, `sv_setsv_flags`, `sv_grow`), numeric.c and the operators' pp.c/pp_hot.c arms.
 Validated by replay against the supported 5.44.0 builds; results in `reports/*.5.44.0.txt`, with `reports/*.5.38.2.txt`
 from the unsupported 5.38.2 beside them (`../../unsupported-perls.md`).  Source-validated with
-`tools/source-validate.pl` against v5.38.2, v5.40.2, v5.42.0, v5.44.0 (`source-validation.txt`): of the routines
-with a C definition, 4 are identical across all four tags and so transcribed equally validly for each, 5 differ only by
-moved declarations or added assertions, and 33 differ in code at one or more of the tags and must be read before any of
-those versions can be supported by this model — each such reading ends either in a `source-equivalences.tsv` line
+`tools/source-validate.pl` against v5.38.2, v5.40.2, v5.42.0, v5.44.0 (`source-validation.txt`): of the routines with a
+C definition, 4 are identical across all four tags and so transcribed equally validly for each, 5 differ only by moved
+declarations or added assertions, and 33 differ in code at one or more of the tags and must be read before any of those
+versions can be supported by this model — each such reading ends either in a `source-equivalences.tsv` line
 (functionally neutral) or in a version check inside the model; 24 names are the model's own labels, arms and helpers.  A
 replay mismatch on a supported version is therefore either a model gap or a change in perl's own implementation since
 the transcribed tag, and the validation record says which routines could carry the second kind.
@@ -100,16 +100,16 @@ minus are not; identical on both Perls.  ValueFlags.pm: binop_operand_flags.
 
 ## Pass 8
 
-Perl::Conformance::Model::ValueFlags::Observe (models/ValueFlags/Observe.pm) is the one observation module: flags+slots
-key (what the model is checked against), and under PROJ=full the Devel::Peek body/flags/CUR/LEN/COW_REFCNT plus the
-consumer chain on a fresh-per-block package copy.  gen3_vf.pl (core, 58-op, walk lanes) is wired to it; the key is
-projection-independent, so lane counts did not move (spot-checked: 159/95 under both projections).  Lanes still carrying
-their own head: matrix, locale, copy (functionally the same key; the copy lane already makes a fresh per-block copy).
-core4 stays the cached historical lane (13 starts; its exact start list was not recorded in the report and is not
-recoverable from the driver -- the transition table is).  Walk lane: 24 starts x 125 seeded walks x depth 6 over the
-58-op set, seed 20260924, full projection, both Perls; its mismatches are listed with recipes in
-reports/suite/walk.<ver>.txt.  First run exposed a harness gap: the six starts added to gen3 for the 24-union had no
-mstart entries (i0/f0 were modeled as strings); fixed for i0/f0; "0 but true" (s0but) remains open in the model.
+Perl::Conformance::Model::ValueFlags::Observe (lib/Perl/Conformance/Model/ValueFlags/Observe.pm) is the one observation
+module: flags+slots key (what the model is checked against), and under PROJ=full the Devel::Peek
+body/flags/CUR/LEN/COW_REFCNT plus the consumer chain on a fresh-per-block package copy.  gen3_vf.pl (core, 58-op, walk
+lanes) is wired to it; the key is projection-independent, so lane counts did not move (spot-checked: 159/95 under both
+projections).  Lanes still carrying their own head: matrix, locale, copy (functionally the same key; the copy lane
+already makes a fresh per-block copy).  core4 stays the cached historical lane (13 starts; its exact start list was not
+recorded in the report and is not recoverable from the driver -- the transition table is).  Walk lane: 24 starts x 125
+seeded walks x depth 6 over the 58-op set, seed 20260924, full projection, both Perls; its mismatches are listed with
+recipes in reports/suite/walk.<ver>.txt.  First run exposed a harness gap: the six starts added to gen3 for the 24-union
+had no mstart entries (i0/f0 were modeled as strings); fixed for i0/f0; "0 but true" (s0but) remains open in the model.
 binop_operand_flags renamed: the gate is Perl::Conformance::Model::ValueFlags::pp_add_partner_gate (the flags_and
 prelude shared by pp_add/pp_subtract/pp_multiply and the comparison ops).
 
@@ -353,7 +353,7 @@ nowhere else; the slot-use bits are gone.  NOT closed: core2 on 5.44.0 shows 2,0
 -- e.g. a PVIV holder read with sprintf "%.17g" (sv_2nv_flags: SvTYPE < SVt_PVNV -> PVNV) stays PVIV in the model
 although the wrapper requests that climb; the first thing to read is the binding of the `nv`/`iv`/`dec` ops in
 generators/gen3_vf.pl to the wrapped VF routines and the order of the wrappers at the end of ValueFlags.pm.  Layout:
-ValueFlags.pm and Observe.pm (models), generators/, vf_suite.pl, merge_starts.pl, verdiv_paths.pl, dependencies.md,
-reports/ (coverage.txt and the lane reports behind it), section.md.  The Harness routines live in ValueFlags.pm under
-package Perl::Conformance::Model::ValueFlags::Harness (a separate VF/Harness.pm split is straightforward and not yet
-done).
+ValueFlags.pm and Observe.pm (the models, in ../../lib/Perl/Conformance/Model/), generators/, vf_suite.pl,
+merge_starts.pl, verdiv_paths.pl, dependencies.md, reports/ (coverage.txt and the lane reports behind it), section.md.
+The Harness routines live in ValueFlags.pm under package Perl::Conformance::Model::ValueFlags::Harness (a separate
+VF/Harness.pm split is straightforward and not yet done).

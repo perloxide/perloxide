@@ -30,7 +30,7 @@ The string and numeric forms of a scalar, the per-value flags recording which fo
 private, `IsUV`, derived-from-integer, private-only, stringified), the copy-on-write state and buffer length that decide
 later transitions, and the `Dual` case.
 
-Section: `models/ValueFlags/section.md`.  Model: `models/ValueFlags/ValueFlags.pm`.  Verification:
+Section: `models/ValueFlags/section.md`.  Model: `lib/Perl/Conformance/Model/ValueFlags.pm`.  Verification:
 `models/ValueFlags/reports/coverage.txt`.  Probes: `probes/research/value-flags/`, `probes/research/value-model/` (01,
 07-11, 15, 17, 18, 22, 23).  Suites: `suites/reentry-matrix`, `suites/reentry-matrix-864`, `suites/reentry-6840`,
 `suites/transitions`.
@@ -122,7 +122,7 @@ line, with the flag set and the value as the suite prints them):
   one program and `'3'` in another.  `/`, `%`, `**`, `<=>`, `sort { $a <=> $b }` and unary minus always run
   `SvIV_please_nomg` on both operands and are not partner-typed.  `pp_add`, `pp_subtract`, `pp_multiply`, `pp_eq`,
   `pp_ne`, `pp_lt`, `pp_gt`, `pp_le`, `pp_ge`, `do_ncmp`, `SvIV_please_nomg` (sv.h); the model's `pp_add_partner_gate`
-  in `models/ValueFlags/ValueFlags.pm`.  `suites/transitions/transitions/raw_transitions.5.44.0.tsv` row `f3
+  in `lib/Perl/Conformance/Model/ValueFlags.pm`.  `suites/transitions/transitions/raw_transitions.5.44.0.tsv` row `f3
   NOK,pNOK|N:3 --add--> IOK,NOK,pIOK,pNOK|N:3`; `probes/research/value-flags/consumers.5.044000.out` rows `Float 3.0, +
   1` and `Float 3.0, == 3` (`DDxs` from `'3'` to `3`); the fifteen-operator enumeration in
   `models/ValueFlags/section.md` (§9, partner-typed operators). [5.44.0]
@@ -279,10 +279,10 @@ line, with the flag set and the value as the suite prints them):
 
 ## `local` and the save stack [save-stack]
 
-Section: `models/SaveStack/section.md`.  Model: `models/SaveStack/SaveStack.pm` (488 cells; the 176 structural cells are
-the `models/SaveStack/reports/table.tsv` rows whose mutation is `keep`, `shift1`, `shift2`, `unshift1`, `pop1`, `push1`,
-`splice_rm`, `splice_ins`, `fill_neg1`, `fill0` or `refill`).  Probes: `probes/research/value-model/` (01-03),
-`probes/corpus/local_*`, `probes/corpus/tie_*`.
+Section: `models/SaveStack/section.md`.  Model: `lib/Perl/Conformance/Model/SaveStack.pm` (488 cells; the 176 structural
+cells are the `models/SaveStack/reports/table.tsv` rows whose mutation is `keep`, `shift1`, `shift2`, `unshift1`,
+`pop1`, `push1`, `splice_rm`, `splice_ins`, `fill_neg1`, `fill0` or `refill`).  Probes: `probes/research/value-model/`
+(01-03), `probes/corpus/local_*`, `probes/corpus/tie_*`.
 
 Entries:
 
@@ -422,8 +422,8 @@ Entries:
 
 ## Finalization and temporary lifetime [finalization]
 
-Section: `models/Finalization/section.md`.  Model: `models/Finalization/Finalization.pm` (115 scenarios).  Probes:
-`probes/research/value-model/` (04-06, 16, 19, 21), `probes/corpus/destroy_*`, `probes/corpus/gd_*`.
+Section: `models/Finalization/section.md`.  Model: `lib/Perl/Conformance/Model/Finalization.pm` (115 scenarios).
+Probes: `probes/research/value-model/` (04-06, 16, 19, 21), `probes/corpus/destroy_*`, `probes/corpus/gd_*`.
 
 Entries (the transition function is the section text; these are the facts a reader looks for by name):
 
@@ -545,8 +545,8 @@ Entries (the transition function is the section text; these are the facts a read
 
 ## The hash engine [hash-engine]
 
-Section: `models/HashEngine/section.md`.  Model: `models/HashEngine/HashEngine.pm` (bucket-level and program-level
-lanes).  Probes: `probes/research/value-model/` (12, 13), `probes/corpus/each_*`, `probes/corpus/order_*`.
+Section: `models/HashEngine/section.md`.  Model: `lib/Perl/Conformance/Model/HashEngine.pm` (bucket-level and
+program-level lanes).  Probes: `probes/research/value-model/` (12, 13), `probes/corpus/each_*`, `probes/corpus/order_*`.
 
 Entries:
 
@@ -576,8 +576,8 @@ Entries:
   differ among the 5.44.0 builds themselves (`perl-conformance table HashEngine diff 5.44.0 5.44.0-noreuse`).  [5.44.0]
 - `hash-engine.seed0-reproducible`: Under `PERL_HASH_SEED=0`, and under any explicit seed with `PERL_PERTURB_KEYS=0`,
   iteration order, chain order, split points, the traversal mask and destruction order are reproduced exactly by the
-  transcription in `models/HashEngine/HashEngine.pm` for the profile (64-bit, `PERL_HASH_FUNC_SIPHASH13` with `SBOX32`,
-  `PERL_HASH_RANDOMIZE_KEYS`, `PERL_HASH_DEFAULT_HvMAX` = 7).  `Perl_hv_common`, `S_hsplit`, `S_hv_auxinit`,
+  transcription in `lib/Perl/Conformance/Model/HashEngine.pm` for the profile (64-bit, `PERL_HASH_FUNC_SIPHASH13` with
+  `SBOX32`, `PERL_HASH_RANDOMIZE_KEYS`, `PERL_HASH_DEFAULT_HvMAX` = 7).  `Perl_hv_common`, `S_hsplit`, `S_hv_auxinit`,
   `Perl_hv_iternext_flags`.  Every `seed0.*` and `seedX_perturb0.*` row of `models/HashEngine/reports/table.tsv` —
   masks, bucket arrays and program outputs — on every 5.44.0 build and on 5.38.2 (`perl-conformance replay HashEngine`);
   probe `probes/corpus/order_01_model.pl` (lane A). [5.44.0]
@@ -666,7 +666,7 @@ Entries:
 
 ## The UTF-8 flag and taint [string-flags]
 
-Section: `models/StringFlags/section.md`.  Model: `models/StringFlags/StringFlags.pm`.  Reports:
+Section: `models/StringFlags/section.md`.  Model: `lib/Perl/Conformance/Model/StringFlags.pm`.  Reports:
 `models/StringFlags/reports/table.tsv`, the factored table of every depth-1 row at every version and build
 (`perl-conformance table StringFlags lookup ROW` prints a row's record, `expand` the whole product, `replay StringFlags`
 the model's gaps against it), and `pv2.5.44.0.txt`, the cross-context depth-2 run's count and table hash.
