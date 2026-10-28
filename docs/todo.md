@@ -24,8 +24,12 @@ listed after the tasks.
   for all 266 keywords.
 - **`undef` takes an argument.**  `undef $x` parses today as `undef; $x;`.
 - **Optional-argument unaries.**  Decide whether an argument follows by perl's rule (below) rather than by the list of
-  stop tokens in `parse_named_unary`.  This fixes `shift == 1`, `lc . "x"`, `lc =~ /x/`, `-f == 1`, `lc .. 1`, `lc
-  ->[0]` and the like.
+  stop tokens in `parse_named_unary`.  This fixes `shift == 1`, `lc . "x"`, `lc =~ /x/`, `lc !~ /x/`, `-f == 1`, `lc ..
+  1`, `lc ->[0]` and the like.
+- **Unary operand extent.**  The operand of a file test, and of `stat` and `lstat` without parentheses, extends over
+  every operator that binds more tightly than a named unary, as a named unary's does (`-s $f . "x"` is `-s($f . "x")`);
+  the parser takes it at prefix unary precedence.  A file test has no call form, so `-f($x) . "y"` is `-f(($x) . "y")`
+  [fact:parsing.unary-operand-extent].
 - **The defined-or preference.**  After the `UNIDOR` keywords and the file tests, `//`, `//=` and (with smartmatch
   enabled) `~~` are operators.  `parse_stat_target_inner` must not see `DefinedOr` at all: `stat` and `lstat` take `//`
   as an empty pattern, and the decision for file tests belongs before argument parsing [fact:parsing.unidor-keywords]
