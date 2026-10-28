@@ -7,7 +7,7 @@ and the non-creatable negative subscript, a different message raised by every lv
 Each line prints `ok` when the block ran or `dies:` with the message's location stripped, with expected output per Perl
 and the exit status appended.
 
-    ./run.sh /path/to/interpreter [expected-dir]
+    ./run.sh /path/to/interpreter [VERSION]    # compares against expected/VERSION/, default the newest supported
 
-All four cases produce identical output on 5.38.2 and 5.44.0.  Blessed outputs never end a line in whitespace
-(`tools/lint-blessed.sh`).
+Blessed on 5.44.0 (`expected/5.44.0/`).  All four cases produce that output on all six 5.44.0 builds and on the
+unsupported 5.38.2.  Blessed outputs never end a line in whitespace (`tools/lint-blessed.sh`).
