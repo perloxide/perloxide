@@ -17,8 +17,8 @@ package Perl::Conformance::Table;
 # build).  A version set is written as a comma-separated list in which `5.44.0-*` stands for every build of 5.44.0 in
 # the header, stock included, and `*` alone for every version in the header -- never for every conceivable build.
 #
-# File format (tab-separated, `#` comments, no line ends in whitespace): one column per axis, so an axis value may hold
-# any character but a tab or a newline -- except the folded axis's values, which may not hold `,`, `{` or `}`:
+# File format (UTF-8, tab-separated, `#` comments, no line ends in whitespace): one column per axis, so an axis value
+# may hold any character but a tab or a newline -- except the folded axis's values, which may not hold `,`, `{` or `}`:
 #
 #   versions<TAB>axis-1<TAB>...<TAB>axis-n<TAB>field...
 #
@@ -33,6 +33,15 @@ package Perl::Conformance::Table;
 #   # versions: 5.38.2 5.44.0 5.44.0-threads
 #   # fields: bytes flag length ords tainted notes
 #   # separator: .
+#
+# A table may declare `# layout: nested` instead: each row group's non-folded axis values are written once, on a line of
+# their own, and every (versions, folded set, record) of that group follows on a line that begins with a tab:
+#
+#   axis-1<TAB>...<TAB>axis-n (the folded axis left out)
+#   <TAB>versions<TAB>folded-set<TAB>field...
+#
+# which saves repeating long axis values -- a model state, say -- on every line of the group.  A nested table needs at
+# least two axes, and its first axis value is never empty.
 #
 # Operations: `load` reads a file; `merge` replaces one version's rows (the full product for that version) and
 # refolds; `write` writes the file; `expand` lists the product for one version; `lookup` resolves a product row at a
@@ -49,6 +58,7 @@ sub new {
         folded    => $arg{folded},
         fields    => $arg{fields}    || [],
         separator => $arg{separator} // '.',
+        layout    => $arg{layout}    // 'flat',
         versions  => [],
         values    => {},              # axis name -> { value => 1 }, the values seen on each axis
         cells     => {},              # version -> row key (tab-joined axis values) -> record (tab-joined fields)
@@ -60,11 +70,12 @@ sub new {
 # Reads a factored table.  Returns the table, or dies.
 sub load {
     my ($class, $path) = @_;
-    open my $fh, '<', $path or die "cannot read $path: $!\n";
+    open my $fh, '<:encoding(UTF-8)', $path or die "cannot read $path: $!\n";
     my $self = $class->new;
     my @lines = <$fh>;
     close $fh;
     chomp @lines;
+    my @key;    # the current row group's non-folded axis values, in a nested table
     for my $line (@lines) {
         next unless length $line;
         if ($line =~ /^#\s*([\w-]+):\s*(.*?)\s*\z/) {
@@ -76,13 +87,25 @@ sub load {
             elsif ($k eq 'versions')      { $self->{versions} = \@v }
             elsif ($k eq 'fields')        { $self->{fields} = \@v }
             elsif ($k eq 'separator')     { $self->{separator} = $v }
+            elsif ($k eq 'layout')        { $self->{layout} = $v[0] }
             next;
         }
         next if $line =~ /^#/;
-        my ($versions, @cols) = split /\t/, $line, -1;
         my $n = @{ $self->{axes} };
-        die "$path: a line with fewer columns than the $n axes: $line\n" if @cols < $n;
-        my @parts = splice @cols, 0, $n;
+        my ($versions, @cols, @parts);
+        if ($self->{layout} eq 'nested') {
+            if ($line !~ /^\t/) { @key = split /\t/, $line, -1; next }
+            die "$path: a group line before any key line: $line\n" unless @key;
+            (undef, $versions, my $set, @cols) = split /\t/, $line, -1;
+            @parts = @key;
+            splice @parts, $self->folded_index, 0, $set;
+            die "$path: a key line with other than @{[ $n - 1 ]} values\n" unless @parts == $n;
+        }
+        else {
+            ($versions, @cols) = split /\t/, $line, -1;
+            die "$path: a line with fewer columns than the $n axes: $line\n" if @cols < $n;
+            @parts = splice @cols, 0, $n;
+        }
         my @vers = $self->unfold_versions($versions);
         my $record = join("\t", @cols);
         for my $row ($self->unfold(\@parts)) {
@@ -256,14 +279,36 @@ sub lines {
 
 sub write {
     my ($self, $path) = @_;
-    open my $fh, '>', $path or die "cannot write $path: $!\n";
+    open my $fh, '>:encoding(UTF-8)', $path or die "cannot write $path: $!\n";
     print $fh "# axes: @{ $self->{axes} }\n";
     print $fh "# folded: $self->{folded}\n";
     print $fh "# folded-values: ", join(" ", sort keys %{ $self->{values}{ $self->{folded} } }), "\n";
     print $fh "# versions: @{ $self->{versions} }\n";
     print $fh "# fields: @{ $self->{fields} }\n";
     print $fh "# separator: $self->{separator}\n" if $self->{separator} ne '.';
-    print $fh join("\t", @$_), "\n" for $self->lines;
+    if ($self->{layout} eq 'nested') {
+        my $n = @{ $self->{axes} };
+        die "a nested table needs at least two axes\n" if $n < 2;
+        print $fh "# layout: nested\n";
+        my $i = $self->folded_index;
+        my (%group, @order);
+        for my $l ($self->lines) {
+            my ($vs, @rest) = @$l;
+            my @axes = splice @rest, 0, $n;
+            my ($set) = splice @axes, $i, 1;
+            my $gk = join("\t", @axes);
+            die "a nested table's first axis value may not be empty\n" unless length $axes[0];
+            push @order, $gk unless $group{$gk};
+            push @{ $group{$gk} }, [ $vs, $set, @rest ];
+        }
+        for my $gk (sort @order) {
+            print $fh "$gk\n";
+            print $fh join("\t", '', @$_), "\n" for @{ $group{$gk} };
+        }
+    }
+    else {
+        print $fh join("\t", @$_), "\n" for $self->lines;
+    }
     close $fh or die "cannot close $path: $!\n";
     return $self;
 }
