@@ -1,0 +1,40 @@
+value: my @a = (1, 2); shift(@a)
+    ('1')
+value: my @a = (1, 2); shift((@a))
+    ('1')
+value: my @a = (1, 2); shift(((@a)))
+    ('1')
+value: my @a = (1, 2); shift((@a),)
+    ('1')
+value: my @a = (1, 2); shift @a
+    ('1')
+value: my @a = (1, 2); pop((@a))
+    ('2')
+value: my @a = (1, 2); my $r = \@a; shift(@$r)
+    ('1')
+value: my @a = (1, 2); my $r = \@a; shift($r->@*)
+    ('1')
+value: my @a = (1, 2); shift(@{[7]})
+    ('7')
+value: my @a = (1, 2); shift(my @b)
+    (undef)
+value: my @a = (1, 2); shift(())
+    error: Experimental shift on scalar is now forbidden at (eval 11) line 1, near "))\n"
+value: my @a = (1, 2); shift(($_ ? @a : @b))
+    error: Experimental shift on scalar is now forbidden at (eval 12) line 1, near "))\n"
+value: my @a = (1, 2); shift($_ ? @a : @b)
+    error: Experimental shift on scalar is now forbidden at (eval 13) line 1, near "@b)\n"
+value: my @a = (1, 2); shift @a ? "true" : "false"
+    ('true')
+value: my @a = (1, 2); shift(@a, @b)
+    error: Experimental shift on scalar is now forbidden at (eval 15) line 1, near "@b)\n"
+value: my @a = (1, 2); shift(@a = (1))
+    error: Experimental shift on scalar is now forbidden at (eval 16) line 1, near "))\n"
+value: my @a = (1, 2); shift(@a[0])
+    error: Experimental shift on scalar is now forbidden at (eval 17) line 1, near "])\n"
+value: my @a = (1, 2); shift(%h)
+    error: Type of arg 1 to shift must be array (not hash dereference) at (eval 18) line 1, near "%h)\n"
+value: my @a = (1, 2); shift(*a)
+    error: Type of arg 1 to shift must be array (not ref-to-glob cast) at (eval 19) line 1, near "*a)\n"
+value: my @a = (1, 2); shift(1)
+    error: Type of arg 1 to shift must be array (not constant item) at (eval 20) line 1, near "1)\n"

@@ -1,0 +1,20 @@
+    ('0')
+    ()
+    ()
+    ()
+    ()
+    error: syntax error at (eval 3) line 1, near "// 0"\nExecution of (eval 3) aborted due to compilation errors.
+    error: syntax error at (eval 4) line 1, near "// 0"\nExecution of (eval 4) aborted due to compilation errors.
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 3) line 1, near "// 0"
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 4) line 1, near "// 0"
+    warning: Warning: Use of "lstat" without parentheses is ambiguous at (eval 2) line 1.
+    warning: Warning: Use of "lstat" without parentheses is ambiguous at (eval 4) line 1.
+    warning: Warning: Use of "stat" without parentheses is ambiguous at (eval 1) line 1.
+    warning: Warning: Use of "stat" without parentheses is ambiguous at (eval 3) line 1.
+value: -s // 0
+value: lstat //
+value: lstat // 0
+value: lstat(//)
+value: stat //
+value: stat // 0
+value: stat(//)

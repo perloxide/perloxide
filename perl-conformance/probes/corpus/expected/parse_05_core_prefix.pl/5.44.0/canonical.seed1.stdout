@@ -1,0 +1,44 @@
+    ('CORE::A::B')
+    ('CORE::GLOBAL::shift')
+    ('D')
+    ('a')
+    ('k')
+    ('k')
+    ('mine')
+    ('shift')
+    ('shift')
+    ('x')
+    compiles
+    compiles
+    compiles
+    error: CORE:: is not a keyword at (eval 5) line 1.
+    error: CORE::nosuch is not a keyword at (eval 4) line 1.
+    error: dump() must be written as CORE::dump() as of Perl 5.30 at (eval 11) line 1.
+    error: syntax error at (eval 12) line 1, near "say 1"\nExecution of (eval 12) aborted due to compilation errors.
+    error: syntax error at (eval 3) line 1, near "// 0"\nExecution of (eval 3) aborted due to compilation errors.
+    error: syntax error at (eval 8) line 1, near "CORE::x 3"\nExecution of (eval 8) aborted due to compilation errors.
+    error: syntax error at (eval 9) line 1, near "CORE::and"\nExecution of (eval 9) aborted due to compilation errors.
+    warning: Number found where operator expected (Do you need to predeclare "CORE::x"?) at (eval 8) line 1, near "CORE::x 3"
+    warning: Number found where operator expected (Do you need to predeclare "say"?) at (eval 12) line 1, near "say 1"
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 3) line 1, near "// 0"
+    warning: Warning: Use of "CORE" without parentheses is ambiguous at (eval 3) line 1.
+parse: CORE::dump
+parse: CORE::readpipe // 0
+parse: CORE::say 1
+parse: dump
+parse: say 1
+value: CORE:: shift
+value: CORE::A::B
+value: CORE::GLOBAL::shift
+value: CORE::and
+value: CORE::nosuch
+value: CORE::q(x)
+value: CORE::stat // 0
+value: CORE::x 3
+value: local @ARGV = ("k"); my %h = (CORE::shift => 1); keys %h
+value: local @ARGV = ("k"); my %h = (shift => 1); keys %h
+value: local @ARGV = ("k"); my %h; $h{CORE::shift} = 1; keys %h
+value: local @ARGV = ("k"); my %h; $h{shift} = 1; keys %h
+value: local @ARGV = (undef); CORE::shift // "D"
+value: package C1; use subs "lc"; sub lc { "mine" } lc("A")
+value: package C2; use subs "lc"; sub lc { "mine" } CORE::lc("A")

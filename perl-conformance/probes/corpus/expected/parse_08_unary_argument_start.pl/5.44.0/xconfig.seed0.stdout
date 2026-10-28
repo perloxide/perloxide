@@ -1,0 +1,85 @@
+value: local $_ = 'AB'; lc . "x"
+    ('abx')
+value: local $_ = 'AB'; lc =~ /ab/ ? "match" : "no match"
+    ('match')
+value: local $_ = 'AB'; lc eq "ab" ? "eq" : "ne"
+    ('eq')
+value: local $_ = 'AB'; lc ? "true" : "false"
+    ('true')
+value: local $_ = 'AB'; lc || "f"
+    ('ab')
+value: local $_ = 'AB'; join ",", lc .. "ac"
+    ('ab,ac')
+value: local $_ = 'AB'; lc , 1
+    ('ab', '1')
+value: local $_ = 'AB'; lc => 1
+    ('lc', '1')
+value: local $_ = 'AB'; lc = 1
+    error: Can't modify lc in scalar assignment at (eval 9) line 1, at EOF
+value: local $_ = 'AB'; use strict "refs"; lc->[0]
+    error: Can't use string ("ab") as an ARRAY ref while "strict refs" in use at (eval 10) line 1.
+value: local $_ = 'AB'; lc * 2
+    ('*main::2')
+value: local $_ = 'AB'; lc *x
+    ('*main::x')
+value: local $_ = 'AB'; lc % 2
+    ('0')
+value: local $_ = 'AB'; lc & 1
+    error: Undefined subroutine &main::1 called at (eval 14) line 1.
+value: local $_ = 'AB'; lc < 1
+    error: Unterminated <> operator at (eval 15) line 1.
+    warning: Warning: Use of "lc" without parentheses is ambiguous at (eval 15) line 1.
+value: local $_ = 'AB'; lc - 1
+    ('-1')
+    warning: Warning: Use of "lc" without parentheses is ambiguous at (eval 16) line 1.
+value: local $_ = 'AB'; lc + 1
+    ('1')
+    warning: Warning: Use of "lc" without parentheses is ambiguous at (eval 17) line 1.
+value: local $_ = 'AB'; lc -1
+    ('-1')
+value: local $_ = 'AB'; lc **
+    ('*main::*')
+    warning: Warning: Use of "lc" without parentheses is ambiguous at (eval 19) line 1.
+value: local $_ = 'AB'; lc ** 2
+    error: syntax error at (eval 20) line 1, near "** 2"\nExecution of (eval 20) aborted due to compilation errors.
+    warning: Warning: Use of "lc" without parentheses is ambiguous at (eval 20) line 1.
+    warning: Number found where operator expected (Missing operator before "2"?) at (eval 20) line 1, near "** 2"
+value: local $_ = 'AB'; lc <=>
+    ('=')
+value: local $_ = 'AB'; lc <=> 1
+    error: syntax error at (eval 22) line 1, near "<=> 1"\nExecution of (eval 22) aborted due to compilation errors.
+    warning: Number found where operator expected (Missing operator before "1"?) at (eval 22) line 1, near "<=> 1"
+value: local $_ = 'AB'; lc < 1 >
+    ('1')
+value: local $_ = 'AB'; lc x
+    ('x')
+    warning: Warning: Use of "lc" without parentheses is ambiguous at (eval 24) line 1.
+value: local $_ = 'AB'; lc x 2
+    error: syntax error at (eval 25) line 1, near "x 2"\nExecution of (eval 25) aborted due to compilation errors.
+    warning: Warning: Use of "lc" without parentheses is ambiguous at (eval 25) line 1.
+    warning: Number found where operator expected (Do you need to predeclare "x"?) at (eval 25) line 1, near "x 2"
+value: local @ARGV = (5); shift == 5 ? "eq" : "ne"
+    ('eq')
+value: local @ARGV = (5); shift . "x"
+    ('5x')
+value: local @ARGV = (5); shift + 1
+    error: Type of arg 1 to shift must be array (not constant item) at (eval 28) line 1, at EOF
+    warning: Warning: Use of "shift" without parentheses is ambiguous at (eval 28) line 1.
+value: local @ARGV = (5); shift % 2
+    error: Type of arg 1 to shift must be array (not hash dereference) at (eval 29) line 1, at EOF
+value: local @ARGV = (5); shift * 2
+    error: Type of arg 1 to shift must be array (not ref-to-glob cast) at (eval 30) line 1, at EOF
+value: local @ARGV = (5); shift < 6
+    error: Unterminated <> operator at (eval 31) line 1.
+    warning: Warning: Use of "shift" without parentheses is ambiguous at (eval 31) line 1.
+value: local @ARGV = (5); shift / 5
+    error: Search pattern not terminated at (eval 32) line 1.
+    warning: Warning: Use of "shift" without parentheses is ambiguous at (eval 32) line 1.
+value: local $_ = '/nonexistent/perl-conformance'; -f == 1 ? "eq" : "ne"
+    ('ne')
+value: local $_ = '/nonexistent/perl-conformance'; -f . "x"
+    ('x')
+value: local $_ = '/nonexistent/perl-conformance'; -f * 2
+    (undef)
+value: lc: 1
+    ('1')

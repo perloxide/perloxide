@@ -1,0 +1,34 @@
+value: 1 2;
+    error: syntax error at (eval 1) line 1, near "1 2"\nExecution of (eval 1) aborted due to compilation errors.
+    warning: Number found where operator expected (Missing operator before "2"?) at (eval 1) line 1, near "1 2"
+value: $x $y;
+    error: syntax error at (eval 2) line 1, near "$x $y"\nExecution of (eval 2) aborted due to compilation errors.
+    warning: Scalar found where operator expected (Missing operator before "$y"?) at (eval 2) line 1, near "$x $y"
+value: 1 "a";
+    error: syntax error at (eval 3) line 1, near "1 "a""\nExecution of (eval 3) aborted due to compilation errors.
+    warning: String found where operator expected (Missing operator before ""a""?) at (eval 3) line 1, near "1 "a""
+value: print 1 2;
+    error: syntax error at (eval 4) line 1, near "1 2"\nExecution of (eval 4) aborted due to compilation errors.
+    warning: Number found where operator expected (Missing operator before "2"?) at (eval 4) line 1, near "1 2"
+value: foo 0;
+    error: syntax error at (eval 5) line 1, near "foo 0"\nExecution of (eval 5) aborted due to compilation errors.
+    warning: Number found where operator expected (Do you need to predeclare "foo"?) at (eval 5) line 1, near "foo 0"
+value: {1 2}
+    error: syntax error at (eval 6) line 1, near "1 2"\nExecution of (eval 6) aborted due to compilation errors.
+    warning: Number found where operator expected (Missing operator before "2"?) at (eval 6) line 1, near "1 2"
+value: do { 1 } 2
+    error: syntax error at (eval 7) line 1, near "} 2"\nExecution of (eval 7) aborted due to compilation errors.
+    warning: Number found where operator expected (Missing operator before "2"?) at (eval 7) line 1, near "} 2"
+value: s/x/1 2/e
+    error: syntax error at (eval 8) line 1, near "1 2"\nExecution of (eval 8) aborted due to compilation errors.
+    warning: Number found where operator expected (Missing operator before "2"?) at (eval 8) line 1, near "1 2"
+value: 1
+    ('1')
+value: { 1 }
+    ('1')
+value: { 1 } 2
+    ('2')
+value: 1; 2
+    ('2')
+value: local $_ = "x"; s/x/1/e; $_
+    ('1')

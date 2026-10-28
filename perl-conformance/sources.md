@@ -256,3 +256,79 @@ source.
 - `pp_hot.c:4415` pp_helem: a key absent when local runs is recorded for deletion on unwind, whatever is stored under it
   later
 - `pp_hot.c:4663` pp_aelem: the same for an array index past the end
+
+## parse_01_unidor_keywords.pl
+
+- `toke.c:297` UNIDOR: the operator lexes the next token with PL_expect set to XTERMORDORDOR
+- `toke.c:9009` yyl_word_or_keyword: shift is UNIDOR, as are getc, pop, pos, readline, readlink, readpipe, umask and
+  undef
+- `toke.c:261` FTST: every file test sets XTERMORDORDOR
+- `toke.c:7060` yyl_slash: under XTERMORDORDOR, // and //= are defined-or
+- `toke.c:7129` yyl_tilde: under XTERMORDORDOR, ~~ is smartmatch
+
+## parse_02_unidor_parens.pl
+
+- `toke.c:294` UNI3: a ( after the operator, after any whitespace, makes it FUNC1
+- `perly.y:1693` term: FUNC1 ( ) and FUNC1 ( expr )
+- `toke.c:7146` yyl_leftparen: directly after an operator, the ( leaves PL_expect as the operator set it
+
+## parse_03_stat_is_uni.pl
+
+- `toke.c:9061` yyl_word_or_keyword: stat is UNI
+- `toke.c:8749` yyl_word_or_keyword: lstat is UNI
+
+## parse_04_filetest_letters.pl
+
+- `toke.c:6219` yyl_hyphen: the 27 file-test letters
+- `toke.c:6264` yyl_hyphen: any other letter is a minus followed by the word
+
+## parse_05_core_prefix.pl
+
+- `toke.c:9325` yyl_keylookup: CORE:: goes to yyl_key_core before the => check
+- `toke.c:9230` yyl_key_core: NAME is looked up as a keyword and its case taken directly; NAME:: makes an ordinary word
+- `toke.c:9246` yyl_key_core: CORE::%s is not a keyword
+- `toke.c:6669` yyl_leftcurly: a subscript is autoquoted only when a word scanned without :: is followed by }
+- `toke.c:6123` yyl_secondclass_keyword: bare dump croaks
+
+## parse_06_weak_override_import.pl
+
+- `toke.c:9399` yyl_keylookup: a lexical sub is found before any keyword
+- `toke.c:6076` yyl_secondclass_keyword: a weak keyword yields to an imported sub or an imported CORE::GLOBAL sub, lock
+  to any sub; otherwise the ambiguous warning, except for x
+- `sv.c:4114` Perl_gv_setref: a glob assignment marks the slot imported when the current package differs from the glob's
+- `regen/keywords.pl:168` regen/keywords.pl: + marks a strong keyword, - a weak one
+
+## parse_07_statement_terminator.pl
+
+- `perly.y:333` barestmt: an expression statement ends at ;
+- `toke.c:6890` yyl_rightcurly: the lexer returns a ; before the } that closes a block
+- `toke.c:7670` yyl_fake_eof: and a ; at the end of the input
+- `toke.c:690` S_warn_expect_operator: the "found where operator expected" warning
+- `toke.c:11503` scan_subst: an s///e replacement is compiled as do { ... }
+
+## parse_08_unary_argument_start.pl
+
+- `toke.c:296` UNI: the operator lexes the next token with PL_expect set to XTERM
+- `perly.y:1672` term: UNIOP, UNIOP block, UNIOP term
+- `perly.y:169` %nonassoc UNIOP: the argument's precedence
+- `toke.c:2124` S_check_unary: the ambiguous warning, naming the operator up to the first character not a word character
+  or -
+- `toke.c:9388` yyl_keylookup: a word followed by a single : at statement start is a label
+
+## parse_09_keyword_classes.pl
+
+- `toke.c:8703` yyl_word_or_keyword: keys is UNI
+- `toke.c:9173` yyl_word_or_keyword: values is UNI
+- `toke.c:8514` yyl_word_or_keyword: each is UNI
+- `toke.c:9105` yyl_word_or_keyword: tell is UNI
+- `toke.c:9136` yyl_word_or_keyword: untie is UNI
+- `toke.c:9207` yyl_word_or_keyword: write is UNI
+- `toke.c:8450` yyl_word_or_keyword: die is LOP
+- `toke.c:9192` yyl_word_or_keyword: warn is LOP
+- `toke.c:8609` yyl_word_or_keyword: getprotobynumber is LOP
+
+## parse_10_shift_array_argument.pl
+
+- `perly.y:1697` term: FUNC1 ( expr ) accepts any expression
+- `op.c:13781` Perl_ck_fun: an array operand must be an rv2av or padav op; a hash, glob or constant is a bad type,
+  anything else "Experimental %s on scalar is now forbidden"

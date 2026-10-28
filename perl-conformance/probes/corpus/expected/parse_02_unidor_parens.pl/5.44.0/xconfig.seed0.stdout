@@ -1,0 +1,30 @@
+value: shift()
+    (undef)
+value: pop()
+    (undef)
+value: lc()
+    ('')
+value: shift(//)
+    error: syntax error at (eval 4) line 1, near "shift(//"\nExecution of (eval 4) aborted due to compilation errors.
+value: shift (//)
+    error: syntax error at (eval 5) line 1, near "shift (//"\nExecution of (eval 5) aborted due to compilation errors.
+value: shift((//))
+    error: syntax error at (eval 6) line 1, near "shift((//"\nExecution of (eval 6) aborted due to compilation errors.
+value: pos(//)
+    error: syntax error at (eval 7) line 1, near "pos(//"\nExecution of (eval 7) aborted due to compilation errors.
+value: undef(//)
+    error: syntax error at (eval 8) line 1, near "undef(//"\nExecution of (eval 8) aborted due to compilation errors.
+value: shift(~~@a)
+    error: syntax error at (eval 9) line 1, near "shift(~~"\nExecution of (eval 9) aborted due to compilation errors.
+value: -f(//)
+    error: syntax error at (eval 10) line 1, near "-f(//"\nExecution of (eval 10) aborted due to compilation errors.
+value: -f((//))
+    error: syntax error at (eval 11) line 1, near "-f((//"\nExecution of (eval 11) aborted due to compilation errors.
+value: lc(//)
+    ('1')
+value: lc((//))
+    ('1')
+value: ref(//)
+    ('')
+value: stat(//)
+    ()

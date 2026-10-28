@@ -1041,3 +1041,105 @@ allocator rather than of the language):
   lifetime would keep the object alive.  Probe `probes/corpus/gd_01_order.pl` (variant `resurrect`;
   `allocator-sensitive`, since which object the walk reaches first decides which `DESTROY` runs before the croak).
   [5.44.0]
+
+## Parsing [parsing]
+
+How `toke.c` and `perly.y` read source text: which tokens a keyword's class makes of what follows it, where a statement
+may end, and which subs override a keyword.  Every probe here observes the parse through a string `eval`, its `$@` and a
+`__WARN__` handler, with Perl's default warnings, so the messages are part of the fact.  Probes:
+`probes/corpus/parse_*`, each cited in `sources.md`.
+
+Entries:
+
+- `parsing.unidor-keywords`: After `getc`, `pop`, `pos`, `readline`, `readlink`, `readpipe`, `shift`, `umask` and
+  `undef`, whose cases in `yyl_word_or_keyword` use `UNIDOR`, and after every file test (`FTST`), the next token is
+  lexed with `PL_expect` set to `XTERMORDORDOR`, under which `//` and `//=` are the defined-or operators (`yyl_slash`)
+  and `~~` is smartmatch (`yyl_tilde`).  None of them can begin a term, so the keyword takes its default operand: `shift
+  // 0` and `-f // 0` compile, `shift // "D"` yields `D` when the shifted element is undefined, and `shift ~~ @a`
+  smartmatches the shifted element.  `~~` is an operator only while the `smartmatch` feature is enabled, as it is by
+  default: under `no feature "smartmatch"`, `shift ~~ @a` is `shift(~~@a)` and fails the op check with `Experimental
+  shift on scalar is now forbidden` ([fact:parsing.shift-array-argument]).  A `//` with nothing after it is a syntax
+  error (`shift //` and `shift //;`, reported `at EOF` in a string eval), and `shift //= 0` fails its op check with
+  `Can't modify shift in defined or assignment (//=)`.  After any other named unary (`UNI`) `//` begins an empty pattern
+  and `~~` two complements: `lc // 0`, `chr // 0`, `ref // 0` and `stat // 0` are syntax errors `near "// 0"`, after the
+  warnings `Warning: Use of "lc" without parentheses is ambiguous` and `Number found where operator expected (Missing
+  operator before "0"?)`; `lc //= 0` is `lc(m//) = 0`; `lc ~~ @a` is `lc(~~@a)`.  Probe
+  `probes/corpus/parse_01_unidor_keywords.pl`. [5.44.0]
+- `parsing.unidor-parens`: A named unary followed by `(`, directly or after whitespace, is lexed as `FUNC1` (the `UNI3`
+  macro) and takes the call form `FUNC1 ( )` or `FUNC1 ( expr )`, so `shift()`, `pop()` and `lc()` have no argument and
+  use the default operand.  A file test is always `UNIOP` and takes a parenthesized term.  `yyl_leftparen` leaves the
+  expectation the operator set in force for the token after the `(`, and again after each further `(`, so after a
+  `UNIDOR` keyword or a file test a `//` or `~~` there is an operator with no left operand:  `shift(//)`, `shift (//)`,
+  `shift((//))`, `pos(//)`, `undef(//)`, `shift(~~@a)`, `-f(//)` and `-f((//))` are syntax errors `near` the text
+  through the operator (`near "shift(//"`).  After any other named unary it is a pattern:  `lc(//)`, `lc((//))`,
+  `ref(//)` and `stat(//)` compile.  Probe `probes/corpus/parse_02_unidor_parens.pl`. [5.44.0]
+- `parsing.stat-is-uni`: `stat` and `lstat` are `UNI`, neither `UNIDOR` nor file tests: `stat //` and `lstat //` are
+  `stat(m//)` and `lstat(m//)`, with `Warning: Use of "stat" without parentheses is ambiguous`, and `stat // 0` is a
+  syntax error, where `-s // 0` is `-s($_) // 0`.  Probe `probes/corpus/parse_03_stat_is_uni.pl`. [5.44.0]
+- `parsing.filetest-letters`: A hyphen followed by a letter that is not followed by a word character is a file test only
+  for the 27 letters `yyl_hyphen` lists: `r w x o R W X O e z s f d l p S u g k b c t T B M A C`.  For any other letter
+  `yyl_hyphen` backs up and the hyphen is a unary minus applied to the word that follows: a bareword gives the string
+  (`-j` is `"-j"`, and `-j // 0` is `"-j" // 0`), a declared sub is called and its result negated (`-j` is `-5` after
+  `sub j { 5 }`, and `-j // 0` is then a syntax error, the `//` beginning a pattern as an argument), and a quote-like
+  operator starts quoting (`-m`, `-q` and `-y` at the end of the input report `Search pattern not terminated`, `Can't
+  find string terminator ";" anywhere before EOF` and `Transliteration pattern not terminated`).  Probe
+  `probes/corpus/parse_04_filetest_letters.pl`. [5.44.0]
+- `parsing.core-prefix`: `CORE::NAME` looks NAME up as a keyword directly (`yyl_key_core`) and continues with that
+  keyword's own case, so it ignores overriding subs (`use subs "lc"; sub lc { "mine" }` leaves `CORE::lc("A")` the
+  built-in) and feature gating (`CORE::say 1` compiles where `say 1` is `Number found where operator expected (Do you
+  need to predeclare "say"?)`), and keeps the keyword's class (`CORE::shift // 0` is defined-or, `CORE::stat // 0` a
+  syntax error).  `yyl_keylookup` sends `CORE::` to `yyl_key_core` before its `=>` check, and a subscript is autoquoted
+  only when a word with no `::` is followed by `}`, so neither quotes it: `(CORE::shift => 1)` and `$h{CORE::shift}`
+  shift `@ARGV` where `(shift => 1)` and `$h{shift}` use the string `shift`.  `CORE::` followed by a word that is not a
+  keyword croaks `CORE::nosuch is not a keyword`, and followed by whitespace `CORE:: is not a keyword`, but a word
+  followed by `::` makes an ordinary name (`CORE::GLOBAL::shift` and `CORE::A::B` are barewords).  `CORE::x` and
+  `CORE::and` are not operators but syntax errors.  Bare `dump` croaks `dump() must be written as CORE::dump() as of
+  Perl 5.30`.  The ambiguity warning after `CORE::stat` names `CORE` (`S_check_unary` measures the operator's name up to
+  the first character that is neither a word character nor `-`).  Probe `probes/corpus/parse_05_core_prefix.pl`.
+  [5.44.0]
+- `parsing.weak-override-import`: A lexical sub is looked up before any keyword (`yyl_keylookup`) and overrides strong
+  keywords too (`my sub print`, `my sub defined`).  Otherwise a strong keyword (`+` in `regen/keywords.pl`) is never
+  overridden, and a weak one (`-`) only outside operator position, by a sub whose glob is marked imported or by an
+  imported `CORE::GLOBAL::NAME` (`yyl_secondclass_keyword`).  A glob assignment marks the slot imported when the current
+  package differs from the glob's (`Perl_gv_setref`), so `use subs`, Exporter, and `*O4::lc = sub {...}` made while
+  package `Q` is current all override `lc`, while the same assignment made from `O5` itself does not, and neither does a
+  sub merely defined in the package: the call is the built-in, with `Ambiguous call resolved as CORE::lc(), qualify as
+  such or use &` when the `ambiguous` category is enabled.  `sub CORE::GLOBAL::uc {...}` defined in place does not
+  override.  `lock` is overridden by any sub; `x` by none, and without the warning; `dump` only by an import, every
+  other case croaking as in [fact:parsing.core-prefix].  An overriding sub is called as a list operator, so `shift // 0`
+  with `shift` imported is a syntax error, the `//` beginning a pattern.  Probe
+  `probes/corpus/parse_06_weak_override_import.pl`. [5.44.0]
+- `parsing.statement-terminator`: An expression statement ends at `;` (`sideff ;` in `perly.y`); the lexer supplies the
+  `;` itself before the `}` that closes a block (`yyl_rightcurly`) and at the end of the input (`yyl_fake_eof`).  A term
+  where an operator is expected is a syntax error, preceded by the `syntax` warning `S_warn_expect_operator` emits
+  (`Number found where operator expected (Missing operator before "2"?)`, `Scalar found ...`, `String found ...`, or
+  `(Do you need to predeclare "foo"?)` after an undeclared bareword); it never begins a new statement: `1 2;`, `$x $y;`,
+  `1 "a";`, `print 1 2;`, `foo 0;`, `{1 2}` and `do { 1 } 2` all fail.  A block statement needs no `;` (`{ 1 } 2`).
+  `scan_subst` compiles an `s///e` replacement as `do {` ... `}`, so the same holds inside it (`s/x/1 2/e` fails).
+  Probe `probes/corpus/parse_07_statement_terminator.pl`. [5.44.0]
+- `parsing.unary-argument-start`: After `UNIOP` (`term: UNIOP | UNIOP block | UNIOP term`, `%nonassoc UNIOP`) the next
+  token is lexed in term position.  If it can begin a term it begins the argument; otherwise the operator takes its
+  default operand and the token is the operator that follows.  So `*` and `**` begin a glob (`lc * 2` is `*main::2`, `lc
+  **` is `*main::*`), `%` a hash, `&` a call (`Undefined subroutine &main::1 called`), `<` a readline or glob (`lc < 1`
+  is `Unterminated <> operator`, `lc <=>` the glob of `=`), `/` a pattern (`shift / 5` is `Search pattern not
+  terminated`), `x` a bareword, and `-` and `+` a sign, with `Warning: Use of "lc" without parentheses is ambiguous`
+  when the sign is followed by whitespace; while `.`, `==`, `=~`, `eq`, `?`, `||`, `..`, `,`, `=` and `->` follow
+  `lc($_)`.  `lc ** 2`, `lc <=> 1` and `lc x 2` are therefore syntax errors at their last token, and `lc => 1` quotes
+  `lc`.  After `shift`, an argument that is not an array fails the op check (`Type of arg 1 to shift must be array (not
+  constant item)` for `shift + 1`).  A keyword followed by a single `:` at the start of a statement is a label (`lc:
+  1`).  Probe `probes/corpus/parse_08_unary_argument_start.pl`. [5.44.0]
+- `parsing.keyword-classes`: A keyword's syntactic class is the macro its case in `yyl_word_or_keyword` uses, which is
+  not always what its prototype or `perlfunc` suggests.  `keys`, `values`, `each`, `tell`, `untie` and `write` are
+  `UNI`: `(keys %h, 1)` is a two-element list and `keys %h < 3` compares the count.  `die`, `warn` and
+  `getprotobynumber` are `LOP`: `die "a", "b"` and `warn "a", "b\n"` join both arguments, and `(getprotobynumber 6, 1)`
+  fails `Too many arguments for getprotobynumber` although `prototype("CORE::getprotobynumber")` is `$;`, where
+  `(getprotobyname "tcp", 1)`, a `UNI`, compiles.  Probe `probes/corpus/parse_09_keyword_classes.pl`. [5.44.0]
+- `parsing.shift-array-argument`: The call form of `shift` and `pop` takes any expression between its parentheses
+  (`FUNC1 ( expr )`) and the bare form any term, and the op check (`Perl_ck_fun`, `OA_AVREF`) then requires the operand
+  to be an array: an `rv2av` or `padav` op.  Parentheses around an expression make no op, so `shift((@a))`,
+  `shift(((@a)))`, `shift((@a),)`, `pop((@a))`, `shift(@$r)`, `shift($r->@*)`, `shift(@{[7]})` and `shift(my @b)` all
+  take the array.  Anything else is not an array: `shift(())`, `shift(($_ ? @a : @b))`, `shift($_ ? @a : @b)`,
+  `shift(@a, @b)`, `shift(@a = (1))` and `shift(@a[0])` fail with `Experimental shift on scalar is now forbidden`, while
+  a hash, a glob and a constant fail with `Type of arg 1 to shift must be array (not hash dereference)`, `(not
+  ref-to-glob cast)` and `(not constant item)`.  `shift @a ? "true" : "false"` is `(shift @a) ? ...`.  Probe
+  `probes/corpus/parse_10_shift_array_argument.pl`. [5.44.0]

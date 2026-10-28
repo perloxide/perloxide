@@ -98,3 +98,45 @@ weak_02_backref_order.pl	sv.c	AvFILLp\(av\) = fill-1;	Perl_sv_del_backref: the a
 weak_03_copy_is_strong.pl	sv.c	SvRV_set\(dsv, SvREFCNT_inc\(SvRV\(ssv\)\)\);	Perl_sv_setsv_flags: a copied reference takes a new strong count and no weak flag
 local_04_tied_absent_preref.pl	pp_hot.c	SAVEHDELETE\(hv, keysv\);	pp_helem: a key absent when local runs is recorded for deletion on unwind, whatever is stored under it later
 local_04_tied_absent_preref.pl	pp_hot.c	SAVEADELETE\(av, elem\);	pp_aelem: the same for an array index past the end
+parse_01_unidor_keywords.pl	toke.c	^#define UNIDOR\(f\)	UNIDOR: the operator lexes the next token with PL_expect set to XTERMORDORDOR
+parse_01_unidor_keywords.pl	toke.c	UNIDOR\(OP_SHIFT\);	yyl_word_or_keyword: shift is UNIDOR, as are getc, pop, pos, readline, readlink, readpipe, umask and undef
+parse_01_unidor_keywords.pl	toke.c	^#define FTST\(f\)	FTST: every file test sets XTERMORDORDOR
+parse_01_unidor_keywords.pl	toke.c	if \(\(PL_expect == XOPERATOR \|\| PL_expect == XTERMORDORDOR\) && s\[1\] == .\/.\) \{	yyl_slash: under XTERMORDORDOR, // and //= are defined-or
+parse_01_unidor_keywords.pl	toke.c	s\[1\] == .~. && \(PL_expect == XOPERATOR \|\| PL_expect == XTERMORDORDOR\)	yyl_tilde: under XTERMORDORDOR, ~~ is smartmatch
+parse_02_unidor_parens.pl	toke.c	return REPORT\( \*s==.\(. \? \(int\)FUNC1 : \(int\)UNIOP \);	UNI3: a ( after the operator, after any whitespace, makes it FUNC1
+parse_02_unidor_parens.pl	perly.y	FUNC1 PERLY_PAREN_OPEN PERLY_PAREN_CLOSE	term: FUNC1 ( ) and FUNC1 ( expr )
+parse_02_unidor_parens.pl	toke.c	if \(PL_last_lop == PL_oldoldbufptr \|\| PL_last_uni == PL_oldoldbufptr\)	yyl_leftparen: directly after an operator, the ( leaves PL_expect as the operator set it
+parse_03_stat_is_uni.pl	toke.c	UNI\(OP_STAT\);	yyl_word_or_keyword: stat is UNI
+parse_03_stat_is_uni.pl	toke.c	UNI\(OP_LSTAT\);	yyl_word_or_keyword: lstat is UNI
+parse_04_filetest_letters.pl	toke.c	case .r.: ftst = OP_FTEREAD;	yyl_hyphen: the 27 file-test letters
+parse_04_filetest_letters.pl	toke.c	Assume it was a minus followed by a one-letter named	yyl_hyphen: any other letter is a minus followed by the word
+parse_05_core_prefix.pl	toke.c	return yyl_key_core\(aTHX_ s, len, c\);	yyl_keylookup: CORE:: goes to yyl_key_core before the => check
+parse_05_core_prefix.pl	toke.c	^yyl_key_core	yyl_key_core: NAME is looked up as a keyword and its case taken directly; NAME:: makes an ordinary word
+parse_05_core_prefix.pl	toke.c	is not a keyword	yyl_key_core: CORE::%s is not a keyword
+parse_05_core_prefix.pl	toke.c	d = scan_word\(d, PL_tokenbuf \+ 1, C_ARRAY_LENGTH\(PL_tokenbuf\) - 1,$	yyl_leftcurly: a subscript is autoquoted only when a word scanned without :: is followed by }
+parse_05_core_prefix.pl	toke.c	dump\(\) must be written as CORE::dump\(\)	yyl_secondclass_keyword: bare dump croaks
+parse_06_weak_override_import.pl	toke.c	/\* Check for lexical sub \*/	yyl_keylookup: a lexical sub is found before any keyword
+parse_06_weak_override_import.pl	toke.c	^yyl_secondclass_keyword	yyl_secondclass_keyword: a weak keyword yields to an imported sub or an imported CORE::GLOBAL sub, lock to any sub; otherwise the ambiguous warning, except for x
+parse_06_weak_override_import.pl	sv.c	if \(import_flag && !\(GvFLAGS\(dsv\) & import_flag\)	Perl_gv_setref: a glob assignment marks the slot imported when the current package differs from the glob's
+parse_06_weak_override_import.pl	regen/keywords.pl	^\+defined$	regen/keywords.pl: + marks a strong keyword, - a weak one
+parse_07_statement_terminator.pl	perly.y	sideff PERLY_SEMICOLON	barestmt: an expression statement ends at ;
+parse_07_statement_terminator.pl	toke.c	force_next\(formbrack \? PERLY_DOT : PERLY_BRACE_CLOSE\);	yyl_rightcurly: the lexer returns a ; before the } that closes a block
+parse_07_statement_terminator.pl	toke.c	/\* not infinite loop because rsfp is NULL now \*/	yyl_fake_eof: and a ; at the end of the input
+parse_07_statement_terminator.pl	toke.c	^S_warn_expect_operator	S_warn_expect_operator: the "found where operator expected" warning
+parse_07_statement_terminator.pl	toke.c	sv_catpvs\(repl, "do \{"\);	scan_subst: an s///e replacement is compiled as do { ... }
+parse_08_unary_argument_start.pl	toke.c	^#define UNI\(f\)	UNI: the operator lexes the next token with PL_expect set to XTERM
+parse_08_unary_argument_start.pl	perly.y	UNIOP term\[operand\]	term: UNIOP, UNIOP block, UNIOP term
+parse_08_unary_argument_start.pl	perly.y	^%nonassoc UNIOP UNIOPSUB	%nonassoc UNIOP: the argument's precedence
+parse_08_unary_argument_start.pl	toke.c	^S_check_unary	S_check_unary: the ambiguous warning, naming the operator up to the first character not a word character or -
+parse_08_unary_argument_start.pl	toke.c	/\* Is this a label\? \*/	yyl_keylookup: a word followed by a single : at statement start is a label
+parse_09_keyword_classes.pl	toke.c	UNI\(OP_KEYS\);	yyl_word_or_keyword: keys is UNI
+parse_09_keyword_classes.pl	toke.c	UNI\(OP_VALUES\);	yyl_word_or_keyword: values is UNI
+parse_09_keyword_classes.pl	toke.c	UNI\(OP_EACH\);	yyl_word_or_keyword: each is UNI
+parse_09_keyword_classes.pl	toke.c	UNI\(OP_TELL\);	yyl_word_or_keyword: tell is UNI
+parse_09_keyword_classes.pl	toke.c	UNI\(OP_UNTIE\);	yyl_word_or_keyword: untie is UNI
+parse_09_keyword_classes.pl	toke.c	UNI\(OP_ENTERWRITE\);	yyl_word_or_keyword: write is UNI
+parse_09_keyword_classes.pl	toke.c	LOP\(OP_DIE,XTERM\);	yyl_word_or_keyword: die is LOP
+parse_09_keyword_classes.pl	toke.c	LOP\(OP_WARN,XTERM\);	yyl_word_or_keyword: warn is LOP
+parse_09_keyword_classes.pl	toke.c	LOP\(OP_GPBYNUMBER,XTERM\);	yyl_word_or_keyword: getprotobynumber is LOP
+parse_10_shift_array_argument.pl	perly.y	FUNC1 PERLY_PAREN_OPEN expr PERLY_PAREN_CLOSE	term: FUNC1 ( expr ) accepts any expression
+parse_10_shift_array_argument.pl	op.c	case OA_AVREF:	Perl_ck_fun: an array operand must be an rv2av or padav op; a hash, glob or constant is a bad type, anything else "Experimental %s on scalar is now forbidden"

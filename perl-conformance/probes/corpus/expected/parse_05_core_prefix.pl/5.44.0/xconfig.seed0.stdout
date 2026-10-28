@@ -1,0 +1,44 @@
+value: local @ARGV = (undef); CORE::shift // "D"
+    ('D')
+parse: CORE::readpipe // 0
+    compiles
+value: CORE::stat // 0
+    error: syntax error at (eval 3) line 1, near "// 0"\nExecution of (eval 3) aborted due to compilation errors.
+    warning: Warning: Use of "CORE" without parentheses is ambiguous at (eval 3) line 1.
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 3) line 1, near "// 0"
+value: CORE::nosuch
+    error: CORE::nosuch is not a keyword at (eval 4) line 1.
+value: CORE:: shift
+    error: CORE:: is not a keyword at (eval 5) line 1.
+value: CORE::GLOBAL::shift
+    ('CORE::GLOBAL::shift')
+value: CORE::A::B
+    ('CORE::A::B')
+value: CORE::x 3
+    error: syntax error at (eval 8) line 1, near "CORE::x 3"\nExecution of (eval 8) aborted due to compilation errors.
+    warning: Number found where operator expected (Do you need to predeclare "CORE::x"?) at (eval 8) line 1, near "CORE::x 3"
+value: CORE::and
+    error: syntax error at (eval 9) line 1, near "CORE::and"\nExecution of (eval 9) aborted due to compilation errors.
+parse: CORE::dump
+    compiles
+parse: dump
+    error: dump() must be written as CORE::dump() as of Perl 5.30 at (eval 11) line 1.
+parse: say 1
+    error: syntax error at (eval 12) line 1, near "say 1"\nExecution of (eval 12) aborted due to compilation errors.
+    warning: Number found where operator expected (Do you need to predeclare "say"?) at (eval 12) line 1, near "say 1"
+parse: CORE::say 1
+    compiles
+value: local @ARGV = ("k"); my %h = (CORE::shift => 1); keys %h
+    ('k')
+value: local @ARGV = ("k"); my %h = (shift => 1); keys %h
+    ('shift')
+value: local @ARGV = ("k"); my %h; $h{CORE::shift} = 1; keys %h
+    ('k')
+value: local @ARGV = ("k"); my %h; $h{shift} = 1; keys %h
+    ('shift')
+value: CORE::q(x)
+    ('x')
+value: package C1; use subs "lc"; sub lc { "mine" } lc("A")
+    ('mine')
+value: package C2; use subs "lc"; sub lc { "mine" } CORE::lc("A")
+    ('a')

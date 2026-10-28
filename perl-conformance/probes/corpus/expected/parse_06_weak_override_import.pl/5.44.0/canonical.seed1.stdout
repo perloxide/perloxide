@@ -1,0 +1,40 @@
+    ('1')
+    ('222')
+    ('A')
+    ('a')
+    ('a')
+    ('builtin')
+    ('exported lc')
+    ('global')
+    ('imported dump')
+    ('imported')
+    ('lc')
+    ('lexical defined')
+    ('lexical lc')
+    ('lexical print')
+    ('mine')
+    ('mine')
+    ('mine')
+    error: dump() must be written as CORE::dump() as of Perl 5.30 at (eval 16) line 1.
+    error: syntax error at (eval 10) line 1, near "// 0"\nExecution of (eval 10) aborted due to compilation errors.
+    warning: Ambiguous call resolved as CORE::lc(), qualify as such or use & at (eval 1) line 1.
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 10) line 1, near "// 0"
+value: package Exp; use Exporter "import"; BEGIN { our @EXPORT = qw(lc defined shift) } sub lc { "exported lc" } sub defined { "exported defined" } sub shift { "exported shift" } 1
+value: package O10; my sub lc { "lexical lc" } lc("A")
+value: package O11; my sub print { "lexical print" } print("A")
+value: package O12; my sub defined { "lexical defined" } defined(undef)
+value: package O13; sub lock { "mine" } lock("A")
+value: package O14; use warnings; sub x { "mine" } 2 x 3
+value: package O15; sub dump { "mine" } dump()
+value: package O16; BEGIN { package Q; *O16::dump = sub { "imported dump" } } dump()
+value: package O17; sub CORE::GLOBAL::uc { "global" } uc("a")
+value: package O18; BEGIN { *CORE::GLOBAL::lc = sub { "global" } } lc("A")
+value: package O1; use warnings; sub lc { "mine" } lc("A")
+value: package O2; sub lc { "mine" } &lc("A")
+value: package O3; use subs "lc"; sub lc { "mine" } lc("A")
+value: package O4; BEGIN { package Q; *O4::lc = sub { "imported" } } lc("A")
+value: package O5; BEGIN { *O5::lc = sub { "same package" } } lc("A")
+value: package O6; BEGIN { Exp->import } lc("A")
+value: package O7; BEGIN { Exp->import } defined(undef) ? "defined" : "builtin"
+value: package O8; BEGIN { Exp->import } my %h = (lc => 1); keys %h
+value: package O9; BEGIN { Exp->import } local @ARGV = (undef); shift // 0

@@ -1,0 +1,113 @@
+    ('')
+    ('-5')
+    ('-D')
+    ('-E')
+    ('-F')
+    ('-G')
+    ('-H')
+    ('-I')
+    ('-J')
+    ('-K')
+    ('-L')
+    ('-N')
+    ('-P')
+    ('-Q')
+    ('-U')
+    ('-V')
+    ('-Y')
+    ('-Z')
+    ('-a')
+    ('-h')
+    ('-i')
+    ('-j')
+    ('-j')
+    ('-j')
+    ('-n')
+    ('-v')
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+    error: Can't find string terminator ";" anywhere before EOF at (eval 17) line 1.
+    error: Search pattern not terminated at (eval 13) line 1.
+    error: Transliteration pattern not terminated at (eval 25) line 1.
+    error: syntax error at (eval 56) line 1, near "// 0"\nExecution of (eval 56) aborted due to compilation errors.
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 56) line 1, near "// 0"
+value: -j // 0
+value: -j//0
+value: local $_ = '/nonexistent/perl-conformance'; -A
+value: local $_ = '/nonexistent/perl-conformance'; -B
+value: local $_ = '/nonexistent/perl-conformance'; -C
+value: local $_ = '/nonexistent/perl-conformance'; -D
+value: local $_ = '/nonexistent/perl-conformance'; -E
+value: local $_ = '/nonexistent/perl-conformance'; -F
+value: local $_ = '/nonexistent/perl-conformance'; -G
+value: local $_ = '/nonexistent/perl-conformance'; -H
+value: local $_ = '/nonexistent/perl-conformance'; -I
+value: local $_ = '/nonexistent/perl-conformance'; -J
+value: local $_ = '/nonexistent/perl-conformance'; -K
+value: local $_ = '/nonexistent/perl-conformance'; -L
+value: local $_ = '/nonexistent/perl-conformance'; -M
+value: local $_ = '/nonexistent/perl-conformance'; -N
+value: local $_ = '/nonexistent/perl-conformance'; -O
+value: local $_ = '/nonexistent/perl-conformance'; -P
+value: local $_ = '/nonexistent/perl-conformance'; -Q
+value: local $_ = '/nonexistent/perl-conformance'; -R
+value: local $_ = '/nonexistent/perl-conformance'; -S
+value: local $_ = '/nonexistent/perl-conformance'; -T
+value: local $_ = '/nonexistent/perl-conformance'; -U
+value: local $_ = '/nonexistent/perl-conformance'; -V
+value: local $_ = '/nonexistent/perl-conformance'; -W
+value: local $_ = '/nonexistent/perl-conformance'; -X
+value: local $_ = '/nonexistent/perl-conformance'; -Y
+value: local $_ = '/nonexistent/perl-conformance'; -Z
+value: local $_ = '/nonexistent/perl-conformance'; -a
+value: local $_ = '/nonexistent/perl-conformance'; -b
+value: local $_ = '/nonexistent/perl-conformance'; -c
+value: local $_ = '/nonexistent/perl-conformance'; -d
+value: local $_ = '/nonexistent/perl-conformance'; -e
+value: local $_ = '/nonexistent/perl-conformance'; -f
+value: local $_ = '/nonexistent/perl-conformance'; -g
+value: local $_ = '/nonexistent/perl-conformance'; -h
+value: local $_ = '/nonexistent/perl-conformance'; -i
+value: local $_ = '/nonexistent/perl-conformance'; -j
+value: local $_ = '/nonexistent/perl-conformance'; -k
+value: local $_ = '/nonexistent/perl-conformance'; -l
+value: local $_ = '/nonexistent/perl-conformance'; -m
+value: local $_ = '/nonexistent/perl-conformance'; -n
+value: local $_ = '/nonexistent/perl-conformance'; -o
+value: local $_ = '/nonexistent/perl-conformance'; -p
+value: local $_ = '/nonexistent/perl-conformance'; -q
+value: local $_ = '/nonexistent/perl-conformance'; -r
+value: local $_ = '/nonexistent/perl-conformance'; -s
+value: local $_ = '/nonexistent/perl-conformance'; -t
+value: local $_ = '/nonexistent/perl-conformance'; -u
+value: local $_ = '/nonexistent/perl-conformance'; -v
+value: local $_ = '/nonexistent/perl-conformance'; -w
+value: local $_ = '/nonexistent/perl-conformance'; -x
+value: local $_ = '/nonexistent/perl-conformance'; -y
+value: local $_ = '/nonexistent/perl-conformance'; -z
+value: package F1; sub j { 5 } -j
+value: package F2; sub j { 5 } -j // 0

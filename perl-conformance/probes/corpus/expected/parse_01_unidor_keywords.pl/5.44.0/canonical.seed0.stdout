@@ -1,0 +1,109 @@
+    ('0')
+    ('1')
+    ('D')
+    ('D')
+    ('smartmatch')
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    error: Can't modify lc in scalar assignment at (eval 42) line 1, at EOF
+    error: Can't modify shift in defined or assignment (//=) at (eval 41) line 1, at EOF
+    error: Experimental shift on scalar is now forbidden at (eval 50) line 1, at EOF
+    error: syntax error at (eval 37) line 1, near "// 0"\nExecution of (eval 37) aborted due to compilation errors.
+    error: syntax error at (eval 38) line 1, near "// 0"\nExecution of (eval 38) aborted due to compilation errors.
+    error: syntax error at (eval 39) line 1, near "// 0"\nExecution of (eval 39) aborted due to compilation errors.
+    error: syntax error at (eval 40) line 1, near "// 0"\nExecution of (eval 40) aborted due to compilation errors.
+    error: syntax error at (eval 43) line 1, at EOF\nExecution of (eval 43) aborted due to compilation errors.
+    error: syntax error at (eval 44) line 1, at EOF\nExecution of (eval 44) aborted due to compilation errors.
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 37) line 1, near "// 0"
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 38) line 1, near "// 0"
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 39) line 1, near "// 0"
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 40) line 1, near "// 0"
+    warning: Warning: Use of "chr" without parentheses is ambiguous at (eval 38) line 1.
+    warning: Warning: Use of "lc" without parentheses is ambiguous at (eval 37) line 1.
+    warning: Warning: Use of "lc" without parentheses is ambiguous at (eval 42) line 1.
+    warning: Warning: Use of "ref" without parentheses is ambiguous at (eval 39) line 1.
+    warning: Warning: Use of "stat" without parentheses is ambiguous at (eval 40) line 1.
+parse: -A // 0
+parse: -B // 0
+parse: -C // 0
+parse: -M // 0
+parse: -O // 0
+parse: -R // 0
+parse: -S // 0
+parse: -T // 0
+parse: -W // 0
+parse: -X // 0
+parse: -b // 0
+parse: -c // 0
+parse: -d // 0
+parse: -e // 0
+parse: -f // 0
+parse: -g // 0
+parse: -k // 0
+parse: -l // 0
+parse: -o // 0
+parse: -p // 0
+parse: -r // 0
+parse: -s // 0
+parse: -t // 0
+parse: -u // 0
+parse: -w // 0
+parse: -x // 0
+parse: -z // 0
+parse: chr // 0
+parse: getc // 0
+parse: lc // 0
+parse: lc //= 0
+parse: pop // 0
+parse: pos // 0
+parse: readline // 0
+parse: readlink // 0
+parse: readpipe // 0
+parse: ref // 0
+parse: shift //
+parse: shift // 0
+parse: shift //;
+parse: shift //= 0
+parse: stat // 0
+parse: umask // 0
+parse: undef // 0
+value: local $_ = "/nonexistent/perl-conformance"; -e // "D"
+value: local $_ = "X"; my @a = (7); lc ~~ @a
+value: local @ARGV = ("x"); my @a = ("x"); shift ~~ @a ? "smartmatch" : "no match"
+value: local @ARGV = (0); shift // "D"
+value: local @ARGV = (undef); shift // "D"
+value: no feature "smartmatch"; local @ARGV = ("x"); my @a = ("x"); shift ~~ @a

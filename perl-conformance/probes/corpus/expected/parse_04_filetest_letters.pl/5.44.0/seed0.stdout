@@ -1,0 +1,113 @@
+value: local $_ = '/nonexistent/perl-conformance'; -a
+    ('-a')
+value: local $_ = '/nonexistent/perl-conformance'; -b
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -c
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -d
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -e
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -f
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -g
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -h
+    ('-h')
+value: local $_ = '/nonexistent/perl-conformance'; -i
+    ('-i')
+value: local $_ = '/nonexistent/perl-conformance'; -j
+    ('-j')
+value: local $_ = '/nonexistent/perl-conformance'; -k
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -l
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -m
+    error: Search pattern not terminated at (eval 13) line 1.
+value: local $_ = '/nonexistent/perl-conformance'; -n
+    ('-n')
+value: local $_ = '/nonexistent/perl-conformance'; -o
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -p
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -q
+    error: Can't find string terminator ";" anywhere before EOF at (eval 17) line 1.
+value: local $_ = '/nonexistent/perl-conformance'; -r
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -s
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -t
+    ('')
+value: local $_ = '/nonexistent/perl-conformance'; -u
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -v
+    ('-v')
+value: local $_ = '/nonexistent/perl-conformance'; -w
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -x
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -y
+    error: Transliteration pattern not terminated at (eval 25) line 1.
+value: local $_ = '/nonexistent/perl-conformance'; -z
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -A
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -B
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -C
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -D
+    ('-D')
+value: local $_ = '/nonexistent/perl-conformance'; -E
+    ('-E')
+value: local $_ = '/nonexistent/perl-conformance'; -F
+    ('-F')
+value: local $_ = '/nonexistent/perl-conformance'; -G
+    ('-G')
+value: local $_ = '/nonexistent/perl-conformance'; -H
+    ('-H')
+value: local $_ = '/nonexistent/perl-conformance'; -I
+    ('-I')
+value: local $_ = '/nonexistent/perl-conformance'; -J
+    ('-J')
+value: local $_ = '/nonexistent/perl-conformance'; -K
+    ('-K')
+value: local $_ = '/nonexistent/perl-conformance'; -L
+    ('-L')
+value: local $_ = '/nonexistent/perl-conformance'; -M
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -N
+    ('-N')
+value: local $_ = '/nonexistent/perl-conformance'; -O
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -P
+    ('-P')
+value: local $_ = '/nonexistent/perl-conformance'; -Q
+    ('-Q')
+value: local $_ = '/nonexistent/perl-conformance'; -R
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -S
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -T
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -U
+    ('-U')
+value: local $_ = '/nonexistent/perl-conformance'; -V
+    ('-V')
+value: local $_ = '/nonexistent/perl-conformance'; -W
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -X
+    (undef)
+value: local $_ = '/nonexistent/perl-conformance'; -Y
+    ('-Y')
+value: local $_ = '/nonexistent/perl-conformance'; -Z
+    ('-Z')
+value: -j // 0
+    ('-j')
+value: -j//0
+    ('-j')
+value: package F1; sub j { 5 } -j
+    ('-5')
+value: package F2; sub j { 5 } -j // 0
+    error: syntax error at (eval 56) line 1, near "// 0"\nExecution of (eval 56) aborted due to compilation errors.
+    warning: Number found where operator expected (Missing operator before "0"?) at (eval 56) line 1, near "// 0"

@@ -9,8 +9,8 @@ blessing is per version: the *target* is selected with `--target VERSION` or `PE
 the newest line of `supported-versions` (5.44.0, the only one at this writing).  A Perl that is not a supported version
 (`profile.md`) is never a reference; it is run only as the implementation under `check`.
 
-The seed corpus is every probe from the value/type design research that produced this reference, with expected outputs.
-`sources.md` lists the Perl source behind each probe's rule.
+The corpus began as every probe from the value/type design research that produced this reference; the parsing probes
+(`parse_*`) came later.  Every probe has expected outputs.  `sources.md` lists the Perl source behind each probe's rule.
 
 ## Layout
 
@@ -28,7 +28,7 @@ The seed corpus is every probe from the value/type design research that produced
 | `perls/build-perls.sh`                        | builds the six Perls (two families of three) from the GitHub tag; `--prepare-only` stops before compiling                                                                                                                |
 | `perls/noreuse.patch`                         | `plant_SV` never returns freed SV heads to `PL_sv_root`                                                                                                                                                                  |
 | `perls/descending.patch`                      | `S_sv_add_arena` threads each new arena's free list from the highest slot down                                                                                                                                           |
-| `probes/corpus/*.pl`                          | seed corpus                                                                                                                                                                                                              |
+| `probes/corpus/*.pl`                          | corpus                                                                                                                                                                                                                   |
 | `probes/corpus/expected/<test>/`              | blessed verdict and normalized outputs per test                                                                                                                                                                          |
 | `tools/gd_predict.pl`                         | arena-walk predictor for global destruction order (`gd_01_order.pl`)                                                                                                                                                     |
 | `tools/impl-wrong-seed.sh`                    | a deliberately wrong implementation, for exercising `check`                                                                                                                                                              |
@@ -129,8 +129,8 @@ channels are written to `results/check-diffs/<test>.<comparison>.<channel>.{expe
 | `perl-nondeterministic` | same as allocator-sensitive                                                                           | as above; fix the program if it was meant as a test.                                                                                                                             |
 | `skipped`               | none                                                                                                  | -                                                                                                                                                                                |
 
-The unthreaded stock 5.44.0 passes `check` against its own blessing with 42 PASS, 5 SMOKE and 4 SKIP (the four tests
-that require threads, which an implementation without them is not asked to run); the threaded stock passes all 46 and
+The unthreaded stock 5.44.0 passes `check` against its own blessing with 52 PASS, 5 SMOKE and 4 SKIP (the four tests
+that require threads, which an implementation without them is not asked to run); the threaded stock passes all 56 and
 smokes the same 5.  `tools/impl-wrong-seed.sh`, which forces `PERL_HASH_SEED=1`, fails exactly the lane-A tests whose
 seed-1 output differs from their seed-0 output.
 
@@ -157,7 +157,7 @@ VERSION --only RE` and `bin/perl-conformance bless probes/corpus --target VERSIO
 that version's six builds, then commit `expected/`.  `check --target VERSION` reports a test the target lacks as
 `UNBLESSED` rather than comparing it.
 
-## Seed corpus verdicts (target 5.44.0)
+## Corpus verdicts (target 5.44.0)
 
 | Test                                   | Verdict               |
 |----------------------------------------|-----------------------|
@@ -195,6 +195,16 @@ that version's six builds, then commit `expected/`.  `check --target VERSION` re
 | `order_02_modes.pl@noise3`             | lane-A-eligible       |
 | `order_02_modes.pl@noise50`            | lane-A-eligible       |
 | `order_03_insert_warn_modes.pl`        | lane-A-eligible       |
+| `parse_01_unidor_keywords.pl`          | lane-A-eligible       |
+| `parse_02_unidor_parens.pl`            | lane-A-eligible       |
+| `parse_03_stat_is_uni.pl`              | lane-A-eligible       |
+| `parse_04_filetest_letters.pl`         | lane-A-eligible       |
+| `parse_05_core_prefix.pl`              | lane-A-eligible       |
+| `parse_06_weak_override_import.pl`     | lane-A-eligible       |
+| `parse_07_statement_terminator.pl`     | lane-A-eligible       |
+| `parse_08_unary_argument_start.pl`     | lane-A-eligible       |
+| `parse_09_keyword_classes.pl`          | lane-A-eligible       |
+| `parse_10_shift_array_argument.pl`     | lane-A-eligible       |
 | `probe_01_face_trace.pl`               | lane-A-eligible       |
 | `threads_01_const_marks.pl`            | lane-A-eligible       |
 | `threads_02_shared_local.pl`           | lane-A-eligible       |

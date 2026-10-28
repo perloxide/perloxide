@@ -1,0 +1,24 @@
+    ('$;')
+    ('ab at (eval 10) line 1.')
+    ('ab')
+    ('unary')
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    compiles
+    error: Too many arguments for getprotobynumber at (eval 8) line 1, near "1)\n"
+parse: my $f; my @x = (tell $f, 1)
+parse: my $f; my @x = (write $f, 1)
+parse: my %h; my @x = (each %h, 1)
+parse: my %h; my @x = (keys %h, 1)
+parse: my %h; my @x = (untie %h, 1)
+parse: my %h; my @x = (values %h, 1)
+parse: my @x = (getprotobyname "tcp", 1)
+parse: my @x = (getprotobynumber 6, 1)
+value: CORE::prototype("CORE::getprotobynumber")
+value: eval { die "a", "b" }; $@
+value: my $w; local $SIG{__WARN__} = sub { $w = shift }; warn "a", "b\n"; $w
+value: my %h = (a => 1, b => 2); keys %h < 3 ? "unary" : "list"
