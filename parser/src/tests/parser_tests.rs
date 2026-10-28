@@ -1619,10 +1619,9 @@ fn parse_filetest_prefers_defined_or() {
 
 #[test]
 fn parse_shift_defined_or_bareword() {
-    // shift //i 0 — in Perl this is a syntax error because i is not predeclared.  Our parser is more permissive: it
-    // parses as shift() // i(0) since any bareword can be a function call.
-    let e = parse_expr_str("shift //i 0;");
-    assert!(matches!(e.kind, ExprKind::BinOp(BinOp::DefinedOr, _, _)));
+    // `shift //i 0`: the `//` after shift is defined-or, so `i` is a bareword operand, and the `0` then stands where an
+    // operator is expected.  Perl rejects it as a syntax error, since `i` is not predeclared (verified 5.44.0).
+    assert_syntax_error("shift //i 0;");
 }
 
 #[test]
@@ -16813,7 +16812,8 @@ fn list_slice_multiple_indices() {
 
 #[test]
 fn list_slice_single_paren_expr_operand() {
-    // `($x)[0]` — a single parenthesized expression sliced: the operand is the inner expr (Paren unwrapped), not a Comma.
+    // `($x)[0]` — a single parenthesized expression sliced: the operand is the inner expr (Paren unwrapped), not a
+    // Comma.
     let e = parse_expr_str("($x)[0];");
     match &e.kind {
         ExprKind::ListSlice(operand, indices) => {
@@ -16943,8 +16943,8 @@ fn assign_list_vs_scalar_classification() {
 
 #[test]
 fn decl_paren_form_does_not_persist() {
-    // The list form `my (...)` is a transient `Paren(Decl)`.  A standalone `my ($a, $b);` (no assignment to consume
-    // and unwrap the Paren) must still resolve to a bare `Decl` — the grouping `Paren` never persists.
+    // The list form `my (...)` is a transient `Paren(Decl)`.  A standalone `my ($a, $b);` (no assignment to consume and
+    // unwrap the Paren) must still resolve to a bare `Decl` — the grouping `Paren` never persists.
     let e = parse_expr_str("my ($a, $b);");
     match &e.kind {
         ExprKind::Decl(DeclScope::My, vars) => assert_eq!(vars.len(), 2),
@@ -16993,10 +16993,10 @@ fn assign_rhs_call_context_follows_assignment() {
 
 #[test]
 fn refgen_operand_context_from_parens_fact() {
-    // Refgen records the `\@a` (reference the container whole) vs `\(@a)` (flatten, reference each element)
-    // distinction as the operand's context, stamped from the parens-fact at construction: no parens → Scalar, parens
-    // → List.  The rule is parens-only — `\@a` is Scalar despite @a being an aggregate.  (Lowering combines this tag
-    // with the operand's container-ness; the parser only records the fact — §6.2.5.)
+    // Refgen records the `\@a` (reference the container whole) vs `\(@a)` (flatten, reference each element) distinction
+    // as the operand's context, stamped from the parens-fact at construction: no parens → Scalar, parens → List.  The
+    // rule is parens-only — `\@a` is Scalar despite @a being an aggregate.  (Lowering combines this tag with the
+    // operand's container-ness; the parser only records the fact — §6.2.5.)
     use Context::{List, Scalar};
     let cases: &[(&str, Context)] = &[("\\$x;", Scalar), ("\\($x);", List), ("\\@a;", Scalar), ("\\(@a);", List), ("\\%h;", Scalar), ("\\(%h);", List)];
     for &(src, expected) in cases {
@@ -17055,15 +17055,15 @@ fn assign_plain_str(src: &str) -> Option<String> {
     }
 }
 
-/// True when the first string initializer parses to a plain constant whose text still contains a literal `$` —
-/// i.e. the lexer failed to treat a `$...` form inside the string as interpolation.
+/// True when the first string initializer parses to a plain constant whose text still contains a literal `$` — i.e. the
+/// lexer failed to treat a `$...` form inside the string as interpolation.
 fn assign_str_has_literal_dollar(src: &str) -> bool {
     assign_plain_str(src).is_some_and(|s| s.contains('$'))
 }
 
 // ── Adjacent-# quote delimiters ────────────────────────────
-// Perl's rule (toke.c scan_str, verified against perl 5.38.2): a `#` immediately adjacent to a quote-like operator
-// is the delimiter; a `#` after whitespace begins a comment.
+// Perl's rule (toke.c scan_str, verified against perl 5.38.2): a `#` immediately adjacent to a quote-like operator is
+// the delimiter; a `#` after whitespace begins a comment.
 
 #[test]
 fn parse_q_hash_delimiter() {
@@ -17112,8 +17112,7 @@ fn parse_q_space_hash_comment_regression() {
 }
 
 // ── `$#` on references ──────────────────────────────────────
-// Verified: perl accepts `$#$aref`, `$#{$aref}`, and the spaced block form as the last index of the referenced
-// array.
+// Verified: perl accepts `$#$aref`, `$#{$aref}`, and the spaced block form as the last index of the referenced array.
 
 #[test]
 fn arraylen_of_reference_forms() {
@@ -17123,8 +17122,8 @@ fn arraylen_of_reference_forms() {
 }
 
 // ── Escape sequences ────────────────────────────────────────
-// All values verified against perl 5.38.2 and cross-checked against 5.42.2 dquote.c, which has identical scanning
-// rules for these forms.
+// All values verified against perl 5.38.2 and cross-checked against 5.42.2 dquote.c, which has identical scanning rules
+// for these forms.
 
 #[test]
 fn escape_octal_with_leading_zero() {
@@ -17143,16 +17142,16 @@ fn escape_octal_regressions() {
 
 #[test]
 fn escape_x_brace_nonhex_consumes_to_brace() {
-    // 5.42.2 grok_bslash_x: a non-hex character inside the braces warns under -w ("Non-hex character 'G'
-    // terminates \x early") and the scan still consumes through the '}'.  Never fatal.  The result is chr(1)
-    // alone — the 'G' and the '}' must not be left behind as literal text.
+    // 5.42.2 grok_bslash_x: a non-hex character inside the braces warns under -w ("Non-hex character 'G' terminates \x
+    // early") and the scan still consumes through the '}'.  Never fatal.  The result is chr(1) alone — the 'G' and the
+    // '}' must not be left behind as literal text.
     assert_eq!(first_assign_str(&parse(r#"my $x = "\x{1G}";"#)), "\u{1}");
 }
 
 #[test]
 fn escape_x_brace_blanks_and_underscores() {
-    // grok_bslash_x skips blanks adjacent to the braces and allows underscores between digits.  Verified: both
-    // forms give "A".
+    // grok_bslash_x skips blanks adjacent to the braces and allows underscores between digits.  Verified: both forms
+    // give "A".
     assert_eq!(first_assign_str(&parse(r#"my $x = "\x{ 41 }";"#)), "A");
     assert_eq!(first_assign_str(&parse(r#"my $x = "\x{4_1}";"#)), "A");
 }
@@ -17205,8 +17204,8 @@ fn escape_c_regressions() {
 #[test]
 fn escape_x_super_unicode_not_dropped() {
     // Verified: perl accepts \x with code points above U+10FFFF (ord gives 1114112) and surrogates (55296), with
-    // warnings only.  Rust `char` cannot represent either, so the exact representation is a design.md §2.3.2
-    // (extended UTF-8) concern; this test pins only that the character is not silently dropped from the literal.
+    // warnings only.  Rust `char` cannot represent either, so the exact representation is a design.md §2.3.2 (extended
+    // UTF-8) concern; this test pins only that the character is not silently dropped from the literal.
     let super_cp = assign_plain_str(r#"my $x = "\x{110000}";"#);
     assert!(super_cp.is_none_or(|s| !s.is_empty()), "code point above Unicode must not be silently dropped");
     let surrogate = assign_plain_str(r#"my $x = "\x{D800}";"#);
@@ -17215,8 +17214,8 @@ fn escape_x_super_unicode_not_dropped() {
 
 #[test]
 fn escape_x_brace_large_values() {
-    // The accumulator must widen past u32: \x with nine hex digits (2**32) is a valid perl code point (below
-    // UV_MAX) and must parse without overflow.  Beyond UV_MAX, 5.42.2 fatals via form_cp_too_large_msg.
+    // The accumulator must widen past u32: \x with nine hex digits (2**32) is a valid perl code point (below UV_MAX)
+    // and must parse without overflow.  Beyond UV_MAX, 5.42.2 fatals via form_cp_too_large_msg.
     let ok = try_parse(r#"my $x = "\x{100000000}";"#);
     assert!(ok.is_ok(), "code point 2**32 is valid in perl and must not overflow the accumulator");
     assert!(try_parse(r#"my $x = "\x{FFFFFFFFFFFFFFFFFF}";"#).is_err(), "code point beyond UV_MAX is fatal in perl");
@@ -17231,15 +17230,15 @@ fn escape_named_char_super_unicode() {
 
 #[test]
 fn escape_close_delimiter_beats_standard_escape() {
-    // With an alphanumeric delimiter, a backslashed delimiter is the delimiter — the standard-escape meaning does
-    // not apply.  Verified: perl parses qq with delimiter n and body a\nb as "anb".
+    // With an alphanumeric delimiter, a backslashed delimiter is the delimiter — the standard-escape meaning does not
+    // apply.  Verified: perl parses qq with delimiter n and body a\nb as "anb".
     assert_eq!(first_assign_str(&parse(r"my $x = qq na\nbn;")), "anb");
 }
 
 // ── Interpolation of punctuation and digit variables ───────
-// Verified: perl interpolates $1 (and multi-digit $10), $&, $!, and $$ inside double-quoted strings, and "$$rx" is
-// the dereference of $rx.  The token/AST shape of the fix is free; the requirement is only that these do not
-// remain literal text.
+// Verified: perl interpolates $1 (and multi-digit $10), $&, $!, and $$ inside double-quoted strings, and "$$rx" is the
+// dereference of $rx.  The token/AST shape of the fix is free; the requirement is only that these do not remain literal
+// text.
 
 #[test]
 fn interp_special_variables_are_not_literal() {
@@ -17272,16 +17271,16 @@ fn uv_range_integer_literals_parse() {
 
 #[test]
 fn leading_zero_float_illegal_octal() {
-    // Verified: perl fatals with "Illegal octal digit '8'" — the leading zero commits to octal even when a
-    // fractional part follows.
+    // Verified: perl fatals with "Illegal octal digit '8'" — the leading zero commits to octal even when a fractional
+    // part follows.
     assert!(try_parse("my $x = 08.5;").is_err(), "08.5 is an illegal octal literal in perl");
     assert!(try_parse("my $x = 09;").is_err(), "09 is an illegal octal literal (regression)");
 }
 
 #[test]
 fn leading_zero_octal_then_dot_is_concat() {
-    // Verified: perl deparses `my $x = 01.5;` to `my $x = '15';` — the leading-zero run is the octal integer 01,
-    // and the dot is the concatenation operator, not a decimal point.
+    // Verified: perl deparses `my $x = 01.5;` to `my $x = '15';` — the leading-zero run is the octal integer 01, and
+    // the dot is the concatenation operator, not a decimal point.
     let rhs = first_assign_rhs(&parse("my $x = 01.5;"));
     match &rhs.kind {
         ExprKind::BinOp(BinOp::Concat, l, r) => {
@@ -17305,8 +17304,8 @@ fn hex_float_requires_exponent_digits() {
 #[test]
 fn hex_float_long_mantissa_precision() {
     // Verified: printf %.17g of this literal gives 0.066666666666666652 — extra mantissa digits round rather than
-    // zeroing the value.  The Rust literal below is that same double written at round-trip precision (perl confirms
-    // the two spellings compare equal), which keeps clippy::excessive_precision quiet.
+    // zeroing the value.  The Rust literal below is that same double written at round-trip precision (perl confirms the
+    // two spellings compare equal), which keeps clippy::excessive_precision quiet.
     match first_assign_rhs(&parse("my $x = 0x0.11111111111111111p0;")).kind {
         ExprKind::FloatLit(f) => {
             assert!((f - 0.066_666_666_666_666_65).abs() < 1e-15, "long hex mantissa must round, got {f}");
@@ -17319,8 +17318,8 @@ fn hex_float_long_mantissa_precision() {
 
 #[test]
 fn qw_nbsp_is_not_a_separator() {
-    // Verified: under use utf8, qw with a NBSP between a and b yields one word — perl splits qw on ASCII
-    // whitespace only.
+    // Verified: under use utf8, qw with a NBSP between a and b yields one word — perl splits qw on ASCII whitespace
+    // only.
     let rhs = first_assign_rhs(&parse("use utf8;\nmy @w = qw(a\u{a0}b);"));
     match &rhs.kind {
         ExprKind::QwList(words) => {
@@ -17333,8 +17332,8 @@ fn qw_nbsp_is_not_a_separator() {
 
 #[test]
 fn qw_vertical_tab_is_a_separator() {
-    // Verified: qw with a vertical tab (0x0B) between a and b yields two words — perl's isSPACE set includes VT,
-    // which Rust's `is_ascii_whitespace` does not (regression guard for the explicit split set).
+    // Verified: qw with a vertical tab (0x0B) between a and b yields two words — perl's isSPACE set includes VT, which
+    // Rust's `is_ascii_whitespace` does not (regression guard for the explicit split set).
     let rhs = first_assign_rhs(&parse("my @w = qw(a\u{b}b);"));
     match &rhs.kind {
         ExprKind::QwList(words) => assert_eq!(words, &["a", "b"], "VT separates qw words"),
@@ -17347,8 +17346,8 @@ fn qw_vertical_tab_is_a_separator() {
 
 #[test]
 fn anon_array_accepts_fat_comma() {
-    // Verified: [1 => 2, 3 =>] is a three-element array — => separates anon-array elements and a trailing => acts
-    // like a trailing comma.  Numbers are not autoquoted; only a preceding bareword is.
+    // Verified: [1 => 2, 3 =>] is a three-element array — => separates anon-array elements and a trailing => acts like
+    // a trailing comma.  Numbers are not autoquoted; only a preceding bareword is.
     let rhs = first_assign_rhs(&parse("my $r = [1 => 2, 3 =>];"));
     match &rhs.kind {
         ExprKind::AnonArray(elems) => {
@@ -17406,8 +17405,8 @@ fn fat_comma_in_amp_and_coderef_calls() {
 }
 
 // ── Slices on dereferences ──────────────────────────────────
-// Verified: perl accepts array, hash, and key/value slices on both the sigil-$var and sigil-block deref spellings.
-// The receiver shape is pinned only as far as "a Deref node" — the sigil it carries is a design choice.
+// Verified: perl accepts array, hash, and key/value slices on both the sigil-$var and sigil-block deref spellings.  The
+// receiver shape is pinned only as far as "a Deref node" — the sigil it carries is a design choice.
 
 #[test]
 fn array_slices_on_dereferences() {
@@ -17467,8 +17466,8 @@ fn hash_and_kv_slices_on_dereferences() {
 
 #[test]
 fn double_tilde_is_two_complements() {
-    // Verified: perl parses ~~@a in term position as two bitwise complements (numifying @a); smartmatch is
-    // infix-only and cannot appear here.
+    // Verified: perl parses ~~@a in term position as two bitwise complements (numifying @a); smartmatch is infix-only
+    // and cannot appear here.
     let rhs = first_assign_rhs(&parse("my $n = ~~@a;"));
     match &rhs.kind {
         ExprKind::UnaryOp(UnaryOp::BitNot, inner) => match &inner.kind {
@@ -17497,17 +17496,17 @@ fn lvalue_builtin_and_ternary_forms() {
 
 #[test]
 fn amp_call_is_distinct_from_plain_call() {
-    // `&foo;` reuses the caller's @_ and bypasses prototypes; `foo();` passes an empty list.  The AST must record
-    // the difference somehow — this compares Debug renderings so it stays agnostic about which marker design is
-    // chosen.  Zero-argument forms are used so child spans cannot differ.
+    // `&foo;` reuses the caller's @_ and bypasses prototypes; `foo();` passes an empty list.  The AST must record the
+    // difference somehow — this compares Debug renderings so it stays agnostic about which marker design is chosen.
+    // Zero-argument forms are used so child spans cannot differ.
     let plain = parse_expr_str("foo();");
     let amp = parse_expr_str("&foo;");
     assert_ne!(format!("{:?}", plain.kind), format!("{:?}", amp.kind), "&foo must be distinguishable from foo() in the AST");
 }
 
 // ── Braced scalar identifiers ───────────────────────────────
-// Verified: under strict, perl reads ${ foo } as $foo (whitespace inside the braces is fine), and under use utf8
-// the same holds for Unicode identifiers.
+// Verified: under strict, perl reads ${ foo } as $foo (whitespace inside the braces is fine), and under use utf8 the
+// same holds for Unicode identifiers.
 
 #[test]
 fn braced_scalar_ident_with_spaces() {
@@ -17562,8 +17561,8 @@ fn vstring_same_line_regression() {
 
 #[test]
 fn non_utf8_source_bytes_are_characters() {
-    // Without use utf8, each source byte is a character.  The two bytes 0xC3 0xA9 (UTF-8 for e-acute) must stay
-    // two characters U+00C3 U+00A9, not decode to one — perl gives length 5 for this literal.
+    // Without use utf8, each source byte is a character.  The two bytes 0xC3 0xA9 (UTF-8 for e-acute) must stay two
+    // characters U+00C3 U+00A9, not decode to one — perl gives length 5 for this literal.
     let mut parser = Parser::new(b"my $x = q(caf\xc3\xa9);\n").unwrap();
     let prog = parser.parse_program().unwrap();
     let s = first_assign_str(&prog);
@@ -17576,8 +17575,8 @@ fn non_utf8_source_bytes_are_characters() {
 #[test]
 fn x_operator_split_rewind_nfd() {
     // The identifier x5e-combining-acute is 5 source bytes but its NFC form is 4; the x-operator split must rewind
-    // using the source length or it silently drops the count digit.  Perl rejects this as a syntax error (verified
-    // via the ASCII analog: $a x5z is "Bareword found where operator expected").
+    // using the source length or it silently drops the count digit.  Perl rejects this as a syntax error (verified via
+    // the ASCII analog: $a x5z is "Bareword found where operator expected").
     assert!(try_parse("use utf8;\nmy $b = $a x5e\u{301};").is_err(), "x-split with an NFD identifier must not silently drop the digit");
 }
 
@@ -17586,19 +17585,18 @@ fn x_operator_split_rewind_nfd() {
 #[test]
 fn heredoc_unterminated_quoted_tag_is_error_regression() {
     // Verified: perl fatals with "Unterminated delimiter for here document".  PerlOxide also errors today (the
-    // terminator is never found); this pins that the failure stays an error rather than silently taking the rest
-    // of the line as the tag.
+    // terminator is never found); this pins that the failure stays an error rather than silently taking the rest of the
+    // line as the tag.
     assert!(try_parse("my $x = <<\"TAG;\nbody\nTAG\n").is_err(), "heredoc tag with an unterminated quote is fatal in perl");
 }
 
 // ── POD inside interpolated code in heredoc bodies ──────────
-// Constant body text is never POD, but an interpolation re-lexes its contents as code, and yylex's POD gate
-// (5.42.2 toke.c, case '=': PL_expect == XSTATE, isALPHA next, at line start) fires against the *sublexed buffer*.
-// In the sublex state the skip is the bounded branch — scan forward within the frame for a line beginning =cut —
-// not the file-level in_pod mode.  For <<~ the indentation strip runs at collection, before the sublex, so
-// indented directives become line-start text by the time the inner lexer sees them; column-0 directives never get
-// that far because the strip pass croaks on them first.  All four cases verified on perl 5.38.2 (the accepted
-// forms print 4).
+// Constant body text is never POD, but an interpolation re-lexes its contents as code, and yylex's POD gate (5.42.2
+// toke.c, case '=': PL_expect == XSTATE, isALPHA next, at line start) fires against the *sublexed buffer*.  In the
+// sublex state the skip is the bounded branch — scan forward within the frame for a line beginning =cut — not the
+// file-level in_pod mode.  For <<~ the indentation strip runs at collection, before the sublex, so indented directives
+// become line-start text by the time the inner lexer sees them; column-0 directives never get that far because the
+// strip pass croaks on them first.  All four cases verified on perl 5.38.2 (the accepted forms print 4).
 
 #[test]
 fn pod_in_interpolated_code_indented_heredoc() {
@@ -17617,16 +17615,804 @@ fn pod_in_interpolated_code_plain_heredoc() {
 
 #[test]
 fn pod_indented_in_plain_heredoc_interpolation_is_code() {
-    // Without the strip, an indented directive is not at line start; the = lexes as an operator and the construct
-    // is a syntax error (perl: syntax error near the =).
+    // Without the strip, an indented directive is not at line start; the = lexes as an operator and the construct is a
+    // syntax error (perl: syntax error near the =).
     let src = "my $x = <<END;\n@{[do {\n5;\n  =pod\ndoc\n  =cut\n+4}]}\nEND\n";
     assert!(try_parse(src).is_err(), "indented POD in a plain heredoc interpolation is ordinary (broken) code");
 }
 
 #[test]
 fn pod_at_column_zero_in_indented_heredoc_croaks_regression() {
-    // The strip pass runs at collection, oblivious to the open interpolation, and croaks on the column-0 lines
-    // before the inner lexer could ever recognize them as POD.
+    // The strip pass runs at collection, oblivious to the open interpolation, and croaks on the column-0 lines before
+    // the inner lexer could ever recognize them as POD.
     let src = "my $x = <<~END;\n    @{[do {\n    5;\n=pod\ndoc\n=cut\n    +4}]}\n    END\n";
     assert!(try_parse(src).is_err(), "column-0 lines inside <<~ are an indentation croak even inside an interpolation");
+}
+
+// ── Optional-argument unaries, `//`, `CORE::`, keyword overrides and statement ends ──
+// Every expectation in this section was verified against perl 5.44.0.  Error expectations compare only the message body
+// (`syntax error`, not the `at FILE line N, near "..."` location that follows it), and the warnings perl emits before
+// some of these errors are not checked here.  A few constructs parse successfully in perl and are then rejected by
+// op-tree checks ("Can't modify ...", "Too many arguments ...", "Type of arg ..."); those tests accept either the parse
+// or that exact op-check message, so they stay neutral about which layer reports such errors.
+
+/// Parse `src`, which must fail, and return its error.
+fn parse_error(src: &str) -> ParseError {
+    match try_parse(src) {
+        Ok(prog) => panic!("expected a parse error for {src:?}, got {:?}", prog.statements),
+        Err(e) => e,
+    }
+}
+
+/// Assert that `src` fails to parse with perl's `syntax error` message body.
+fn assert_syntax_error(src: &str) {
+    assert_eq!(parse_error(src).message, "syntax error", "perl rejects {src:?} with a syntax error");
+}
+
+/// Parse `src`, which must succeed with exactly one expression statement (declarations such as `sub` and `use` may
+/// precede it), and return that expression.
+fn sole_expr(src: &str) -> Expr {
+    let prog = match try_parse(src) {
+        Ok(prog) => prog,
+        Err(e) => panic!("expected {src:?} to parse, got error: {}", e.message),
+    };
+    let exprs: Vec<&Expr> = prog
+        .statements
+        .iter()
+        .filter_map(|s| match &s.kind {
+            StmtKind::Expr(e) => Some(e),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(exprs.len(), 1, "expected one expression statement in {src:?}, got {:?}", prog.statements);
+    exprs[0].clone()
+}
+
+/// Accept either a successful parse whose sole expression satisfies `check`, or a failure with exactly `op_check`, the
+/// message perl's op-tree check produces after parsing `src`.
+fn assert_parse_or_op_check_error(src: &str, op_check: &str, check: impl Fn(&Expr) -> bool) {
+    match try_parse(src) {
+        Ok(_) => {
+            let e = sole_expr(src);
+            assert!(check(&e), "unexpected parse of {src:?}: {:?}", e.kind);
+        }
+        Err(e) => assert_eq!(e.message, op_check, "{src:?} may fail only with perl's op-check message"),
+    }
+}
+
+/// Is `e` a call to the builtin `name` with no arguments?
+fn is_bare_builtin(e: &Expr, name: &str) -> bool {
+    matches!(&e.kind, ExprKind::FuncCall(n, args) if n == name && args.is_empty())
+}
+
+/// The name and arguments of a builtin or sub call, whether it is represented as a function call or a list operator.
+fn call_parts(e: &Expr) -> Option<(&str, &[Expr])> {
+    match &e.kind {
+        ExprKind::FuncCall(name, args) | ExprKind::ListOp(name, args) => Some((name.as_str(), args.as_slice())),
+        _ => None,
+    }
+}
+
+/// Is `e` the empty pattern `//` with no flags?
+fn is_empty_regex(e: &Expr) -> bool {
+    matches!(&e.kind, ExprKind::Regex(RegexKind::Match, None, None))
+}
+
+/// Is `e` the file test `-f` on the implicit `$_`?
+fn is_default_filetest_f(e: &Expr) -> bool {
+    matches!(&e.kind, ExprKind::Filetest('f', StatTarget::Default))
+}
+
+// An expression statement must be followed by `;`, or end at the close of its block or at the end of the input.  A term
+// where an operator was expected is a syntax error, never the start of another statement.
+
+#[test]
+fn statement_end_juxtaposed_numbers_are_a_syntax_error() {
+    assert_syntax_error("1 2;");
+}
+
+#[test]
+fn statement_end_juxtaposed_scalars_are_a_syntax_error() {
+    assert_syntax_error("$x $y;");
+}
+
+#[test]
+fn statement_end_number_then_string_is_a_syntax_error() {
+    assert_syntax_error("1 \"a\";");
+}
+
+#[test]
+fn statement_end_print_list_then_number_is_a_syntax_error() {
+    assert_syntax_error("print 1 2;");
+}
+
+#[test]
+fn statement_end_juxtaposed_terms_in_a_block_are_a_syntax_error() {
+    assert_syntax_error("{1 2}");
+}
+
+#[test]
+fn bareword_undeclared_then_number_is_a_syntax_error() {
+    assert_syntax_error("foo 0;");
+}
+
+#[test]
+fn bareword_undeclared_then_string_is_a_syntax_error() {
+    assert_syntax_error("foo \"x\";");
+}
+
+#[test]
+fn bareword_undeclared_then_array_is_a_syntax_error() {
+    assert_syntax_error("foo @x;");
+}
+
+#[test]
+fn bareword_say_without_its_feature() {
+    // Without `use feature 'say'`, `say` is an undeclared bareword, so the `1` stands where an operator is expected.
+    assert_syntax_error("say 1;");
+}
+
+#[test]
+fn bareword_then_bareword_is_an_indirect_method_call() {
+    // `foo bar` with neither word declared is the indirect method call `bar->foo`.
+    let e = sole_expr("foo bar;");
+    match &e.kind {
+        ExprKind::IndirectMethodCall(invocant, method, args) => {
+            assert!(matches!(&invocant.kind, ExprKind::Bareword(n) if n == "bar"), "invocant is the class bar, got {:?}", invocant.kind);
+            assert_eq!(method, "foo");
+            assert!(args.is_empty());
+        }
+        other => panic!("expected an indirect method call, got {other:?}"),
+    }
+}
+
+#[test]
+fn defined_or_after_shift_then_flag_word_and_number_is_a_syntax_error() {
+    assert_syntax_error("shift //g 0;");
+}
+
+#[test]
+fn named_unary_then_repeat_word_is_a_syntax_error() {
+    // In term position `x` is a bareword, which becomes `lc`'s argument; the `2` then stands where an operator is
+    // expected.
+    assert_syntax_error("lc x 2;");
+}
+
+#[test]
+fn defined_or_without_right_operand_is_a_syntax_error() {
+    assert_syntax_error("shift //;");
+}
+
+#[test]
+fn defined_or_at_end_of_input_is_a_syntax_error() {
+    assert_syntax_error("shift //");
+}
+
+// The operators that prefer defined-or: the named unaries `getc`, `pop`, `pos`, `readline`, `readpipe`, `readlink`,
+// `shift`, `undef` and `umask`, and every file test.  After one of them, `//` and `//=` are operators, and so is `~~`
+// while the smartmatch feature is enabled (it is in the default bundle).
+
+#[test]
+fn defined_or_preferred_after_readpipe() {
+    let e = sole_expr("readpipe // 0;");
+    match &e.kind {
+        ExprKind::BinOp(BinOp::DefinedOr, lhs, rhs) => {
+            assert!(is_bare_builtin(lhs, "CORE::readpipe"), "left operand is readpipe with no argument, got {:?}", lhs.kind);
+            assert!(matches!(rhs.kind, ExprKind::IntLit(0)));
+        }
+        other => panic!("expected readpipe() // 0, got {other:?}"),
+    }
+}
+
+#[test]
+fn defined_or_assign_after_pos() {
+    let e = sole_expr("pos //= 0;");
+    match &e.kind {
+        ExprKind::Assign(AssignOp::DefinedOrEq, lhs, rhs) => {
+            assert!(is_bare_builtin(lhs, "CORE::pos"), "left operand is pos with no argument, got {:?}", lhs.kind);
+            assert!(matches!(rhs.kind, ExprKind::IntLit(0)));
+        }
+        other => panic!("expected pos() //= 0, got {other:?}"),
+    }
+}
+
+#[test]
+fn defined_or_assign_after_shift() {
+    assert_parse_or_op_check_error(
+        "shift //= 0;",
+        "Can't modify shift in defined or assignment (//=)",
+        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::DefinedOrEq, lhs, rhs) if is_bare_builtin(lhs, "CORE::shift") && matches!(rhs.kind, ExprKind::IntLit(0))),
+    );
+}
+
+#[test]
+fn defined_or_assign_after_shift_with_bareword() {
+    assert_parse_or_op_check_error(
+        "shift //=i;",
+        "Can't modify shift in defined or assignment (//=)",
+        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::DefinedOrEq, lhs, rhs) if is_bare_builtin(lhs, "CORE::shift") && matches!(&rhs.kind, ExprKind::Bareword(n) if n == "i")),
+    );
+}
+
+#[test]
+fn defined_or_assign_after_filetest() {
+    assert_parse_or_op_check_error(
+        "-f //= 0;",
+        "Can't modify -f in defined or assignment (//=)",
+        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::DefinedOrEq, lhs, rhs) if is_default_filetest_f(lhs) && matches!(rhs.kind, ExprKind::IntLit(0))),
+    );
+}
+
+#[test]
+fn smartmatch_after_shift() {
+    let e = sole_expr("shift ~~ @a;");
+    match &e.kind {
+        ExprKind::BinOp(BinOp::SmartMatch, lhs, rhs) => {
+            assert!(is_bare_builtin(lhs, "CORE::shift"), "left operand is shift with no argument, got {:?}", lhs.kind);
+            assert!(matches!(&rhs.kind, ExprKind::ArrayVar(n) if n == "a"));
+        }
+        other => panic!("expected shift() ~~ @a, got {other:?}"),
+    }
+}
+
+#[test]
+fn smartmatch_after_getc() {
+    let e = sole_expr("getc ~~ @a;");
+    match &e.kind {
+        ExprKind::BinOp(BinOp::SmartMatch, lhs, _) => {
+            assert!(is_bare_builtin(lhs, "CORE::getc"), "left operand is getc with no argument, got {:?}", lhs.kind)
+        }
+        other => panic!("expected getc() ~~ @a, got {other:?}"),
+    }
+}
+
+#[test]
+fn smartmatch_after_filetest() {
+    let e = sole_expr("-f ~~ @a;");
+    match &e.kind {
+        ExprKind::BinOp(BinOp::SmartMatch, lhs, _) => assert!(is_default_filetest_f(lhs), "left operand is -f $_, got {:?}", lhs.kind),
+        other => panic!("expected -f ~~ @a as a smartmatch, got {other:?}"),
+    }
+}
+
+// In term position `//=` is the empty pattern `//` followed by `=`, which can begin `=~`.
+
+#[test]
+fn empty_pattern_in_term_position_then_binding() {
+    let e = sole_expr("my $x = //=~ /x/;");
+    match &e.kind {
+        ExprKind::Assign(_, _, rhs) => match &rhs.kind {
+            ExprKind::BinOp(BinOp::Binding, lhs, _) => assert!(is_empty_regex(lhs), "left operand is the empty pattern, got {:?}", lhs.kind),
+            other => panic!("expected // =~ /x/, got {other:?}"),
+        },
+        other => panic!("expected an assignment, got {other:?}"),
+    }
+}
+
+#[test]
+fn empty_pattern_as_named_unary_argument_then_binding() {
+    let e = sole_expr("length //=~ /x/;");
+    match call_parts(&e) {
+        Some(("CORE::length", [arg])) => {
+            assert!(matches!(&arg.kind, ExprKind::BinOp(BinOp::Binding, lhs, _) if is_empty_regex(lhs)), "argument is // =~ /x/, got {:?}", arg.kind)
+        }
+        _ => panic!("expected length(// =~ /x/), got {:?}", e.kind),
+    }
+}
+
+// `stat` and `lstat` are ordinary named unaries without the defined-or preference: `//` after them is a pattern.
+
+#[test]
+fn stat_takes_empty_pattern() {
+    let e = sole_expr("stat //;");
+    assert!(matches!(&e.kind, ExprKind::Stat(StatTarget::Expr(arg)) if is_empty_regex(arg)), "expected stat(m//), got {:?}", e.kind);
+}
+
+#[test]
+fn lstat_takes_empty_pattern() {
+    let e = sole_expr("lstat //;");
+    assert!(matches!(&e.kind, ExprKind::Lstat(StatTarget::Expr(arg)) if is_empty_regex(arg)), "expected lstat(m//), got {:?}", e.kind);
+}
+
+#[test]
+fn stat_parenthesized_empty_pattern() {
+    let e = sole_expr("stat(//);");
+    assert!(matches!(&e.kind, ExprKind::Stat(StatTarget::Expr(arg)) if is_empty_regex(arg)), "expected stat(m//), got {:?}", e.kind);
+}
+
+#[test]
+fn stat_empty_pattern_then_number_is_a_syntax_error() {
+    assert_syntax_error("stat // 0;");
+}
+
+// Only the 27 file-test letters make file tests.  Any other `-` plus a single letter is a negated bareword: the string
+// `-j`.
+
+#[test]
+fn filetest_non_filetest_letter_is_a_string() {
+    let e = sole_expr("-j // 0;");
+    match &e.kind {
+        ExprKind::BinOp(BinOp::DefinedOr, lhs, _) => {
+            assert!(matches!(&lhs.kind, ExprKind::StringLit(s) if s == "-j"), "expected the string -j, got {:?}", lhs.kind)
+        }
+        other => panic!("expected \"-j\" // 0, got {other:?}"),
+    }
+}
+
+// A named unary followed by `(` takes the function-call form: `name()` has no argument, and `name(EXPR)` has one.  For
+// the operators that prefer defined-or, that preference also governs the first token inside the parentheses (through
+// any further opening parentheses), so `//`, `//=` and `~~` there are operators with no left operand.
+
+#[test]
+fn named_unary_with_empty_parentheses() {
+    let failures: Vec<String> = [
+        ("shift();", "CORE::shift"),
+        ("lc();", "CORE::lc"),
+        ("length();", "CORE::length"),
+        ("pop();", "CORE::pop"),
+        ("pos();", "CORE::pos"),
+        ("chdir();", "CORE::chdir"),
+        ("rand();", "CORE::rand"),
+        ("umask();", "CORE::umask"),
+        ("getc();", "CORE::getc"),
+        ("readline();", "CORE::readline"),
+        ("readlink();", "CORE::readlink"),
+        ("ref();", "CORE::ref"),
+    ]
+    .iter()
+    .filter_map(|&(src, name)| match try_parse(src) {
+        Err(e) => Some(format!("{src}: error {}", e.message)),
+        Ok(_) => {
+            let e = sole_expr(src);
+            (!is_bare_builtin(&e, name)).then(|| format!("{src}: {:?}", e.kind))
+        }
+    })
+    .collect();
+    assert!(failures.is_empty(), "each NAME() is a call with no argument: {failures:#?}");
+}
+
+#[test]
+fn named_unary_shift_empty_parentheses_then_defined_or() {
+    let e = sole_expr("shift() // 0;");
+    assert!(matches!(&e.kind, ExprKind::BinOp(BinOp::DefinedOr, lhs, _) if is_bare_builtin(lhs, "CORE::shift")), "expected shift() // 0, got {:?}", e.kind);
+}
+
+#[test]
+fn named_unary_eof_empty_parentheses_differs_from_bare_eof() {
+    // `eof()` tests the end of the whole <ARGV> stream and `eof` the last file read, so the AST must record which form
+    // was written.  This compares Debug renderings to stay neutral about how the distinction is represented.
+    let with_parens = sole_expr("eof();");
+    let bare = sole_expr("eof;");
+    assert_ne!(format!("{:?}", with_parens.kind), format!("{:?}", bare.kind), "eof() must be distinguishable from eof in the AST");
+}
+
+#[test]
+fn defined_or_preference_inside_call_parentheses() {
+    let failures: Vec<String> = [
+        "pos(//);",
+        "pos (//);",
+        "pos((//));",
+        "readpipe(//);",
+        "readpipe((//));",
+        "-f(//);",
+        "-f((//));",
+        "shift(~~@a);",
+        "shift(((~~@a)));",
+        "shift( //= 1);",
+        "undef(//);",
+    ]
+    .iter()
+    .filter_map(|src| match try_parse(src) {
+        Ok(prog) => Some(format!("{src}: parsed as {:?}", prog.statements)),
+        Err(e) if e.message != "syntax error" => Some(format!("{src}: error {}", e.message)),
+        Err(_) => None,
+    })
+    .collect();
+    assert!(failures.is_empty(), "perl rejects each of these with a syntax error: {failures:#?}");
+}
+
+// After an optional-argument named unary or a file test, a token that cannot begin a term ends the operator with no
+// argument; the token is then the next operator.
+
+#[test]
+fn named_unary_then_operator() {
+    let failures: Vec<String> = [
+        ("shift == 1;", BinOp::NumEq, "CORE::shift"),
+        ("lc . \"x\";", BinOp::Concat, "CORE::lc"),
+        ("lc =~ /x/;", BinOp::Binding, "CORE::lc"),
+        ("lc || 1;", BinOp::Or, "CORE::lc"),
+        ("lc && 1;", BinOp::And, "CORE::lc"),
+        ("lc lt 1;", BinOp::StrLt, "CORE::lc"),
+        ("lc eq 1;", BinOp::StrEq, "CORE::lc"),
+        ("lc cmp 1;", BinOp::StrCmp, "CORE::lc"),
+    ]
+    .iter()
+    .filter_map(|&(src, op, name)| match try_parse(src) {
+        Err(e) => Some(format!("{src}: error {}", e.message)),
+        Ok(_) => {
+            let e = sole_expr(src);
+            let ok = matches!(&e.kind, ExprKind::BinOp(o, lhs, _) if *o == op && is_bare_builtin(lhs, name));
+            (!ok).then(|| format!("{src}: {:?}", e.kind))
+        }
+    })
+    .collect();
+    assert!(failures.is_empty(), "each is NAME() followed by the operator: {failures:#?}");
+}
+
+#[test]
+fn filetest_then_operator() {
+    let failures: Vec<String> = [("-f == 1;", BinOp::NumEq), ("-f . 1;", BinOp::Concat)]
+        .iter()
+        .filter_map(|&(src, op)| match try_parse(src) {
+            Err(e) => Some(format!("{src}: error {}", e.message)),
+            Ok(_) => {
+                let e = sole_expr(src);
+                let ok = matches!(&e.kind, ExprKind::BinOp(o, lhs, _) if *o == op && is_default_filetest_f(lhs));
+                (!ok).then(|| format!("{src}: {:?}", e.kind))
+            }
+        })
+        .collect();
+    assert!(failures.is_empty(), "each is -f $_ followed by the operator: {failures:#?}");
+}
+
+#[test]
+fn named_unary_then_ternary() {
+    let e = sole_expr("shift ? 1 : 0;");
+    assert!(matches!(&e.kind, ExprKind::Ternary(cond, _, _) if is_bare_builtin(cond, "CORE::shift")), "expected shift() ? 1 : 0, got {:?}", e.kind);
+}
+
+#[test]
+fn named_unary_then_range() {
+    let e = sole_expr("lc .. 1;");
+    assert!(matches!(&e.kind, ExprKind::Range(lhs, _, RangeKind::TwoDots) if is_bare_builtin(lhs, "CORE::lc")), "expected lc() .. 1, got {:?}", e.kind);
+}
+
+#[test]
+fn named_unary_then_flip_flop() {
+    // Outside statement position `...` is the three-dot flip-flop, not the yada-yada statement.
+    let e = sole_expr("lc ... 1;");
+    assert!(matches!(&e.kind, ExprKind::Range(lhs, _, RangeKind::ThreeDots) if is_bare_builtin(lhs, "CORE::lc")), "expected lc() ... 1, got {:?}", e.kind);
+}
+
+#[test]
+fn named_unary_then_arrow() {
+    let e = sole_expr("lc ->[0];");
+    assert!(
+        matches!(&e.kind, ExprKind::ArrowDeref(lhs, ArrowTarget::ArrayElem(_)) if is_bare_builtin(lhs, "CORE::lc")),
+        "expected lc()->[0], got {:?}",
+        e.kind
+    );
+}
+
+#[test]
+fn named_unary_then_assignment() {
+    assert_parse_or_op_check_error(
+        "lc = 1;",
+        "Can't modify lc in scalar assignment",
+        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::Eq, lhs, _) if is_bare_builtin(lhs, "CORE::lc")),
+    );
+}
+
+// In term position the characters that are also infix operators begin terms: `*` a glob, `%` a hash, `&` a sub call,
+// `<` a readline or glob, and `<<` a here-document, with whitespace allowed after the sigil.
+
+#[test]
+fn named_unary_then_glob_sigil() {
+    let failures: Vec<String> = [("lc * 2;", "2"), ("lc *x;", "x")]
+        .iter()
+        .filter_map(|&(src, glob)| match try_parse(src) {
+            Err(e) => Some(format!("{src}: error {}", e.message)),
+            Ok(_) => {
+                let e = sole_expr(src);
+                let ok = matches!(call_parts(&e), Some(("CORE::lc", [arg])) if matches!(&arg.kind, ExprKind::GlobVar(n) if n == glob));
+                (!ok).then(|| format!("{src}: {:?}", e.kind))
+            }
+        })
+        .collect();
+    assert!(failures.is_empty(), "each is lc applied to a glob: {failures:#?}");
+}
+
+#[test]
+fn named_unary_then_hash_sigil() {
+    let e = sole_expr("lc % 2;");
+    assert!(matches!(call_parts(&e), Some(("CORE::lc", [arg])) if matches!(&arg.kind, ExprKind::HashVar(n) if n == "2")), "expected lc(%2), got {:?}", e.kind);
+}
+
+#[test]
+fn named_unary_then_amp_call() {
+    let failures: Vec<String> = [("lc & 1;", "1"), ("lc &x;", "x")]
+        .iter()
+        .filter_map(|&(src, sub)| match try_parse(src) {
+            Err(e) => Some(format!("{src}: error {}", e.message)),
+            Ok(_) => {
+                let e = sole_expr(src);
+                let ok = matches!(call_parts(&e), Some(("CORE::lc", [arg])) if !matches!(arg.kind, ExprKind::Bareword(_)) && format!("{:?}", arg.kind).contains(&format!("\"{sub}\"")));
+                (!ok).then(|| format!("{src}: {:?}", e.kind))
+            }
+        })
+        .collect();
+    assert!(failures.is_empty(), "each is lc applied to a call of &NAME: {failures:#?}");
+}
+
+#[test]
+fn filetest_then_glob_sigil() {
+    let e = sole_expr("-f * 2;");
+    assert!(
+        matches!(&e.kind, ExprKind::Filetest('f', StatTarget::Expr(arg)) if matches!(&arg.kind, ExprKind::GlobVar(n) if n == "2")),
+        "expected -f *2, got {:?}",
+        e.kind
+    );
+}
+
+#[test]
+fn named_unary_shift_then_hash_sigil() {
+    assert_parse_or_op_check_error(
+        "shift % 2;",
+        "Type of arg 1 to shift must be array (not hash dereference)",
+        |e| matches!(call_parts(e), Some(("CORE::shift", [arg])) if matches!(&arg.kind, ExprKind::HashVar(n) if n == "2")),
+    );
+}
+
+#[test]
+fn named_unary_then_power_is_a_syntax_error() {
+    // In term position `**` is the glob `*` named by the second star, so the `2` stands where an operator is expected.
+    assert_syntax_error("lc ** 2;");
+}
+
+#[test]
+fn named_unary_then_spaceship_is_a_syntax_error() {
+    // In term position `<=>` is the glob `<=>`, so the `1` stands where an operator is expected.
+    assert_syntax_error("lc <=> 1;");
+}
+
+#[test]
+fn named_unary_then_unterminated_angle() {
+    assert_eq!(parse_error("lc < 1;").message, "Unterminated <> operator");
+}
+
+#[test]
+fn named_unary_then_bare_heredoc() {
+    assert_eq!(parse_error("lc << 1;").message, "Use of bare << to mean <<\"\" is forbidden");
+}
+
+// A word followed by a single colon at the start of a statement is a label, even when the word is a keyword.
+
+#[test]
+fn label_named_like_a_keyword() {
+    let prog = match try_parse("lc: 1;") {
+        Ok(prog) => prog,
+        Err(e) => panic!("expected the label lc:, got error: {}", e.message),
+    };
+    assert!(
+        matches!(prog.statements.as_slice(), [Statement { kind: StmtKind::Labeled(label, inner), .. }] if label == "lc" && matches!(inner.kind, StmtKind::Expr(_))),
+        "expected a statement labeled lc, got {:?}",
+        prog.statements
+    );
+}
+
+// Keyword classes follow toke.c: `keys`, `values`, `each`, `tell`, `untie` and `write` are named unaries, and `die`,
+// `warn` and `getprotobynumber` are list operators.
+
+#[test]
+fn keyword_class_named_unaries() {
+    let failures: Vec<String> = [
+        ("@x = (keys %h, 1);", "CORE::keys"),
+        ("@x = (values %h, 1);", "CORE::values"),
+        ("@x = (each %h, 1);", "CORE::each"),
+        ("@x = (tell FH, 1);", "CORE::tell"),
+        ("@x = (untie %h, 1);", "CORE::untie"),
+        ("@x = (write FH, 1);", "CORE::write"),
+    ]
+    .iter()
+    .filter_map(|&(src, name)| match try_parse(src) {
+        Err(e) => Some(format!("{src}: error {}", e.message)),
+        Ok(_) => {
+            let e = sole_expr(src);
+            let ok = matches!(&e.kind, ExprKind::Assign(_, _, rhs) if matches!(&rhs.kind, ExprKind::Comma(items) if items.len() == 2 && matches!(call_parts(&items[0]), Some((n, [_])) if n == name)));
+            (!ok).then(|| format!("{src}: {:?}", e.kind))
+        }
+    })
+    .collect();
+    assert!(failures.is_empty(), "each named unary takes one argument and the comma ends it: {failures:#?}");
+}
+
+#[test]
+fn keyword_class_list_operators() {
+    let failures: Vec<String> = [("die \"a\", \"b\";", "CORE::die"), ("warn \"a\", \"b\";", "CORE::warn")]
+        .iter()
+        .filter_map(|&(src, name)| match try_parse(src) {
+            Err(e) => Some(format!("{src}: error {}", e.message)),
+            Ok(_) => {
+                let e = sole_expr(src);
+                let ok = matches!(call_parts(&e), Some((n, args)) if n == name && args.len() == 2);
+                (!ok).then(|| format!("{src}: {:?}", e.kind))
+            }
+        })
+        .collect();
+    assert!(failures.is_empty(), "each list operator takes both arguments: {failures:#?}");
+}
+
+#[test]
+fn keyword_class_getprotobynumber_is_a_list_operator() {
+    assert_parse_or_op_check_error(
+        "@x = (getprotobynumber 1, 2);",
+        "Too many arguments for getprotobynumber",
+        |e| matches!(&e.kind, ExprKind::Assign(_, _, rhs) if matches!(call_parts(rhs), Some(("CORE::getprotobynumber", args)) if args.len() == 2)),
+    );
+}
+
+// `undef` takes an optional argument like any other named unary.
+
+#[test]
+fn undef_takes_scalar_argument() {
+    let e = sole_expr("undef $x;");
+    assert!(format!("{:?}", e.kind).contains("ScalarVar(\"x\")"), "expected undef($x), got {:?}", e.kind);
+}
+
+#[test]
+fn undef_takes_parenthesized_array_argument() {
+    let e = sole_expr("undef(@a);");
+    assert!(format!("{:?}", e.kind).contains("ArrayVar(\"a\")"), "expected undef(@a), got {:?}", e.kind);
+}
+
+#[test]
+fn undef_takes_amp_sub_argument() {
+    let e = sole_expr("undef &foo;");
+    assert!(!matches!(e.kind, ExprKind::BinOp(..)), "expected undef(&foo), got {:?}", e.kind);
+    assert!(format!("{:?}", e.kind).contains("\"foo\""), "expected undef(&foo), got {:?}", e.kind);
+}
+
+// `CORE::NAME` is the keyword NAME, bypassing overrides and feature gating.  `CORE::` before a word that is not a
+// keyword is an error, while `CORE::A::B` is an ordinary qualified name.
+
+#[test]
+fn core_shift_prefers_defined_or() {
+    let e = sole_expr("CORE::shift // 0;");
+    match &e.kind {
+        ExprKind::BinOp(BinOp::DefinedOr, lhs, _) => {
+            assert!(matches!(call_parts(lhs), Some((n, [])) if n.ends_with("shift")), "left operand is the shift builtin, got {:?}", lhs.kind)
+        }
+        other => panic!("expected CORE::shift() // 0, got {other:?}"),
+    }
+}
+
+#[test]
+fn core_readpipe_prefers_defined_or() {
+    let e = sole_expr("CORE::readpipe // 0;");
+    match &e.kind {
+        ExprKind::BinOp(BinOp::DefinedOr, lhs, _) => {
+            assert!(matches!(call_parts(lhs), Some((n, [])) if n.ends_with("readpipe")), "left operand is the readpipe builtin, got {:?}", lhs.kind)
+        }
+        other => panic!("expected CORE::readpipe() // 0, got {other:?}"),
+    }
+}
+
+#[test]
+fn core_stat_empty_pattern_then_number_is_a_syntax_error() {
+    assert_syntax_error("CORE::stat // 0;");
+}
+
+#[test]
+fn core_say_needs_no_feature() {
+    let e = sole_expr("CORE::say 1;");
+    assert!(matches!(&e.kind, ExprKind::PrintOp(n, None, args) if n.ends_with("say") && args.len() == 1), "expected say(1), got {:?}", e.kind);
+}
+
+#[test]
+fn core_unknown_word_is_an_error() {
+    assert_eq!(parse_error("CORE::nosuch 1;").message, "CORE::nosuch is not a keyword");
+}
+
+#[test]
+fn core_with_space_is_an_error() {
+    assert_eq!(parse_error("CORE:: shift;").message, "CORE:: is not a keyword");
+}
+
+#[test]
+fn core_global_alone_is_an_error() {
+    assert_eq!(parse_error("CORE::GLOBAL;").message, "CORE::GLOBAL is not a keyword");
+}
+
+#[test]
+fn core_keyword_is_not_autoquoted_by_fat_comma() {
+    let e = sole_expr("CORE::lc => 1;");
+    assert!(
+        matches!(&e.kind, ExprKind::Comma(items) if matches!(items.as_slice(), [first, _] if matches!(call_parts(first), Some((n, [])) if n.ends_with("lc")))),
+        "expected lc($_), 1, got {:?}",
+        e.kind
+    );
+}
+
+#[test]
+fn core_keyword_is_not_autoquoted_as_hash_key() {
+    let e = sole_expr("$h{CORE::shift};");
+    assert!(
+        matches!(&e.kind, ExprKind::HashElem(_, key) if matches!(call_parts(key), Some((n, [])) if n.ends_with("shift"))),
+        "expected $h{{shift()}}, got {:?}",
+        e.kind
+    );
+}
+
+#[test]
+fn core_quote_operator() {
+    let e = sole_expr("CORE::q(x);");
+    assert!(matches!(&e.kind, ExprKind::StringLit(s) if s == "x"), "expected the string x, got {:?}", e.kind);
+}
+
+#[test]
+fn core_repeat_word_in_term_position_is_a_syntax_error() {
+    assert_syntax_error("CORE::x 3;");
+}
+
+#[test]
+fn core_low_and_in_term_position_is_a_syntax_error() {
+    assert_syntax_error("CORE::and;");
+}
+
+#[test]
+fn core_low_and_in_operator_position() {
+    let e = sole_expr("1 CORE::and 2;");
+    assert!(matches!(&e.kind, ExprKind::BinOp(BinOp::LowAnd, _, _)), "expected 1 and 2, got {:?}", e.kind);
+}
+
+#[test]
+fn core_dump() {
+    let e = sole_expr("CORE::dump;");
+    assert!(matches!(call_parts(&e), Some((n, [])) if n.ends_with("dump")), "expected CORE::dump(), got {:?}", e.kind);
+}
+
+#[test]
+fn dump_bare_is_an_error() {
+    assert_eq!(parse_error("dump;").message, "dump() must be written as CORE::dump() as of Perl 5.30");
+}
+
+// Overrides of weak keywords: a lexical sub always overrides; a package sub overrides only when it was imported
+// (`use subs`, or a glob assignment made from another package); `lock` is overridden by any sub.  A sub that is merely
+// declared does not override, and the builtin parses as usual.
+
+#[test]
+fn override_shift_not_by_declared_sub() {
+    let e = sole_expr("sub shift { 7 } shift // 0;");
+    assert!(
+        matches!(&e.kind, ExprKind::BinOp(BinOp::DefinedOr, lhs, _) if is_bare_builtin(lhs, "CORE::shift")),
+        "expected the builtin shift() // 0, got {:?}",
+        e.kind
+    );
+}
+
+#[test]
+fn override_shift_by_use_subs() {
+    // The override is an ordinary sub without a prototype, so `//` begins its argument list as an empty pattern.
+    assert_syntax_error("use subs \"shift\"; shift // 0;");
+}
+
+#[test]
+fn core_bypasses_use_subs_override() {
+    let e = sole_expr("use subs \"shift\"; CORE::shift // 0;");
+    assert!(
+        matches!(&e.kind, ExprKind::BinOp(BinOp::DefinedOr, lhs, _) if matches!(call_parts(lhs), Some((n, [])) if n.ends_with("shift"))),
+        "expected the builtin shift() // 0, got {:?}",
+        e.kind
+    );
+}
+
+#[test]
+fn override_shift_by_lexical_sub() {
+    assert_syntax_error("my sub shift { 7 } shift // 0;");
+}
+
+#[test]
+fn override_lock_by_any_sub() {
+    assert_syntax_error("sub lock { 7 } lock // 0;");
+}
+
+#[test]
+fn override_shift_by_imported_sub() {
+    let mut parser = Parser::new(b"shift // 0;").unwrap();
+    parser.symbols.entry("Foo").declare_sub("shift", None, Vec::new(), false);
+    parser.symbols.import("main", "shift", "Foo", "shift");
+    match parser.parse_program() {
+        Ok(prog) => panic!("expected a syntax error with shift imported, got {:?}", prog.statements),
+        Err(e) => assert_eq!(e.message, "syntax error"),
+    }
 }
