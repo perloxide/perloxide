@@ -486,7 +486,7 @@ fn parse_defined_or() {
 #[test]
 fn parse_assign_add() {
     let e = parse_expr_str("$x += 1;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::AddEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::AddAssign, _, _)));
 }
 
 #[test]
@@ -1126,8 +1126,8 @@ fn regex_interp_subscript() {
 
 // ── Missing tests promised in the audit ───────────────────
 //
-// These cover interpolation contexts beyond plain `"..."` — heredoc bodies, `qr//`, `s///` pattern and replacement,
-// and the `@{[expr]}` form mixed with chains.  A few cases don't work yet and are marked `#[ignore]` with a clear note
+// These cover interpolation contexts beyond plain `"..."` — heredoc bodies, `qr//`, `s///` pattern and replacement, and
+// the `@{[expr]}` form mixed with chains.  A few cases don't work yet and are marked `#[ignore]` with a clear note
 // explaining the gap; they're here rather than absent so the gap is visible in the test suite rather than only in my
 // memory.
 
@@ -1688,8 +1688,8 @@ fn parse_subst_binding() {
 
 // ── /e replacement: code block, last value, eval depth ────
 
-// The whole replacement is a statement block valued at its last statement — perl `s/Z/my $a=2; my $b=3; $a*$b/e`
-// yields 6.  The old reparse kept only the first statement; this is the regression guard.
+// The whole replacement is a statement block valued at its last statement — perl `s/Z/my $a=2; my $b=3; $a*$b/e` yields
+// 6.  The old reparse kept only the first statement; this is the regression guard.
 #[test]
 fn subst_e_multi_statement_block() {
     let e = parse_expr_str("s/Z/my $a = 2; my $b = 3; $a * $b/e;");
@@ -1746,8 +1746,8 @@ fn subst_e_empty_replacement() {
     }
 }
 
-// The `/e` body is a sublex block that terminates at SublexEnd, not at '}' .  A '}' inside the replacement is
-// content (the inner block's closing brace), not the sublex terminator.
+// The `/e` body is a sublex block that terminates at SublexEnd, not at '}' .  A '}' inside the replacement is content
+// (the inner block's closing brace), not the sublex terminator.
 #[test]
 fn subst_e_body_with_braces() {
     let e = parse_expr_str("s/x/do { 42 }/e;");
@@ -2469,19 +2469,19 @@ fn parse_pod_skipped() {
     assert_eq!(my_count, 2);
 }
 
-// POD is only recognized in statement context (Perl gates on PL_expect == XSTATE).  Mid-expression, `=word` at
-// column 0 is the `=` operator followed by a bareword, not a POD block.
+// POD is only recognized in statement context (Perl gates on PL_expect == XSTATE).  Mid-expression, `=word` at column 0
+// is the `=` operator followed by a bareword, not a POD block.
 #[test]
 fn pod_rejected_mid_expression() {
-    // `1 +` then `=pod` at column 0 — the `=` is not POD, it's an operator (misplaced assignment), producing a
-    // parse error.  Perl: "syntax error at ... near '='"
+    // `1 +` then `=pod` at column 0 — the `=` is not POD, it's an operator (misplaced assignment), producing a parse
+    // error.  Perl: "syntax error at ... near '='"
     let msg = parse_fails("1 +\n=pod\nstuff\n=cut\n");
     assert!(!msg.is_empty(), "expected parse error for mid-expression =pod, got success");
 }
 
-// POD inside an indented heredoc's embedded code block.  The `<<~` indent sets `pos = indent` on body lines, so
-// `=pod` at the indent boundary hits `at_line_start()` and is recognized as POD in statement context.  `skip_pod`
-// must also check `=cut` from the indent position, not from byte 0 of the raw line content.
+// POD inside an indented heredoc's embedded code block.  The `<<~` indent sets `pos = indent` on body lines, so `=pod`
+// at the indent boundary hits `at_line_start()` and is recognized as POD in statement context.  `skip_pod` must also
+// check `=cut` from the indent position, not from byte 0 of the raw line content.
 #[test]
 fn pod_in_indented_heredoc_code_block() {
     // The do-block has `1;` then POD then `2` — POD is skipped, do returns 2.
@@ -2893,8 +2893,8 @@ fn parse_vstring_before_fat_comma_autoquotes() {
 
 #[test]
 fn parse_qualified_name_before_fat_comma() {
-    // Foo::Bar => 1 — Perl autoquotes the full qualified name "Foo::Bar".  The lexer must not autoquote just "Bar"
-    // when it sees => after it, because "Bar" is part of the qualified name "Foo::Bar".
+    // Foo::Bar => 1 — Perl autoquotes the full qualified name "Foo::Bar".  The lexer must not autoquote just "Bar" when
+    // it sees => after it, because "Bar" is part of the qualified name "Foo::Bar".
     let prog = parse("my %h = (Foo::Bar => 1);\n");
     assert_eq!(prog.statements.len(), 1);
 }
@@ -3817,7 +3817,7 @@ fn refalias_requires_feature() {
 fn refalias_with_feature_scalar() {
     let e = parse_expr_stmt("use feature 'refaliasing'; no warnings 'experimental::refaliasing'; \\$a = \\$b;");
     match e.kind {
-        ExprKind::Assign(AssignOp::Eq, lhs, rhs) => {
+        ExprKind::Assign(AssignOp::Assign, lhs, rhs) => {
             assert!(matches!(lhs.kind, ExprKind::Ref(_)));
             assert!(matches!(rhs.kind, ExprKind::Ref(_)));
         }
@@ -3828,20 +3828,20 @@ fn refalias_with_feature_scalar() {
 #[test]
 fn refalias_with_feature_array() {
     let e = parse_expr_stmt("use feature 'refaliasing'; no warnings 'experimental::refaliasing'; \\@a = \\@b;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::Eq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::Assign, _, _)));
 }
 
 #[test]
 fn refalias_with_feature_hash() {
     let e = parse_expr_stmt("use feature 'refaliasing'; no warnings 'experimental::refaliasing'; \\%a = \\%b;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::Eq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::Assign, _, _)));
 }
 
 #[test]
 fn refalias_list_form() {
     let e = parse_expr_stmt("use feature 'refaliasing'; no warnings 'experimental::refaliasing'; (\\$a, \\$b) = (\\$c, \\$d);");
     match e.kind {
-        ExprKind::Assign(AssignOp::Eq, lhs, _) => {
+        ExprKind::Assign(AssignOp::Assign, lhs, _) => {
             // LHS should be a list containing Refs.
             match &lhs.kind {
                 ExprKind::Comma(items) => {
@@ -3877,7 +3877,7 @@ fn declared_refs_scalar() {
          my \\$x = \\$y;",
     );
     match e.kind {
-        ExprKind::Assign(AssignOp::Eq, lhs, _) => match lhs.kind {
+        ExprKind::Assign(AssignOp::Assign, lhs, _) => match lhs.kind {
             ExprKind::Decl(DeclScope::My, vars) => {
                 assert_eq!(vars.len(), 1);
                 assert_eq!(vars[0].name, "x");
@@ -3899,7 +3899,7 @@ fn declared_refs_list_mixed() {
          my (\\$a, \\@b) = (\\$c, \\@d);",
     );
     match e.kind {
-        ExprKind::Assign(AssignOp::Eq, lhs, _) => match lhs.kind {
+        ExprKind::Assign(AssignOp::Assign, lhs, _) => match lhs.kind {
             ExprKind::Decl(DeclScope::My, vars) => {
                 assert_eq!(vars.len(), 2);
                 assert!(vars[0].is_ref && vars[1].is_ref);
@@ -3922,7 +3922,7 @@ fn declared_refs_partial() {
          my (\\$a, $b) = (\\$c, 42);",
     );
     match e.kind {
-        ExprKind::Assign(AssignOp::Eq, lhs, _) => match lhs.kind {
+        ExprKind::Assign(AssignOp::Assign, lhs, _) => match lhs.kind {
             ExprKind::Decl(DeclScope::My, vars) => {
                 assert_eq!(vars.len(), 2);
                 assert!(vars[0].is_ref);
@@ -4583,8 +4583,8 @@ fn parse_indirect_with_var() {
 
 #[test]
 fn indirect_without_feature_is_bareword() {
-    // Without the indirect feature (dropped from :5.36+), `new Foo(1)` is NOT an indirect method call.
-    // `new` is a plain bareword.
+    // Without the indirect feature (dropped from :5.36+), `new Foo(1)` is NOT an indirect method call.  `new` is a
+    // plain bareword.
     let e = parse_expr_str("use v5.36; new Foo(1);");
     assert!(!matches!(e.kind, ExprKind::IndirectMethodCall(..)), "without indirect feature, `new Foo(1)` should not be IndirectMethodCall, got {:?}", e.kind);
 }
@@ -4632,8 +4632,8 @@ fn multidimensional_hash_with_feature() {
 
 #[test]
 fn multidimensional_hash_without_feature() {
-    // Without the feature (dropped from :5.36+), `$h{1,2,3}` is left as a comma-list — no join transformation.
-    // The compiler emits "Multidimensional hash lookup is disabled".
+    // Without the feature (dropped from :5.36+), `$h{1,2,3}` is left as a comma-list — no join transformation.  The
+    // compiler emits "Multidimensional hash lookup is disabled".
     let prog = parse("use v5.36; $h{1,2,3};");
     match &prog.statements[1].kind {
         StmtKind::Expr(Expr { kind: ExprKind::HashElem(_, key), .. }) => {
@@ -5467,7 +5467,7 @@ fn concat_and_repeat() {
 #[test]
 fn defined_or_assign() {
     let e = parse_expr_str("$x //= 42;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::DefinedOrEq, _, _)), "expected //= assignment, got {:?}", e.kind);
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::DefinedOrAssign, _, _)), "expected //= assignment, got {:?}", e.kind);
 }
 
 #[test]
@@ -5992,85 +5992,85 @@ fn parse_special_hash_caret_capture_all() {
 #[test]
 fn parse_assign_sub() {
     let e = parse_expr_str("$x -= 1;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::SubEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::SubAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_mul() {
     let e = parse_expr_str("$x *= 2;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::MulEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::MulAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_div() {
     let e = parse_expr_str("$x /= 2;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::DivEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::DivAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_mod() {
     let e = parse_expr_str("$x %= 3;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::ModEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::ModAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_pow() {
     let e = parse_expr_str("$x **= 2;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::PowEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::PowAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_concat() {
     let e = parse_expr_str("$x .= 'a';");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::ConcatEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::ConcatAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_and() {
     let e = parse_expr_str("$x &&= 1;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::AndEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::AndAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_or() {
     let e = parse_expr_str("$x ||= 1;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::OrEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::OrAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_defined_or() {
     let e = parse_expr_str("$x //= 1;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::DefinedOrEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::DefinedOrAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_bit_and() {
     let e = parse_expr_str("$x &= 0xFF;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::BitAndEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::BitAndAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_bit_or() {
     let e = parse_expr_str("$x |= 0xFF;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::BitOrEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::BitOrAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_bit_xor() {
     let e = parse_expr_str("$x ^= 0xFF;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::BitXorEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::BitXorAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_shift_l() {
     let e = parse_expr_str("$x <<= 2;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::ShiftLeftEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::ShiftLeftAssign, _, _)));
 }
 
 #[test]
 fn parse_assign_shift_r() {
     let e = parse_expr_str("$x >>= 2;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::ShiftRightEq, _, _)));
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::ShiftRightAssign, _, _)));
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -6121,8 +6121,8 @@ fn prec_comma_vs_assign() {
     match &e.kind {
         ExprKind::Comma(items) => {
             assert_eq!(items.len(), 2);
-            assert!(matches!(items[0].kind, ExprKind::Assign(AssignOp::Eq, _, _)));
-            assert!(matches!(items[1].kind, ExprKind::Assign(AssignOp::Eq, _, _)));
+            assert!(matches!(items[0].kind, ExprKind::Assign(AssignOp::Assign, _, _)));
+            assert!(matches!(items[1].kind, ExprKind::Assign(AssignOp::Assign, _, _)));
         }
         other => panic!("expected Comma of two Assigns, got {other:?}"),
     }
@@ -6135,7 +6135,7 @@ fn prec_assign_vs_ternary() {
     // `$a = $b ? 1 : 0` → Assign($a, Ternary($b, 1, 0)) — ternary binds tighter.
     let e = parse_expr_str("$a = $b ? 1 : 0;");
     match &e.kind {
-        ExprKind::Assign(AssignOp::Eq, _, rhs) => {
+        ExprKind::Assign(AssignOp::Assign, _, rhs) => {
             assert!(matches!(rhs.kind, ExprKind::Ternary(_, _, _)), "expected Ternary on RHS of Assign, got {:?}", rhs.kind);
         }
         other => panic!("expected Assign, got {other:?}"),
@@ -6357,8 +6357,8 @@ fn prec_postinc_vs_arrow() {
 fn prec_assign_right_assoc() {
     let e = parse_expr_str("$a = $b = 1;");
     match &e.kind {
-        ExprKind::Assign(AssignOp::Eq, _, right) => {
-            assert!(matches!(right.kind, ExprKind::Assign(AssignOp::Eq, _, _)));
+        ExprKind::Assign(AssignOp::Assign, _, right) => {
+            assert!(matches!(right.kind, ExprKind::Assign(AssignOp::Assign, _, _)));
         }
         other => panic!("expected chained assign, got {other:?}"),
     }
@@ -6542,8 +6542,8 @@ fn repeat_flush_digit_precedence() {
 
 #[test]
 fn repeat_flush_digit_chained() {
-    // `"ab" x5x5` → Repeat(Repeat("ab", 5), 5) — `scan_ident` produces `Ident("x5x5")`, `lex_operator` splits off
-    // the first `x`, and the remaining `5x5` re-lexes as `IntLit(5)` then `Ident("x5")` which splits again.
+    // `"ab" x5x5` → Repeat(Repeat("ab", 5), 5) — `scan_ident` produces `Ident("x5x5")`, `lex_operator` splits off the
+    // first `x`, and the remaining `5x5` re-lexes as `IntLit(5)` then `Ident("x5")` which splits again.
     let e = parse_expr_str(r#""ab" x5x5;"#);
     match &e.kind {
         ExprKind::BinOp(BinOp::Repeat, lhs, rhs) => {
@@ -6623,8 +6623,8 @@ fn prec_non_assoc_comparison_chains() {
 
 #[test]
 fn prec_pow_vs_unary_minus_literal() {
-    // `-2 ** 4` → Negate(Pow(2, 4)) = -(2**4) = -16, NOT (-2)**4 = 16.  ** binds tighter than unary minus.
-    // This is the classic perlop precedence gotcha for exponentiation.
+    // `-2 ** 4` → Negate(Pow(2, 4)) = -(2**4) = -16, NOT (-2)**4 = 16.  ** binds tighter than unary minus.  This is the
+    // classic perlop precedence gotcha for exponentiation.
     let e = parse_expr_str("-2 ** 4;");
     match &e.kind {
         ExprKind::UnaryOp(UnaryOp::Negate, inner) => {
@@ -6648,11 +6648,11 @@ fn prec_ref_then_infix() {
 
 #[test]
 fn prec_prefix_in_rhs_of_assign() {
-    // `$a = not $b` — assign RHS parsed at PREC_ASSIGN (600); `not` pushes frame at PREC_NOT_LOW (300).
-    // Prefix ops always run in the forward phase regardless of min_prec.
+    // `$a = not $b` — assign RHS parsed at PREC_ASSIGN (600); `not` pushes frame at PREC_NOT_LOW (300).  Prefix ops
+    // always run in the forward phase regardless of min_prec.
     let e = parse_expr_str("$a = not $b;");
     match &e.kind {
-        ExprKind::Assign(AssignOp::Eq, _, rhs) => {
+        ExprKind::Assign(AssignOp::Assign, _, rhs) => {
             assert!(matches!(rhs.kind, ExprKind::UnaryOp(UnaryOp::Not, _)), "expected Not on RHS of Assign, got {:?}", rhs.kind);
         }
         other => panic!("expected Assign, got {other:?}"),
@@ -6695,7 +6695,7 @@ fn prec_assign_inside_ternary() {
     let e = parse_expr_str("$a ? $b = 1 : 0;");
     match &e.kind {
         ExprKind::Ternary(_, middle, _) => {
-            assert!(matches!(middle.kind, ExprKind::Assign(AssignOp::Eq, _, _)), "expected Assign in true-branch, got {:?}", middle.kind);
+            assert!(matches!(middle.kind, ExprKind::Assign(AssignOp::Assign, _, _)), "expected Assign in true-branch, got {:?}", middle.kind);
         }
         other => panic!("expected Ternary, got {other:?}"),
     }
@@ -6912,7 +6912,7 @@ fn prec_chain_as_rhs_of_assign() {
     // `$x = $a < $b < $c` — chain is the RHS of assignment.
     let e = parse_expr_str("$x = $a < $b < $c;");
     match &e.kind {
-        ExprKind::Assign(AssignOp::Eq, _, rhs) => {
+        ExprKind::Assign(AssignOp::Assign, _, rhs) => {
             assert!(matches!(rhs.kind, ExprKind::ChainedCmp(_, _)), "expected ChainedCmp on RHS of Assign, got {:?}", rhs.kind);
         }
         other => panic!("expected Assign, got {other:?}"),
@@ -7003,7 +7003,7 @@ fn pratt_continue_then_nested_frames() {
     match &e.kind {
         ExprKind::AnonArray(elems) => {
             assert_eq!(elems.len(), 2);
-            assert!(matches!(elems[0].kind, ExprKind::Assign(AssignOp::Eq, _, _)));
+            assert!(matches!(elems[0].kind, ExprKind::Assign(AssignOp::Assign, _, _)));
             assert!(matches!(elems[1].kind, ExprKind::UnaryOp(UnaryOp::Negate, _)));
         }
         other => panic!("expected AnonArray, got {other:?}"),
@@ -7051,9 +7051,8 @@ fn parse_empty_list_as_assignment_lhs() {
 
 #[test]
 fn parse_empty_list_count_of_idiom() {
-    // `my $n = () = (1, 2, 3, 4)` — the count-of idiom.  The inner `() = LIST`
-    // is a list assignment whose scalar value is the RHS element count (4).
-    // Here we only assert it parses: a scalar assignment of an (EmptyList) list
+    // `my $n = () = (1, 2, 3, 4)` — the count-of idiom.  The inner `() = LIST` is a list assignment whose scalar value
+    // is the RHS element count (4).  Here we only assert it parses: a scalar assignment of an (EmptyList) list
     // assignment.  Verified against perl: $n == 4.
     let e = parse_expr_str("my $n = () = (1, 2, 3, 4);");
     match &e.kind {
@@ -7071,9 +7070,8 @@ fn parse_empty_list_count_of_idiom() {
 
 #[test]
 fn parse_empty_list_kept_as_comma_operand() {
-    // `()` is NOT dropped as a comma operand: `(1, 2, ())` keeps the trailing
-    // EmptyList, because scalar(1, 2, ()) is undef (the last C-comma operand is
-    // `()`).  The empty-list-flattens behavior of list context is a lowering
+    // `()` is NOT dropped as a comma operand: `(1, 2, ())` keeps the trailing EmptyList, because scalar(1, 2, ()) is
+    // undef (the last C-comma operand is `()`).  The empty-list-flattens behavior of list context is a lowering
     // concern, not a parse-time structural drop.  Verified against perl.
     let e = parse_expr_str("(1, 2, ());");
     match &e.kind {
@@ -7087,8 +7085,7 @@ fn parse_empty_list_kept_as_comma_operand() {
 
 #[test]
 fn parse_empty_list_as_function_arg() {
-    // `foo(())` — an empty list passed as the (sole) argument expression.  The
-    // inner `()` is EmptyList.
+    // `foo(())` — an empty list passed as the (sole) argument expression.  The inner `()` is EmptyList.
     let e = parse_expr_str("foo(());");
     match &e.kind {
         ExprKind::FuncCall(_, args) => {
@@ -7238,8 +7235,8 @@ fn pratt_undef_placeholder_in_list_assign() {
 fn context_scalar_decl_vs_list_decl() {
     // `my $x = (2, 4, 6)` → scalar context.  $x = 6 (C comma, last value).
     // `my ($x) = (2, 4, 6)` → list context.  $x = 2 (first element of list).
-    // The list form is a transient `Paren(Decl)`, so both assignments store an identical bare `Decl` LHS once the
-    // Paren is unwrapped — the distinction survives only as the context the `=` handler stamps onto both sides.
+    // The list form is a transient `Paren(Decl)`, so both assignments store an identical bare `Decl` LHS once the Paren
+    // is unwrapped — the distinction survives only as the context the `=` handler stamps onto both sides.
     let prog1 = parse("my $x = (2, 4, 6);");
     let prog2 = parse("my ($x) = (2, 4, 6);");
 
@@ -9807,8 +9804,8 @@ fn iter_assignment_inside_array() {
     match &e.kind {
         ExprKind::AnonArray(elems) => {
             assert_eq!(elems.len(), 2);
-            assert!(matches!(elems[0].kind, ExprKind::Assign(AssignOp::Eq, _, _)));
-            assert!(matches!(elems[1].kind, ExprKind::Assign(AssignOp::Eq, _, _)));
+            assert!(matches!(elems[0].kind, ExprKind::Assign(AssignOp::Assign, _, _)));
+            assert!(matches!(elems[1].kind, ExprKind::Assign(AssignOp::Assign, _, _)));
         }
         other => panic!("expected AnonArray, got {other:?}"),
     }
@@ -10467,8 +10464,8 @@ fn unknown_sub_stays_bareword_before_operator() {
 
 #[test]
 fn proto_respects_package_scope() {
-    // A proto declared in Foo shouldn't affect bare calls in main.  package Foo; sub bar (); package main; bar + 1;
-    // The bare `bar` in main isn't found → falls through to Bareword + BinOp.
+    // A proto declared in Foo shouldn't affect bare calls in main.  package Foo; sub bar (); package main; bar + 1; The
+    // bare `bar` in main isn't found → falls through to Bareword + BinOp.
     let prog = parse("package Foo; sub bar (); package main; bar + 1;");
 
     // Find the last statement (the `bar + 1` call).
@@ -11279,8 +11276,8 @@ fn smartmatch_precedence_vs_equality() {
 #[test]
 fn smartmatch_disabled_without_feature() {
     // After `no feature ':all'`, smartmatch is off.  The lexer still emits Token::SmartMatch (it doesn't have feature
-    // state), but op_info_for_token won't recognize it as an operator.  The expression `$a ~~ $b` fails to parse as a single
-    // expression — `$a` is one statement and `~~` is an unexpected token.
+    // state), but op_info_for_token won't recognize it as an operator.  The expression `$a ~~ $b` fails to parse as a
+    // single expression — `$a` is one statement and `~~` is an unexpected token.
     //
     // A full solution would need lexer-level token demotion (splitting SmartMatch back into two Tildes), similar to
     // keyword demotion.  For now, verify the program doesn't produce a SmartMatch BinOp.
@@ -11319,19 +11316,19 @@ fn string_bitwise_not() {
 #[test]
 fn string_bitwise_and_assign() {
     let e = parse_expr_str("use feature 'bitwise'; $a &.= $b;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::StringBitAndEq, _, _)), "expected &.= assign, got {:?}", e.kind);
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::StringBitAndAssign, _, _)), "expected &.= assign, got {:?}", e.kind);
 }
 
 #[test]
 fn string_bitwise_or_assign() {
     let e = parse_expr_str("use feature 'bitwise'; $a |.= $b;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::StringBitOrEq, _, _)), "expected |.= assign, got {:?}", e.kind);
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::StringBitOrAssign, _, _)), "expected |.= assign, got {:?}", e.kind);
 }
 
 #[test]
 fn string_bitwise_xor_assign() {
     let e = parse_expr_str("use feature 'bitwise'; $a ^.= $b;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::StringBitXorEq, _, _)), "expected ^.= assign, got {:?}", e.kind);
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::StringBitXorAssign, _, _)), "expected ^.= assign, got {:?}", e.kind);
 }
 
 #[test]
@@ -11649,7 +11646,7 @@ fn logical_xor_precedence() {
 fn logical_xor_assign() {
     // `^^=` assignment operator.
     let e = parse_expr_str("$a ^^= $b;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::LogicalXorEq, _, _)), "expected ^^= assign, got {:?}", e.kind);
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::LogicalXorAssign, _, _)), "expected ^^= assign, got {:?}", e.kind);
 }
 
 // ── <<>> double diamond operator ─────────────────────────
@@ -11961,7 +11958,7 @@ fn dump_with_label() {
 fn repeat_assign() {
     // `$str x= 3` — compound repeat-assignment.
     let e = parse_expr_str("$str x= 3;");
-    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::RepeatEq, _, _)), "expected RepeatEq assign, got {:?}", e.kind);
+    assert!(matches!(e.kind, ExprKind::Assign(AssignOp::RepeatAssign, _, _)), "expected RepeatAssign assign, got {:?}", e.kind);
 }
 
 // ── H11. v-strings as dedicated AST node ─────────────────
@@ -13505,8 +13502,8 @@ fn qw_math_angle_brackets() {
 #[test]
 fn q_unicode_delim_body_with_shared_lead_byte() {
     // « is U+00AB (0xC2 0xAB), » is U+00BB (0xC2 0xBB).  £ is U+00A3 (0xC2 0xA3) — shares lead byte 0xC2 with both.
-    // Memchr triggers on 0xC2 inside the body, but the old byte-by-byte fallback did skip(1) + b as char, splitting
-    // the multi-byte £ into two garbled characters.
+    // Memchr triggers on 0xC2 inside the body, but the old byte-by-byte fallback did skip(1) + b as char, splitting the
+    // multi-byte £ into two garbled characters.
     let prog = parse("use utf8; use feature 'extra_paired_delimiters'; my $x = q\u{00AB}\u{00A3}\u{00BB};");
     match &prog.statements[2].kind {
         StmtKind::Expr(e) => match &e.kind {
@@ -14152,8 +14149,8 @@ fn body_nfc_normalizes_raw_decomposed() {
 
 #[test]
 fn body_escape_chars_not_normalized() {
-    // \x{6e}\x{303} produces n + combining tilde via escapes.  These should NOT be NFC-normalized — they are escape-
-    // produced, not raw source characters.
+    // \x{6e}\x{303} produces n + combining tilde via escapes.  These should NOT be NFC-normalized — they are
+    // escape-produced, not raw source characters.
     let prog = parse("use utf8; my $x = \"\\x{6e}\\x{303}\";");
     assert!(!prog.statements.is_empty());
 
@@ -16695,8 +16692,8 @@ fn ctx_tail_arithmetic_operands_are_scalar_not_runtime() {
 
 #[test]
 fn ctx_loop_body_is_void_even_in_tail() {
-    // A loop is not value-bearing: as a sub's tail statement, its body is still void (the loop returns empty
-    // regardless of context).
+    // A loop is not value-bearing: as a sub's tail statement, its body is still void (the loop returns empty regardless
+    // of context).
     let stmts = parse_stmts("sub f { while ($c) { $x } }");
     match &stmts[0].kind {
         StmtKind::SubDecl(s) => match &s.body.statements[0].kind {
@@ -16915,6 +16912,7 @@ fn assign_list_vs_scalar_classification() {
         ("(@a) = (1, 2)", List),
         ("%h = (1, 2)", List),
         ("(%h) = (1, 2)", List),
+
         // ── declaration ──
         ("my $x = 1", Scalar),
         ("my ($x) = 1", List),
@@ -16924,6 +16922,7 @@ fn assign_list_vs_scalar_classification() {
         ("my (%h) = (1, 2)", List),
         ("my ($x, $y) = (1, 2)", List),
         ("my ($x, @rest) = (1, 2)", List),
+
         // ── comma-list RHS in scalar vs list context (perl: `our $x = (2,4,6)` → 6; `our ($x) = (2,4,6)` → 2) ──
         ("$x = (2, 4, 6)", Scalar),
         ("our $x = (2, 4, 6)", Scalar),
@@ -17808,7 +17807,7 @@ fn defined_or_preferred_after_readpipe() {
 fn defined_or_assign_after_pos() {
     let e = sole_expr("pos //= 0;");
     match &e.kind {
-        ExprKind::Assign(AssignOp::DefinedOrEq, lhs, rhs) => {
+        ExprKind::Assign(AssignOp::DefinedOrAssign, lhs, rhs) => {
             assert!(is_bare_builtin(lhs, "CORE::pos"), "left operand is pos with no argument, got {:?}", lhs.kind);
             assert!(matches!(rhs.kind, ExprKind::IntLit(0)));
         }
@@ -17821,7 +17820,7 @@ fn defined_or_assign_after_shift() {
     assert_parse_or_op_check_error(
         "shift //= 0;",
         "Can't modify shift in defined or assignment (//=)",
-        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::DefinedOrEq, lhs, rhs) if is_bare_builtin(lhs, "CORE::shift") && matches!(rhs.kind, ExprKind::IntLit(0))),
+        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::DefinedOrAssign, lhs, rhs) if is_bare_builtin(lhs, "CORE::shift") && matches!(rhs.kind, ExprKind::IntLit(0))),
     );
 }
 
@@ -17830,7 +17829,7 @@ fn defined_or_assign_after_shift_with_bareword() {
     assert_parse_or_op_check_error(
         "shift //=i;",
         "Can't modify shift in defined or assignment (//=)",
-        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::DefinedOrEq, lhs, rhs) if is_bare_builtin(lhs, "CORE::shift") && matches!(&rhs.kind, ExprKind::Bareword(n) if n == "i")),
+        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::DefinedOrAssign, lhs, rhs) if is_bare_builtin(lhs, "CORE::shift") && matches!(&rhs.kind, ExprKind::Bareword(n) if n == "i")),
     );
 }
 
@@ -17839,7 +17838,7 @@ fn defined_or_assign_after_filetest() {
     assert_parse_or_op_check_error(
         "-f //= 0;",
         "Can't modify -f in defined or assignment (//=)",
-        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::DefinedOrEq, lhs, rhs) if is_default_filetest_f(lhs) && matches!(rhs.kind, ExprKind::IntLit(0))),
+        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::DefinedOrAssign, lhs, rhs) if is_default_filetest_f(lhs) && matches!(rhs.kind, ExprKind::IntLit(0))),
     );
 }
 
@@ -18089,7 +18088,7 @@ fn named_unary_then_assignment() {
     assert_parse_or_op_check_error(
         "lc = 1;",
         "Can't modify lc in scalar assignment",
-        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::Eq, lhs, _) if is_bare_builtin(lhs, "CORE::lc")),
+        |e| matches!(&e.kind, ExprKind::Assign(AssignOp::Assign, lhs, _) if is_bare_builtin(lhs, "CORE::lc")),
     );
 }
 

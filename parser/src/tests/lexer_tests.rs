@@ -56,14 +56,14 @@ fn lex_all(src: &str) -> Vec<Token> {
             spanned.token = tok;
         }
 
-        // PodCommand: `=word` at column 0.  In statement/term context → skip the POD block.  In operator context →
-        // the `=` was already consumed, just replace with Assign(Eq).
+        // PodCommand: `=word` at column 0.  In statement/term context → skip the POD block.  In operator context → the
+        // `=` was already consumed, just replace with Assign(Assign).
         if spanned.token == Token::PodCommand {
             if term_context {
                 lexer.skip_pod().unwrap();
                 continue;
             } else {
-                spanned.token = Token::Assign(AssignOp::Eq);
+                spanned.token = Token::Assign(AssignOp::Assign);
             }
         }
 
@@ -150,8 +150,8 @@ fn lex_cr_only_not_treated_as_newline() {
     let tok = lexer.lex_token().unwrap();
     assert_eq!(tok.token, Token::ShiftLeft);
 
-    // `\r` alone is not a line ending, so "hello\rEND" is a single body line with no terminator after it.  The
-    // up-front body scan finds no terminator and reports the unterminated error here, at setup.
+    // `\r` alone is not a line ending, so "hello\rEND" is a single body line with no terminator after it.  The up-front
+    // body scan finds no terminator and reports the unterminated error here, at setup.
     let result = lexer.lex_heredoc_after_shift_left();
     assert!(result.is_err(), "expected unterminated heredoc error");
 }
@@ -199,7 +199,7 @@ fn lex_indented_heredoc_empty_line_ok() {
 #[test]
 fn lex_simple_assignment() {
     let tokens = lex_all("my $x = 42;");
-    assert_eq!(tokens, vec![Token::Keyword(Keyword::My), Token::ScalarVar("x".into()), Token::Assign(AssignOp::Eq), Token::IntLit(42), Token::Semi,]);
+    assert_eq!(tokens, vec![Token::Keyword(Keyword::My), Token::ScalarVar("x".into()), Token::Assign(AssignOp::Assign), Token::IntLit(42), Token::Semi,]);
 }
 
 #[test]
@@ -911,76 +911,76 @@ fn lex_heredoc_multiline_single_segment() {
 #[test]
 fn lex_all_assignment_ops() {
     let tokens = lex_all("$a += $b -= $c *= $d /= $e");
-    assert!(tokens.contains(&Token::Assign(AssignOp::AddEq)));
-    assert!(tokens.contains(&Token::Assign(AssignOp::SubEq)));
-    assert!(tokens.contains(&Token::Assign(AssignOp::MulEq)));
-    assert!(tokens.contains(&Token::Assign(AssignOp::DivEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::AddAssign)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::SubAssign)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::MulAssign)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::DivAssign)));
 }
 
 #[test]
 fn lex_mod_eq() {
     let tokens = lex_all("$x %= 3");
-    assert!(tokens.contains(&Token::Assign(AssignOp::ModEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::ModAssign)));
 }
 
 #[test]
 fn lex_pow_eq() {
     let tokens = lex_all("$x **= 2");
-    assert!(tokens.contains(&Token::Assign(AssignOp::PowEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::PowAssign)));
 }
 
 #[test]
 fn lex_concat_eq() {
     let tokens = lex_all("$x .= 'a'");
-    assert!(tokens.contains(&Token::Assign(AssignOp::ConcatEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::ConcatAssign)));
 }
 
 #[test]
 fn lex_and_eq() {
     let tokens = lex_all("$x &&= 1");
-    assert!(tokens.contains(&Token::Assign(AssignOp::AndEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::AndAssign)));
 }
 
 #[test]
 fn lex_or_eq() {
     let tokens = lex_all("$x ||= 1");
-    assert!(tokens.contains(&Token::Assign(AssignOp::OrEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::OrAssign)));
 }
 
 #[test]
 fn lex_defined_or_eq() {
     let tokens = lex_all("$x //= 1");
-    assert!(tokens.contains(&Token::Assign(AssignOp::DefinedOrEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::DefinedOrAssign)));
 }
 
 #[test]
 fn lex_bit_and_eq() {
     let tokens = lex_all("$x &= 0xFF");
-    assert!(tokens.contains(&Token::Assign(AssignOp::BitAndEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::BitAndAssign)));
 }
 
 #[test]
 fn lex_bit_or_eq() {
     let tokens = lex_all("$x |= 0xFF");
-    assert!(tokens.contains(&Token::Assign(AssignOp::BitOrEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::BitOrAssign)));
 }
 
 #[test]
 fn lex_bit_xor_eq() {
     let tokens = lex_all("$x ^= 0xFF");
-    assert!(tokens.contains(&Token::Assign(AssignOp::BitXorEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::BitXorAssign)));
 }
 
 #[test]
 fn lex_shift_l_eq() {
     let tokens = lex_all("$x <<= 2");
-    assert!(tokens.contains(&Token::Assign(AssignOp::ShiftLeftEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::ShiftLeftAssign)));
 }
 
 #[test]
 fn lex_shift_r_eq() {
     let tokens = lex_all("$x >>= 2");
-    assert!(tokens.contains(&Token::Assign(AssignOp::ShiftRightEq)));
+    assert!(tokens.contains(&Token::Assign(AssignOp::ShiftRightAssign)));
 }
 
 // ── Operator edge cases ───────────────────────────────────
@@ -1769,8 +1769,8 @@ fn quote_op_q_across_newline_then_fat_comma_autoquotes() {
 
 #[test]
 fn quote_op_m_alnum_delim_after_ws() {
-    // `m xabcx` — match operator with `x` as delim.  The exact token shape for `m` is implementation- specific
-    // (m-sublex vs. a single Regex token); the critical assertion is that it's NOT a lone Ident("m").
+    // `m xabcx` — match operator with `x` as delim.  The exact token shape for `m` is implementation-specific (m-sublex
+    // vs. a single Regex token); the critical assertion is that it's NOT a lone Ident("m").
     let tokens = lex_all("m xabcx;");
     assert!(!matches!(tokens[0], Token::Ident(ref s) if s == "m"), "m should be a match op here, got Ident(m): {tokens:?}");
 }
@@ -2021,8 +2021,8 @@ fn fat_comma_across_newline_qx() {
 // print "$_\n";  # → "pod\n\ntesting\n\n"
 // ```
 //
-// The lexer achieves this by using `skip_ws_and_comments` for the delim-search whitespace skip.  Outside that
-// context, `=word` at col 0 still starts a pod block as usual.
+// The lexer achieves this by using `skip_ws_and_comments` for the delim-search whitespace skip.  Outside that context,
+// `=word` at col 0 still starts a pod block as usual.
 
 #[test]
 fn pod_not_triggered_in_delim_scan_qq() {
@@ -2080,24 +2080,24 @@ fn comment_skipped_in_delim_scan() {
 
 #[test]
 fn lex_repeat_assign_adjacent() {
-    // `x=` adjacent → single RepeatEq token.
+    // `x=` adjacent → single RepeatAssign token.
     let tokens = lex_all("$s x= 3;");
-    assert!(tokens.contains(&Token::Assign(AssignOp::RepeatEq)), "x= should produce RepeatEq; got {:?}", tokens);
+    assert!(tokens.contains(&Token::Assign(AssignOp::RepeatAssign)), "x= should produce RepeatAssign; got {:?}", tokens);
 }
 
 #[test]
 fn lex_repeat_assign_with_space() {
-    // `x =` with space → Ident("x") then Assign(Eq), NOT RepeatEq.
+    // `x =` with space → Ident("x") then Assign(Assign), NOT RepeatAssign.
     let tokens = lex_all("$s x = 3;");
-    assert!(!tokens.contains(&Token::Assign(AssignOp::RepeatEq)), "x = (with space) should NOT produce RepeatEq; got {:?}", tokens);
+    assert!(!tokens.contains(&Token::Assign(AssignOp::RepeatAssign)), "x = (with space) should NOT produce RepeatAssign; got {:?}", tokens);
     assert!(tokens.contains(&Token::Keyword(Keyword::X)), "x should be Keyword(X); got {:?}", tokens);
 }
 
 #[test]
 fn lex_x_fat_comma_not_repeat_assign() {
-    // `x =>` should autoquote x, not produce RepeatEq.
+    // `x =>` should autoquote x, not produce RepeatAssign.
     let tokens = lex_all("x => 1;");
-    assert!(!tokens.contains(&Token::Assign(AssignOp::RepeatEq)), "x => should NOT produce RepeatEq; got {:?}", tokens);
+    assert!(!tokens.contains(&Token::Assign(AssignOp::RepeatAssign)), "x => should NOT produce RepeatAssign; got {:?}", tokens);
 }
 
 #[test]
@@ -2619,9 +2619,9 @@ fn lex_q_space_hash_is_comment_regression() {
 }
 
 // ── `$$` token boundary ─────────────────────────────────────
-// Perl's rule (toke.c, verified against perl 5.38.2): after `$$`, only an identifier start, '{', or another `$`
-// makes it a dereference prefix; any other following byte means the PID variable.  Verified: `print $$."\n"` prints
-// the pid, and `$$==$$` is a pid comparison.
+// Perl's rule (toke.c, verified against perl 5.38.2): after `$$`, only an identifier start, '{', or another `$` makes
+// it a dereference prefix; any other following byte means the PID variable.  Verified: `print $$."\n"` prints the pid,
+// and `$$==$$` is a pid comparison.
 
 #[test]
 fn lex_pid_before_semicolon() {
@@ -2646,6 +2646,7 @@ fn lex_dollar_dollar_deref_regressions() {
     // Identifier start, '{', or '$' after `$$` is a deref chain — these must stay Dollar-prefixed.
     assert_eq!(lex_all("$$x"), vec![Token::Dollar, Token::ScalarVar("x".into())]);
     assert_eq!(lex_all("$$$rr"), vec![Token::Dollar, Token::Dollar, Token::ScalarVar("rr".into())]);
+
     // Whitespace after `$$` is PID today and must stay so.
     assert_eq!(lex_all("$$ ;"), vec![Token::SpecialVar("$".into()), Token::Semi]);
 }

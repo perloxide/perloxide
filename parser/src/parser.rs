@@ -158,46 +158,65 @@ pub struct Parser {
     // ── Lexer source layer (line delivery, heredoc/subst interleaving, CRLF; methods in source.rs) ──
     /// The complete source buffer.
     pub(crate) src: Bytes,
+
     /// Name of the source — used for `__FILE__` resolution and diagnostic messages.  Defaults to `"(script)"`.
     pub(crate) filename: String,
+
     /// Current byte position for reading the next line.
     pub(crate) cursor: usize,
+
     /// The line currently being scanned, if any.  `None` forces a fresh `next_line` read on the next `peek_byte`.
     pub(crate) line: Option<LexerLine>,
+
     /// Next line number to assign (1-based).
     pub(crate) line_number: u32,
+
     /// Lines queued for delivery by future `next_line()` calls (heredoc remainders, push_back, subst bodies).
     pub(crate) queued_lines: VecDeque<LexerLine>,
+
     /// Displaced lines captured during an active lookahead scan, in displacement order.
     pub(crate) lookahead: VecDeque<LexerLine>,
+
     /// Source offset of the line a lookahead scan ended on, identifying it for `consume_lookahead`.
     pub(crate) lookahead_offset: Option<u32>,
+
     /// Cursor position the lookahead scan ended at, within the end line.
     pub(crate) lookahead_pos: Option<u32>,
+
     /// True while a lookahead guard is alive.
     pub(crate) lookahead_mode: bool,
 
     // ── Lexer tokenization layer (methods in lexer.rs) ──
     pub(crate) context_stack: Vec<LexContext>,
+
     /// Deferred error from auto-loading in `peek_byte`.  Surfaced on the next call to `lex_token`.
     pub(crate) pending_error: Option<ParseError>,
+
     /// Active format sublex state, if we're inside a format body.
     pub(crate) format_state: Option<FormatState>,
+
     /// Whether `use utf8` is active.  Kept in step with `pragmas` at block boundaries; read by the lexer layer for
     /// error diagnostics on high bytes outside strings.
     pub(crate) utf8_mode: bool,
+
     /// Fast-path composite: `utf8_mode && !line.ascii_only`.  When false, the current line is pure ASCII.
     pub(crate) effective_utf8: bool,
+
     /// Feature flags, kept in step with `pragmas.features`.  A cached copy the lexer layer reads on hot paths.
     pub(crate) features: Features,
+
     /// Stacked cumulative case-modification flags (`\L`/`\U`/`\F`/`\Q`/`\E`).
     pub(crate) case_mod_stack: Vec<CaseMod>,
+
     /// `\l` pending — lowercase the very next character only.
     pub(crate) case_mod_lcfirst: bool,
+
     /// `\u` pending — titlecase the very next character only.
     pub(crate) case_mod_ucfirst: bool,
+
     /// Set when `__DATA__`/`__END__` or `^D`/`^Z` triggers logical end-of-source.
     pub(crate) logical_eof: bool,
+
     /// Set when `__DATA__`/`__END__` triggers logical EOF: the keyword and the byte offset where trailing data begins.
     pub(crate) data_end_info: Option<(Keyword, u32)>,
 
@@ -229,11 +248,11 @@ impl Parser {
         Self::build(Bytes::copy_from_slice(src), filename.into())
     }
 
-    /// Shared core: detect/transcode any BOM or UTF-16 encoding, then initialize the lexer-layer and parser-layer
-    /// state together.  The source bytes are copied into a `Bytes` buffer once; all subsequent line slicing is
-    /// zero-copy.
+    /// Shared core: detect/transcode any BOM or UTF-16 encoding, then initialize the lexer-layer and parser-layer state
+    /// together.  The source bytes are copied into a `Bytes` buffer once; all subsequent line slicing is zero-copy.
     fn build(src: Bytes, filename: String) -> Result<Self, ParseError> {
         let (src, bom_utf8) = Self::detect_and_transcode(src);
+
         Ok(Parser {
             // Lexer source layer.
             src,
@@ -308,8 +327,8 @@ impl Parser {
         Ok(())
     }
 
-    /// Validate substitution modifier flags.  Includes regex flags plus `e` (eval replacement) and `r` (non-
-    /// destructive).
+    /// Validate substitution modifier flags.  Includes regex flags plus `e` (eval replacement) and `r`
+    /// (non-destructive).
     fn validate_subst_flags(flags: &str, span: Span) -> Result<(), ParseError> {
         for ch in flags.chars() {
             if !"msixpogcadluner".contains(ch) {
@@ -341,14 +360,15 @@ impl Parser {
             statements.push(stmt);
         }
 
-        // If __DATA__/__END__ triggered logical EOF, the lexer stored the keyword and data offset.  Emit a DataEnd
-        // node so the compiler knows where the DATA filehandle content begins.
+        // If __DATA__/__END__ triggered logical EOF, the lexer stored the keyword and data offset.  Emit a DataEnd node
+        // so the compiler knows where the DATA filehandle content begins.
         if let Some((kw, offset)) = self.data_end_info.take() {
             statements.push(Statement { kind: StmtKind::DataEnd(kw, offset), span: self.tok.span, terminated: false });
         }
 
         let end = self.tok.span;
         let mut program = Program { statements, span: start.merge(end) };
+
         // Stamp evaluation context across the whole tree (§6.2.5).  The program is a body evaluated in the caller's
         // runtime context, so its final statement is Runtime (load-determined, resolved at runtime) and every earlier
         // statement is Void.
@@ -369,7 +389,7 @@ impl Parser {
 
         // POD block: `=word` at column 0 in statement context.  Skip the entire block (through `=cut`) and parse the
         // next statement.  This is the grammar-appropriate position for POD — mid-expression, `lex_term`/`lex_operator`
-        // reinterpret it as `Assign(Eq)` instead.
+        // reinterpret it as `Assign(Assign)` instead.
         if self.tok.token == Token::PodCommand {
             self.skip_pod()?;
             self.tok = self.lex_token()?;
@@ -377,8 +397,8 @@ impl Parser {
         }
 
         let kind = match &self.tok.token {
-            // Statement-level keywords: consume first, then dispatch to handler.  Fat-comma autoquoting
-            // (e.g. `if => 1`) is handled by the lexer, which returns StrLit instead of Keyword.
+            // Statement-level keywords: consume first, then dispatch to handler.  Fat-comma autoquoting (e.g.
+            // `if => 1`) is handled by the lexer, which returns StrLit instead of Keyword.
             Token::Keyword(kw) if keyword::is_statement_keyword(*kw) => {
                 let kw = *kw;
                 let kw_span = self.tok.span;
@@ -394,6 +414,7 @@ impl Parser {
                             Keyword::State => DeclScope::State,
                             _ => unreachable!(),
                         };
+
                         // `my sub foo { }`, `state sub foo { }`, `our sub foo { }`
                         if self.tok.token == Token::Keyword(Keyword::Sub) {
                             self.tok = self.lex_token()?;
@@ -409,6 +430,7 @@ impl Parser {
                                 }
                                 other => other,
                             }
+
                         // `my method foo { }`, `state method foo { }`
                         } else if self.tok.token == Token::Keyword(Keyword::Method) {
                             self.tok = self.lex_token()?;
@@ -422,8 +444,9 @@ impl Parser {
                             }
                         } else {
                             let initial = self.parse_decl_expr(scope, kw_span)?;
-                            // `my (...)` yields a transient `Paren(Decl)`; after the continuation has had its chance
-                            // to consume it (e.g. `my ($x) = ...`, where `=` reads-then-unwraps), unwrap any grouping
+
+                            // `my (...)` yields a transient `Paren(Decl)`; after the continuation has had its chance to
+                            // consume it (e.g. `my ($x) = ...`, where `=` reads-then-unwraps), unwrap any grouping
                             // `Paren` that survived a bare `my ($a, $b);` so it does not persist in the statement.
                             let expr = self.parse_expr_continuation(initial, PREC_LOW)?;
                             return self.finish_expr_stmt(Self::unwrap_paren(expr), start);
@@ -504,8 +527,8 @@ impl Parser {
                 self.tok = self.lex_token()?;
                 let block = self.parse_block(false)?;
                 match Self::try_reclassify_as_hash(block) {
-                    // Reclassified as hash constructor.  Continue as an expression statement: check for postfix
-                    // control flow and optional semicolon.
+                    // Reclassified as hash constructor.  Continue as an expression statement: check for postfix control
+                    // flow and optional semicolon.
                     Ok(hash_expr) => return self.finish_expr_stmt(hash_expr, start),
                     Err(block) => {
                         let cont = if self.tok.token == Token::Keyword(Keyword::Continue) {
@@ -603,8 +626,8 @@ impl Parser {
     fn parse_single_var_decl(&mut self) -> Result<VarDecl, ParseError> {
         let span = self.tok.span;
 
-        // `my \$x` / `my \@a` / `my \%h` — reference declaration (declared_refs, 5.26+).  Only honored when the
-        // feature is active; otherwise `\` would be an unexpected token here.
+        // `my \$x` / `my \@a` / `my \%h` — reference declaration (declared_refs, 5.26+).  Only honored when the feature
+        // is active; otherwise `\` would be an unexpected token here.
         let is_ref = if self.pragmas.features.contains(Features::DECLARED_REFS) && self.tok.token == Token::Backslash {
             self.tok = self.lex_token()?;
             true
@@ -705,8 +728,9 @@ impl Parser {
         if self.tok.token == Token::Semi {
             let attr_names: Vec<String> = attributes.iter().map(|a| a.name.clone()).collect();
             self.symbols.entry(&self.current_package.clone()).declare_sub(&name, prototype_parsed, attr_names, true);
-            // Represent as a SubDecl with an empty body for now; an optional `body: None` variant would be cleaner,
-            // but that's a separate AST change.
+
+            // Represent as a SubDecl with an empty body for now; an optional `body: None` variant would be cleaner, but
+            // that's a separate AST change.
             let span = start.merge(self.tok.span);
             self.tok = self.lex_token()?;
             let body = Block { statements: Vec::new(), span };
@@ -714,6 +738,7 @@ impl Parser {
         }
 
         let body = self.parse_block(true)?;
+
         // Register the full definition, replacing any prior forward declaration of the same name.
         let attr_names: Vec<String> = attributes.iter().map(|a| a.name.clone()).collect();
         self.symbols.entry(&self.current_package.clone()).declare_sub(&name, prototype_parsed, attr_names, false);
@@ -807,8 +832,8 @@ impl Parser {
     ///
     /// * `Token::ScalarVar(name)` / `Token::ArrayVar(name)` arrive pre-combined because the lexer greedily consumes
     ///   `$ident` / `@ident`.
-    /// * `Token::HashVar` does NOT arrive pre-combined — the lexer always emits `Token::Percent` and the parser opts
-    ///   in via `lex_hash_var_after_percent()` when in term position.  We do that here.
+    /// * `Token::HashVar` does NOT arrive pre-combined — the lexer always emits `Token::Percent` and the parser opts in
+    ///   via `lex_hash_var_after_percent()` when in term position.  We do that here.
     /// * Bare `$`/`@`/`%` (followed by a non-identifier) arrive as `Token::Dollar` / `Token::At` / `Token::Percent`
     ///   respectively, and mean anonymous placeholders.
     /// * `$,`/`$)`/`$;` and similar get eagerly lexed as `Token::SpecialVar(c)` because those are real punctuation
@@ -887,9 +912,9 @@ impl Parser {
     /// Parse an optional default value in a signature: `= expr`, `//= expr`, `||= expr`.
     fn parse_sig_default(&mut self) -> Result<Option<(SigDefaultKind, Expr)>, ParseError> {
         let kind = match &self.tok.token {
-            Token::Assign(AssignOp::Eq) => SigDefaultKind::Eq,
-            Token::Assign(AssignOp::DefinedOrEq) => SigDefaultKind::DefinedOr,
-            Token::Assign(AssignOp::OrEq) => SigDefaultKind::LogicalOr,
+            Token::Assign(AssignOp::Assign) => SigDefaultKind::Eq,
+            Token::Assign(AssignOp::DefinedOrAssign) => SigDefaultKind::DefinedOr,
+            Token::Assign(AssignOp::OrAssign) => SigDefaultKind::LogicalOr,
             _ => return Ok(None),
         };
         self.tok = self.lex_token()?;
@@ -911,10 +936,10 @@ impl Parser {
             if let Some(name) = name {
                 let name_span = self.tok.span;
                 self.tok = self.lex_token()?;
+
                 // Optional parenthesized args.  For `:prototype(...)` specifically, the body is Perl prototype syntax
-                // (containing `$`, `@`, `%`, `\`, etc.) which must be read as raw bytes — token-by-token
-                // reconstruction via Display impls loses fidelity.  Other attributes use the general
-                // token-reconstruction path.
+                // (containing `$`, `@`, `%`, `\`, etc.) which must be read as raw bytes — token-by-token reconstruction
+                // via Display impls loses fidelity.  Other attributes use the general token-reconstruction path.
                 let value = if self.tok.token == Token::LeftParen {
                     if name == "prototype" {
                         let proto = self.lex_body_str('(', FrameRole::Prototype)?;
@@ -979,9 +1004,10 @@ impl Parser {
             }
             let end = self.tok.span;
             self.expect(&Token::RightParen)?;
+
             // Wrap the list form in a transient grouping `Paren` so the parens-fact rides the same machinery as any
-            // other parenthesized lvalue: the `=` arm reads it (`my ($x) = ...` is a list assignment) and unwraps,
-            // and a standalone `my ($a, $b);` is unwrapped to a bare `Decl` by the caller.  `Paren` never persists.
+            // other parenthesized lvalue: the `=` arm reads it (`my ($x) = ...` is a list assignment) and unwraps, and
+            // a standalone `my ($a, $b);` is unwrapped to a bare `Decl` by the caller.  `Paren` never persists.
             let full = span.merge(end);
             let decl = Expr::new(ExprKind::Decl(scope, vars), full);
             Ok(Expr::new(ExprKind::Paren(Box::new(decl)), full))
@@ -1460,9 +1486,9 @@ impl Parser {
             _ => "STDOUT".to_string(),
         };
 
-        // Verify `=` without lexing past it — start_format changes the lexer mode, so the token after `=` must be
-        // lexed in format mode, not regular mode.
-        if self.tok.token != Token::Assign(AssignOp::Eq) {
+        // Verify `=` without lexing past it — start_format changes the lexer mode, so the token after `=` must be lexed
+        // in format mode, not regular mode.
+        if self.tok.token != Token::Assign(AssignOp::Assign) {
             return Err(ParseError::new(format!("expected =, got {}", self.tok.token), self.tok.span));
         }
 
@@ -1593,17 +1619,17 @@ impl Parser {
         let attributes = self.parse_attributes()?;
 
         let default = match &self.tok.token {
-            Token::Assign(AssignOp::Eq) => {
+            Token::Assign(AssignOp::Assign) => {
                 self.tok = self.lex_token()?;
                 let expr = self.parse_expr(PREC_COMMA)?;
                 Some((SigDefaultKind::Eq, expr))
             }
-            Token::Assign(AssignOp::DefinedOrEq) => {
+            Token::Assign(AssignOp::DefinedOrAssign) => {
                 self.tok = self.lex_token()?;
                 let expr = self.parse_expr(PREC_COMMA)?;
                 Some((SigDefaultKind::DefinedOr, expr))
             }
-            Token::Assign(AssignOp::OrEq) => {
+            Token::Assign(AssignOp::OrAssign) => {
                 self.tok = self.lex_token()?;
                 let expr = self.parse_expr(PREC_COMMA)?;
                 Some((SigDefaultKind::LogicalOr, expr))
@@ -1807,8 +1833,8 @@ impl Parser {
             }
             Ok(Block { statements, span: start.merge(end) })
         } else {
-            // Sublex block (`/e` body): `SublexEnd` or `Eof` terminates.  No unterminated check — the delimiters
-            // were already matched before the sublex frame was set up.
+            // Sublex block (`/e` body): `SublexEnd` or `Eof` terminates.  No unterminated check — the delimiters were
+            // already matched before the sublex frame was set up.
             while !matches!(self.tok.token, Token::SublexEnd | Token::Eof) {
                 statements.push(self.parse_statement()?);
             }
@@ -1893,8 +1919,8 @@ impl Parser {
         loop {
             // Normalize the current token for term context before any term-position dispatch: prefix operators are
             // term-position constructs too, so lex_term's reinterpretations (`~~` → two complements, `//` → empty
-            // regex, column-0 `=word` → `=`) must land before try_prefix examines the token, not only before
-            // parse_term does.
+            // regex, column-0 `=word` → `=`) must land before try_prefix examines the token, not only before parse_term
+            // does.
             self.lex_term()?;
             match self.try_prefix(*current_prec)? {
                 Some(PrefixResult::Frame(frame, inner_prec)) => {
@@ -2233,9 +2259,9 @@ impl Parser {
                 Ok(FrameResult::Done(Expr::unary(op, operand, span), min_prec))
             }
             ExprFrame::Paren { span, min_prec } => {
-                // Wrap the operand in a *transient* `Paren` carrying the parens-fact that `=`, refgen, and the
-                // list slice need.  Nesting is capped at depth one by the `unwrap_paren` above.  `Paren` never
-                // persists in a finished tree: every consumer unwraps it at the point of combination.
+                // Wrap the operand in a *transient* `Paren` carrying the parens-fact that `=`, refgen, and the list
+                // slice need.  Nesting is capped at depth one by the `unwrap_paren` above.  `Paren` never persists in a
+                // finished tree: every consumer unwraps it at the point of combination.
                 let end = self.tok.span;
                 self.expect(&Token::RightParen)?;
                 let span = span.merge(end);
@@ -2414,6 +2440,7 @@ impl Parser {
             }
             Token::GlobVar(name) => {
                 let expr = Expr::new(ExprKind::GlobVar(name), span);
+
                 // *foo{THING} — typeglob slot access
                 if self.tok.token == Token::LeftBrace {
                     let key = self.parse_hash_subscript_key()?;
@@ -2435,8 +2462,8 @@ impl Parser {
 
             Token::Ident(name) => self.parse_ident_term(name, span),
 
-            // Compile-time special literals.  SourceFile/SourceLine carry lex-time values; __PACKAGE__ is resolved
-            // from the parser's state.  __SUB__ and __CLASS__ are feature-gated.
+            // Compile-time special literals.  SourceFile/SourceLine carry lex-time values; __PACKAGE__ is resolved from
+            // the parser's state.  __SUB__ and __CLASS__ are feature-gated.
             Token::SourceFile(path) => Ok(Expr::new(ExprKind::SourceFile(path), span)),
             Token::SourceLine(n) => Ok(Expr::new(ExprKind::SourceLine(n), span)),
             Token::Keyword(Keyword::__PACKAGE__) => {
@@ -2462,6 +2489,7 @@ impl Parser {
 
             // Anonymous sub: sub { ... } or sub ($x) { ... }
             Token::Keyword(Keyword::Sub) => self.parse_anon_sub(span),
+
             // Anonymous method: method { ... } or method ($x) { ... }
             Token::Keyword(Keyword::Method) => self.parse_anon_method(span),
 
@@ -2486,6 +2514,7 @@ impl Parser {
 
             // break — exits a given/when block.  No label argument.
             Token::Keyword(Keyword::Break) => Ok(Expr::new(ExprKind::FuncCall("CORE::break".into(), vec![]), span)),
+
             // continue — falls through to the next when in a given block.
             Token::Keyword(Keyword::Continue) => Ok(Expr::new(ExprKind::FuncCall("CORE::continue".into(), vec![]), span)),
 
@@ -2498,8 +2527,10 @@ impl Parser {
 
             // Nullary keywords — never consume arguments
             Token::Keyword(kw) if keyword::is_nullary(kw) => self.parse_nullary(kw, span),
+
             // Named unary keywords
             Token::Keyword(kw) if keyword::is_named_unary(kw) => self.parse_named_unary(kw, span),
+
             // List operators
             Token::Keyword(kw) if keyword::is_list_op(kw) => self.parse_list_op(kw, span),
 
@@ -2533,12 +2564,16 @@ impl Parser {
 
             // sort/map/grep with optional block
             Token::Keyword(kw) if keyword::is_block_list_op(kw) => self.parse_block_list_op(kw, span),
+
             // print/say with optional filehandle
             Token::Keyword(kw) if keyword::is_print_op(kw) => self.parse_print_op(kw, span),
+
             // Filetest operators: -e, -f, -d, etc. (lexed as single token)
             Token::Filetest(test_byte) => self.parse_filetest(test_byte, span),
+
             // Yada yada yada (...)
             Token::ThreeDots => Ok(Expr::new(ExprKind::YadaYada, span)),
+
             // Readline / diamond: <STDIN>, <>, <$fh>, <*.txt>
             Token::Readline(content, safe) => {
                 let expr = Self::readline_expr(content, safe, span)?;
@@ -2550,8 +2585,8 @@ impl Parser {
     }
 
     fn parse_ident_term(&mut self, name: String, span: Span) -> Result<Expr, ParseError> {
-        // Look up in the symbol table to see if this is a known sub.  Clone the prototype (small: raw string + a Vec
-        // of slot enums) and the "is known" flag so we can release the borrow on self before parsing args.
+        // Look up in the symbol table to see if this is a known sub.  Clone the prototype (small: raw string + a Vec of
+        // slot enums) and the "is known" flag so we can release the borrow on self before parsing args.
         let (is_known_sub, proto) = match self.symbols.lookup(&name, &self.current_package) {
             Some(info) => (true, info.prototype.clone()),
             None => (false, None),
@@ -2699,8 +2734,8 @@ impl Parser {
         for (i, slot) in proto.slots.iter().enumerate() {
             let is_optional = i >= proto.required;
             if self.at_args_end() {
-                // No more input.  The `_` slot is special: when omitted, it defaults to the global default
-                // variable ($_), regardless of required/optional status.  All other slots simply stop.
+                // No more input.  The `_` slot is special: when omitted, it defaults to the global default variable
+                // ($_), regardless of required/optional status.  All other slots simply stop.
                 if matches!(slot, ProtoSlot::DefaultedScalar) {
                     args.push(Expr::new(ExprKind::DefaultVar, self.tok.span));
                 }
@@ -2709,8 +2744,8 @@ impl Parser {
             }
             match slot {
                 ProtoSlot::Block => {
-                    // `&` slot accepts either a literal block (only in initial position — the map/grep/sort
-                    // pattern) or a code reference expression.
+                    // `&` slot accepts either a literal block (only in initial position — the map/grep/sort pattern) or
+                    // a code reference expression.
                     let arg = if i == 0 && self.tok.token == Token::LeftBrace {
                         let block = self.parse_block(true)?;
                         let span = block.span;
@@ -2719,6 +2754,7 @@ impl Parser {
                         self.parse_expr(PREC_NAMED_UNARY)?
                     };
                     args.push(arg);
+
                     // Optional comma between slots.
                     if i + 1 < proto.slots.len() && self.tok.token == Token::Comma {
                         self.tok = self.lex_token()?;
@@ -2738,8 +2774,8 @@ impl Parser {
                     break;
                 }
                 ProtoSlot::Glob => {
-                    // `*` slot: a bare identifier is auto-promoted to a typeglob reference (e.g., `foo STDIN`
-                    // becomes `foo(*STDIN)`).  Any other expression is parsed at named-unary precedence.
+                    // `*` slot: a bare identifier is auto-promoted to a typeglob reference (e.g., `foo STDIN` becomes
+                    // `foo(*STDIN)`).  Any other expression is parsed at named-unary precedence.
                     let arg = if matches!(self.tok.token, Token::Ident(_)) {
                         let gspan = self.tok.span;
                         let Token::Ident(name) = self.next_token()?.token else { unreachable!() };
@@ -2753,8 +2789,8 @@ impl Parser {
                     }
                 }
                 ProtoSlot::AutoRef(_) | ProtoSlot::AutoRefOneOf(_) | ProtoSlot::ArrayOrHash => {
-                    // Auto-reference slots: `\$`, `\@`, `\%`, `\&`, `\*`, `\[...]`, and `+`.  The argument is
-                    // parsed at named-unary precedence and then wrapped in a Ref expression.
+                    // Auto-reference slots: `\$`, `\@`, `\%`, `\&`, `\*`, `\[...]`, and `+`.  The argument is parsed at
+                    // named-unary precedence and then wrapped in a Ref expression.
                     let arg = self.parse_expr(PREC_NAMED_UNARY)?;
                     let span = arg.span;
                     args.push(Expr::reference(arg, span));
@@ -2832,8 +2868,8 @@ impl Parser {
             return Ok(Expr::new(ExprKind::FuncCall(name, vec![]), span));
         }
 
-        // Operators that prefer defined-or: // after shift/pop/undef/etc. is defined-or, not an empty regex
-        // argument.  Matches toke.c's XTERMORDORDOR.
+        // Operators that prefer defined-or: // after shift/pop/undef/etc. is defined-or, not an empty regex argument.
+        // Matches toke.c's XTERMORDORDOR.
         if keyword::prefers_defined_or(kw) && matches!(self.tok.token, Token::DefinedOr) {
             return Ok(Expr::new(ExprKind::FuncCall(name, vec![]), span));
         }
@@ -2991,6 +3027,7 @@ impl Parser {
         }
 
         let mut args = Vec::new();
+
         // Check for block or sub name as first arg
         if self.tok.token == Token::LeftBrace {
             let block = self.parse_block(true)?;
@@ -3016,6 +3053,7 @@ impl Parser {
         let end_span = args.last().map(|a| a.span).unwrap_or(span);
         Ok(Expr::new(ExprKind::ListOp(name, args), span.merge(end_span)))
     }
+
     /// Parse print/say with optional filehandle as first argument.  `print STDERR "error"`, `print "hello"`, `say $fh
     /// "data"`.
     fn parse_print_op(&mut self, kw: Keyword, span: Span) -> Result<Expr, ParseError> {
@@ -3027,8 +3065,8 @@ impl Parser {
             self.tok = self.lex_token()?;
         }
 
-        // Try to detect filehandle before argument list.  Consume-then-decide: take the candidate token, peek at
-        // what follows to determine if it's a filehandle or the first argument.
+        // Try to detect filehandle before argument list.  Consume-then-decide: take the candidate token, peek at what
+        // follows to determine if it's a filehandle or the first argument.
         let mut filehandle: Option<Box<Expr>> = None;
         let mut first_arg: Option<Expr> = None;
 
@@ -3087,6 +3125,7 @@ impl Parser {
         let mut args = Vec::new();
         if let Some(arg) = first_arg {
             args.push(arg);
+
             // Consume comma after the first arg if present.
             if self.tok.token == Token::Comma {
                 self.tok = self.lex_token()?;
@@ -3260,8 +3299,8 @@ impl Parser {
         // chained `[...]` slices again.  Everything else (`$x`, a deref, an element) subscripts as array/hash element.
         loop {
             if self.tok.token == Token::LeftBracket && Self::is_list_literal_operand(&expr) {
-                // Unwrap a transient `Paren` to its inner list expression; `qw`/`()`/a prior `ListSlice` are
-                // used as-is.
+                // Unwrap a transient `Paren` to its inner list expression; `qw`/`()`/a prior `ListSlice` are used
+                // as-is.
                 let operand = match expr.kind {
                     ExprKind::Paren(inner) => *inner,
                     _ => expr,
@@ -3271,6 +3310,7 @@ impl Parser {
                 let end = self.tok.span;
                 self.expect(&Token::RightBracket)?;
                 let span = operand.span.merge(end);
+
                 // The subscript is a list (`(1,2,3)[0,2]`): flatten a `Comma` into the index vector.
                 let indices = match idx.kind {
                     ExprKind::Comma(items) => items,
@@ -3294,9 +3334,10 @@ impl Parser {
                 break;
             }
         }
-        // A `Paren` not consumed as a list slice above is left intact: it carries the parens-fact that the
-        // enclosing consumer needs (`=` classifies list-vs-scalar, refgen reads flatten-ness) and is unwrapped
-        // there.  Unwrapping here would erase that fact before anyone could read it.
+
+        // A `Paren` not consumed as a list slice above is left intact: it carries the parens-fact that the enclosing
+        // consumer needs (`=` classifies list-vs-scalar, refgen reads flatten-ness) and is unwrapped there.  Unwrapping
+        // here would erase that fact before anyone could read it.
         Ok(expr)
     }
 
@@ -3617,6 +3658,7 @@ impl Parser {
             // Assignment
             Token::Assign(op) => {
                 let op = *op;
+
                 // `refaliasing` (5.22+) extends lvalue-ness to include `\$x`, `\@a`, `\%h`, and lists of those.
                 let refalias_ok = self.pragmas.features.contains(Features::REFALIASING) && Self::is_ref_alias_target(&left);
                 if !Self::is_valid_lvalue(&left) && !refalias_ok {
@@ -3625,8 +3667,8 @@ impl Parser {
                 self.tok = self.lex_token()?;
                 let mut right = self.parse_expr(right_prec)?;
 
-                // List assignment iff the LHS is a parenthesized list or an inherent aggregate target; both sides
-                // are then evaluated in list context.  A bare scalar LHS is a scalar assignment.
+                // List assignment iff the LHS is a parenthesized list or an inherent aggregate target; both sides are
+                // then evaluated in list context.  A bare scalar LHS is a scalar assignment.
                 let ctx = if left_parenthesized || Self::is_aggregate_lvalue(&left) { Context::List } else { Context::Scalar };
                 left.save_context(ctx);
                 right.save_context(ctx);
@@ -3686,8 +3728,8 @@ impl Parser {
 
                 match info.assoc {
                     Assoc::Chain => {
-                        // After parse_expr(right_prec) consumed everything above info.prec, lex_operator
-                        // can only match operators at exactly that level.
+                        // After parse_expr(right_prec) consumed everything above info.prec, lex_operator can only match
+                        // operators at exactly that level.
                         self.lex_operator()?;
                         if let Some(next_info) = Self::op_info_for_token(&self.tok.token, sm)
                             && next_info.prec == info.prec
@@ -3880,8 +3922,8 @@ impl Parser {
                 }
             }
             Token::Dollar => {
-                // `->$#*` — postderef last-index.  The lexer would otherwise tokenize the `#` as a comment start,
-                // so we peek+consume the two raw bytes here before the next token is lexed.
+                // `->$#*` — postderef last-index.  The lexer would otherwise tokenize the `#` as a comment start, so we
+                // peek+consume the two raw bytes here before the next token is lexed.
                 if self.try_consume_hash_star() {
                     self.tok = self.lex_token()?;
                     let span = left.span.merge(self.tok.span);
@@ -3922,8 +3964,8 @@ impl Parser {
                 }
             }
 
-            // `->&*` — code-ref postfix deref.  `->&method` or `->&method(args)` — lexical method invocation
-            // (resolved at compile time, not via package inheritance).
+            // `->&*` — code-ref postfix deref.  `->&method` or `->&method(args)` — lexical method invocation (resolved
+            // at compile time, not via package inheritance).
             Token::BitAnd => {
                 self.tok = self.lex_token()?;
                 if self.tok.token == Token::Star {

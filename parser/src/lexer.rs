@@ -191,8 +191,8 @@ pub(crate) struct LexContext {
 }
 
 impl LexContext {
-    /// Convenience for the common string/regex push pattern: opening delimiter plus the frame's role.  Chain fields
-    /// and the source-delivery cluster start empty; the source layer sets `line`/`bound` after.
+    /// Convenience for the common string/regex push pattern: opening delimiter plus the frame's role.  Chain fields and
+    /// the source-delivery cluster start empty; the source layer sets `line`/`bound` after.
     pub(crate) fn new(delim: Option<char>, role: FrameRole) -> Self {
         LexContext { line: None, bound: None, role, delim, expr_depth: 0, chain_active: false, chain_depth: 0, chain_end_pending: false }
     }
@@ -392,8 +392,8 @@ impl Parser {
         }
 
         // No line or line exhausted.  Try to load a new one.  `next_line` installs the new line (and recomputes
-        // `effective_utf8`) on success; on EOF it returns `&None` and leaves the old line in place so callers can
-        // still use line_slice etc.
+        // `effective_utf8`) on success; on EOF it returns `&None` and leaves the old line in place so callers can still
+        // use line_slice etc.
         match self.next_line() {
             Ok(Some(line)) => line.peek_byte(),
             Ok(None) => None,
@@ -932,9 +932,9 @@ impl Parser {
                         self.try_line_directive();
                     }
                     // Advance to the next line.  Uses `next_line` rather than `self.line = None` so that during a
-                    // lookahead scan the comment line is captured for re-delivery (and any `# line` directive on it
-                    // is processed on the real pass).  At EOF, advance the cursor past the end of the current line
-                    // so `peek_byte` returns `None` and the loop breaks naturally.
+                    // lookahead scan the comment line is captured for re-delivery (and any `# line` directive on it is
+                    // processed on the real pass).  At EOF, advance the cursor past the end of the current line so
+                    // `peek_byte` returns `None` and the loop breaks naturally.
                     if self.next_line()?.is_none() {
                         self.skip_to_line_end();
                     }
@@ -951,8 +951,8 @@ impl Parser {
         // Skip the current =word line.
         self.line = None;
 
-        // Read lines until =cut at the effective start of line.  For `<<~` heredoc body lines, the effective start
-        // is at the indent position, not byte 0 — the raw content includes leading whitespace.
+        // Read lines until =cut at the effective start of line.  For `<<~` heredoc body lines, the effective start is
+        // at the indent position, not byte 0 — the raw content includes leading whitespace.
         loop {
             // peek_byte auto-loads the next line.
             if self.peek_byte().is_none() {
@@ -1078,13 +1078,13 @@ impl Parser {
     /// - Quote keywords (`q`, `qq`, `qw`, `qr`, `qx`, `m`, `s`, `tr`, `y`) → initiate sublexing via
     ///   `begin_quote_sublex`, replacing the token (or producing `StrLit`/`QwList`/`TranslitLit` for single-pass cases).
     /// - `Slash` → start the regex sublex frame (delimiter `/`, `FrameRole::Regex`), producing `RegexSublexBegin`.
-    /// - `Assign(DivEq)` → rewind the `=`, start the regex sublex frame, producing `RegexSublexBegin`.
+    /// - `Assign(DivAssign)` → rewind the `=`, start the regex sublex frame, producing `RegexSublexBegin`.
     /// - `ShiftLeft` → attempt heredoc via `lex_heredoc_after_shift_left`.
     /// - `Dot` → attempt leading-dot float via `lex_leading_dot_float`.
     /// - `NumLt` → attempt readline/glob via `lex_readline_after_lt`.
     /// - `DefinedOr` → scan adjacent flags, produce `EmptyRegex(flags)`.
     /// - `SmartMatch` (`~~`) → two bitwise complements: keep one `Tilde` and rewind the other byte for re-lexing.
-    /// - `PodCommand` (`=word` at column 0) → `Assign(Eq)`; in term position the `=` can only be assignment.
+    /// - `PodCommand` (`=word` at column 0) → `Assign(Assign)`; in term position the `=` can only be assignment.
     ///
     /// Everything else passes through unchanged.  `Minus` (negative bareword / filetest) is handled by the parser's
     /// prefix layer (`try_prefix`) — filetests require parser-grammar knowledge that does not belong in the
@@ -1111,7 +1111,7 @@ impl Parser {
 
             // `/=` in term position → regex starting with `=`, not division-assign.  Rewind the `=` so it becomes the
             // first byte of the pattern body.
-            Token::Assign(AssignOp::DivEq) => {
+            Token::Assign(AssignOp::DivAssign) => {
                 self.rewind(1);
                 let extra = self.features.contains(Features::EXTRA_PAIRED_DELIMITERS);
                 self.start_delimited_body(LexContext::new(Some('/'), FrameRole::Regex), extra)?;
@@ -1163,9 +1163,9 @@ impl Parser {
                 Ok(())
             }
 
-            // `~~` in term position is two bitwise complements — smartmatch is infix-only, so a term-position
-            // `~~@a` numifies the array twice over (perl prints the element count, verified 5.38.2).  Split like
-            // `//` above: keep one `~` and rewind the other for re-lexing.
+            // `~~` in term position is two bitwise complements — smartmatch is infix-only, so a term-position `~~@a`
+            // numifies the array twice over (perl prints the element count, verified 5.38.2).  Split like `//` above:
+            // keep one `~` and rewind the other for re-lexing.
             Token::SmartMatch => {
                 let start = self.tok.span.start;
                 self.rewind(1);
@@ -1173,11 +1173,11 @@ impl Parser {
                 Ok(())
             }
 
-            // `=word` at column 0 in term position is NOT POD — it's the `=` operator followed by a bareword.
-            // The `=` was already consumed by `lex_normal_token`; the next byte is alpha, so `Assign(Eq)` is the
-            // only possible interpretation.
+            // `=word` at column 0 in term position is NOT POD — it's the `=` operator followed by a bareword.  The `=`
+            // was already consumed by `lex_normal_token`; the next byte is alpha, so `Assign(Assign)` is the only
+            // possible interpretation.
             Token::PodCommand => {
-                self.tok.token = Token::Assign(AssignOp::Eq);
+                self.tok.token = Token::Assign(AssignOp::Assign);
                 Ok(())
             }
 
@@ -1189,9 +1189,9 @@ impl Parser {
     /// Operator-position reinterpretation.  Takes a position-independent token and returns it unchanged unless it is
     /// one of two ambiguous cases:
     ///
-    /// - An `Ident` starting with `x` followed by a digit (`x5`, `x5x5`), which `scan_ident` over-consumed.  The
-    ///   token is split: the `x` operator is returned, and everything after it is rewound for re-lexing.  A bare `x`
-    ///   already arrives as `Keyword(X)` and needs no fix-up.
+    /// - An `Ident` starting with `x` followed by a digit (`x5`, `x5x5`), which `scan_ident` over-consumed.  The token
+    ///   is split: the `x` operator is returned, and everything after it is rewound for re-lexing.  A bare `x` already
+    ///   arrives as `Keyword(X)` and needs no fix-up.
     /// - `PodCommand` (`=word` at column 0) — in operator position this is the `=` assignment operator, not POD.
     ///   Re-lexed as `lex_equals()`.
     pub(crate) fn lex_operator(&mut self) -> Result<(), ParseError> {
@@ -1201,22 +1201,23 @@ impl Parser {
             && s.as_bytes()[1].is_ascii_digit()
         {
             let start = self.tok.span.start;
-            // Rewind by the ident's source byte length from the span, not the NFC string's length: under `use utf8`
-            // the two differ when normalization contracts a combining sequence, and an NFC-based distance lands
-            // mid-ident and silently drops source bytes (an NFD `x5e` + combining acute lost the `5`).
+
+            // Rewind by the ident's source byte length from the span, not the NFC string's length: under `use utf8` the
+            // two differ when normalization contracts a combining sequence, and an NFC-based distance lands mid-ident
+            // and silently drops source bytes (an NFD `x5e` + combining acute lost the `5`).
             let rewind = (self.tok.span.end - self.tok.span.start) as usize - 1;
             self.rewind(rewind);
             self.tok = Spanned { token: Token::Keyword(Keyword::X), span: Span::new(start, start + 1) };
             return Ok(());
         }
         if self.tok.token == Token::PodCommand {
-            self.tok.token = Token::Assign(AssignOp::Eq);
+            self.tok.token = Token::Assign(AssignOp::Assign);
         }
         Ok(())
     }
 
-    /// Consume the current token and advance to the next.  Returns the old `self.tok` (the consumed token) by
-    /// ownership transfer — `std::mem::replace` swaps the new token in and the old one out with zero clones.
+    /// Consume the current token and advance to the next.  Returns the old `self.tok` (the consumed token) by ownership
+    /// transfer — `std::mem::replace` swaps the new token in and the old one out with zero clones.
     pub(crate) fn next_token(&mut self) -> Result<Spanned, ParseError> {
         let new = self.lex_token()?;
         Ok(std::mem::replace(&mut self.tok, new))
@@ -1281,9 +1282,9 @@ impl Parser {
             b'<' => self.lex_less_than()?,
             b'>' => self.lex_greater_than(),
             b'=' => {
-                // `=word` at column 0 is a POD command, not an operator.  Consume the `=` (like every other token)
-                // and emit `PodCommand`.  `parse_statement` calls `skip_pod()` to consume the block;
-                // `lex_term`/`lex_operator` replace with `Assign(Eq)` — the byte after `=` is always alpha here, so
+                // `=word` at column 0 is a POD command, not an operator.  Consume the `=` (like every other token) and
+                // emit `PodCommand`.  `parse_statement` calls `skip_pod()` to consume the block;
+                // `lex_term`/`lex_operator` replace with `Assign(Assign)` — the byte after `=` is always alpha here, so
                 // that's the only possible `=`-token.
                 if self.at_line_start() && self.peek_byte_at(1).is_some_and(|b| b.is_ascii_alphabetic()) {
                     self.skip(1);
@@ -1301,7 +1302,7 @@ impl Parser {
                     self.skip(1);
                     if self.peek_byte() == Some(b'=') {
                         self.skip(1);
-                        Token::Assign(AssignOp::LogicalXorEq)
+                        Token::Assign(AssignOp::LogicalXorAssign)
                     } else {
                         Token::LogicalXor
                     }
@@ -1309,13 +1310,13 @@ impl Parser {
                     self.skip(1);
                     if self.peek_byte() == Some(b'=') {
                         self.skip(1);
-                        Token::Assign(AssignOp::StringBitXorEq)
+                        Token::Assign(AssignOp::StringBitXorAssign)
                     } else {
                         Token::StringBitXor
                     }
                 } else if self.peek_byte() == Some(b'=') {
                     self.skip(1);
-                    Token::Assign(AssignOp::BitXorEq)
+                    Token::Assign(AssignOp::BitXorAssign)
                 } else {
                     Token::BitXor
                 }
@@ -1436,9 +1437,9 @@ impl Parser {
         self.scan_digits();
 
         // A multi-digit run with a leading zero is an octal integer, and in perl the run commits the literal: a
-        // following `.` is the concatenation operator (`01.5` deparses to '15') and a following `e` starts a
-        // bareword (`01e2` is a syntax error) — both verified 5.38.2.  Only the `p`-exponent legacy octal float
-        // (`07.65p2`, also verified) continues past the run.
+        // following `.` is the concatenation operator (`01.5` deparses to '15') and a following `e` starts a bareword
+        // (`01e2` is a syntax error) — both verified 5.38.2.  Only the `p`-exponent legacy octal float (`07.65p2`, also
+        // verified) continues past the run.
         let int_octal = {
             let s = self.line_slice_str(start)?;
             s.len() > 1 && s.starts_with('0')
@@ -1462,6 +1463,7 @@ impl Parser {
                     }
                     vstr.push_str(self.line_slice_str(seg_start)?);
                 }
+
                 return Ok(Token::VersionLit(vstr));
             }
 
@@ -1486,11 +1488,12 @@ impl Parser {
             }
 
             if int_octal {
-                // Octal run followed by `.` without a `p` exponent: the number ends at the run, and the dot lexes
-                // as concatenation on the next pass.
+                // Octal run followed by `.` without a `p` exponent: the number ends at the run, and the dot lexes as
+                // concatenation on the next pass.
                 if let Some(line) = self.line.as_mut() {
                     line.pos = saved_pos as u32;
                 }
+
                 return self.finish_integer_literal(start);
             }
 
@@ -1501,10 +1504,11 @@ impl Parser {
             Ok(Token::FloatLit(n))
         } else if self.peek_byte() == Some(b'e') || self.peek_byte() == Some(b'E') {
             if int_octal {
-                // Octal run followed by `e`: the number ends at the run, and the `e...` lexes as a bareword on the
-                // next pass (a syntax error downstream, as in perl).
+                // Octal run followed by `e`: the number ends at the run, and the `e...` lexes as a bareword on the next
+                // pass (a syntax error downstream, as in perl).
                 return self.finish_integer_literal(start);
             }
+
             // Float with exponent
             self.scan_exponent();
             let s = self.line_slice_str(start)?;
@@ -1567,9 +1571,9 @@ impl Parser {
         }
     }
 
-    /// Scan a `p`/`P` power-of-2 exponent for hex/octal/binary floats.  Assumes the cursor is on `p` or `P`.  At
-    /// least one digit is required: perl rejects a dangling `p` (`0x1p` is a syntax error, verified 5.38.2), so an
-    /// empty exponent is a parse error rather than a silent zero.  Returns the signed exponent.
+    /// Scan a `p`/`P` power-of-2 exponent for hex/octal/binary floats.  Assumes the cursor is on `p` or `P`.  At least
+    /// one digit is required: perl rejects a dangling `p` (`0x1p` is a syntax error, verified 5.38.2), so an empty
+    /// exponent is a parse error rather than a silent zero.  Returns the signed exponent.
     fn scan_p_exponent(&mut self) -> Result<i32, ParseError> {
         let p_start = self.line_pos();
         self.skip(1); // skip p/P
@@ -1833,16 +1837,17 @@ impl Parser {
                 return Ok(Token::Dollar);
             }
             Some(b'$') => {
-                // `$$name` is a scalar dereference; `$$` alone is the PID.  The deref reading requires the byte
-                // after the second `$` to start a variable name: an identifier character (`$$x`; `$$1` is `${$1}`,
-                // verified 5.38.2 deparse), an opening brace (`$${...}`), another `$` (`$$$x`), or — under
-                // `use utf8` — a non-ASCII identifier byte.  Anything else (`;`, `.`, `==`, `,`, whitespace, EOF)
-                // is the PID: `print $$."\n"` prints the pid and `$$==$$` compares it (both verified 5.38.2).
+                // `$$name` is a scalar dereference; `$$` alone is the PID.  The deref reading requires the byte after
+                // the second `$` to start a variable name: an identifier character (`$$x`; `$$1` is `${$1}`, verified
+                // 5.38.2 deparse), an opening brace (`$${...}`), another `$` (`$$$x`), or — under `use utf8` — a
+                // non-ASCII identifier byte.  Anything else (`;`, `.`, `==`, `,`, whitespace, EOF) is the PID: `print
+                // $$."\n"` prints the pid and `$$==$$` compares it (both verified 5.38.2).
                 if let Some(b) = self.peek_byte_at(1)
                     && (b == b'_' || b == b'{' || b == b'$' || b.is_ascii_alphanumeric() || (b >= 0x80 && self.utf8_mode))
                 {
                     return Ok(Token::Dollar);
                 }
+
                 self.skip(1);
                 return Ok(Token::SpecialVar("$".into()));
             }
@@ -2066,12 +2071,12 @@ impl Parser {
     }
 
     fn lex_percent(&mut self) -> Result<Token, ParseError> {
-        // Always return Percent or ModEq.  The parser, in term position, calls lex_hash_var_after_percent to attempt
-        // hash-variable detection.
+        // Always return Percent or ModAssign.  The parser, in term position, calls lex_hash_var_after_percent to
+        // attempt hash-variable detection.
         self.skip(1);
         if self.peek_byte() == Some(b'=') {
             self.skip(1);
-            Ok(Token::Assign(AssignOp::ModEq))
+            Ok(Token::Assign(AssignOp::ModAssign))
         } else {
             Ok(Token::Percent)
         }
@@ -2204,16 +2209,16 @@ impl Parser {
                 && !first
                 && self.features.contains(Features::APOSTROPHE_AS_PACKAGE_SEPARATOR)
 
-                // Don't consume ' when it's the close delimiter of the current string context (e.g. qq'$Foo'bar — the
-                // ' after Foo closes the string, not a package separator).
+                // Don't consume ' when it's the close delimiter of the current string context (e.g. qq'$Foo'bar — the '
+                // after Foo closes the string, not a package separator).
                 && self.context_stack.last().and_then(|ctx| ctx.delim).is_none_or(|d| d != '\'')
                 && self.peek_byte_at(1).is_some_and(|next|
                     next == b'_' || next.is_ascii_alphabetic()
                     || (self.effective_utf8 && next >= 0x80))
             {
-                // Don't consume ' as a package separator if the identifier scanned so far is an active keyword.  Quote-
-                // like operators use ' as a delimiter; unconditional keywords (print, grep, die, etc.) always stop;
-                // feature-gated keywords (given, any, try, etc.) stop only when their feature is active.
+                // Don't consume ' as a package separator if the identifier scanned so far is an active keyword.
+                // Quote-like operators use ' as a delimiter; unconditional keywords (print, grep, die, etc.) always
+                // stop; feature-gated keywords (given, any, try, etc.) stop only when their feature is active.
                 if let Some(line) = &self.line {
                     let so_far = &line.line[start..line.pos as usize];
                     if self.is_active_keyword(so_far) {
@@ -2296,10 +2301,10 @@ impl Parser {
 
         // `x=` compound assignment: when the identifier is exactly "x" and the immediately next byte (no whitespace —
         // scan_ident stopped at a non-ident char) is `=` not followed by `>` (which would be `x =>`, a fat comma), emit
-        // RepeatEq.  Must be before at_fat_comma which consumes whitespace and would break the adjacency check.
+        // RepeatAssign.  Must be before at_fat_comma which consumes whitespace and would break the adjacency check.
         if name == "x" && self.peek_byte() == Some(b'=') && self.peek_byte_at(1) != Some(b'>') {
             self.skip(1); // consume =
-            return Ok(Token::Assign(AssignOp::RepeatEq));
+            return Ok(Token::Assign(AssignOp::RepeatAssign));
         }
 
         // Fat-comma autoquoting: `if => 1`, `foo => 1`, `v5 => 1`, `__PACKAGE__ => 1`, etc.  The four tokens above
@@ -2310,9 +2315,9 @@ impl Parser {
         //
         // Skip the check when a quote keyword (`q`, `qq`, `m`, `s`, etc.) has `#` as the immediately adjacent byte.
         // `#` adjacent to a quote keyword is a delimiter (`q#hello#`), not a comment — but `at_fat_comma`'s
-        // `skip_ws_and_comments` can't distinguish the two.  It would eat `#hello#\n` as a comment, find `=>`
-        // on the next line, and incorrectly autoquote `q`.  When `#` has whitespace before it (`q  #...`), it IS a
-        // comment and the fat-comma check is safe.
+        // `skip_ws_and_comments` can't distinguish the two.  It would eat `#hello#\n` as a comment, find `=>` on the
+        // next line, and incorrectly autoquote `q`.  When `#` has whitespace before it (`q  #...`), it IS a comment and
+        // the fat-comma check is safe.
         if !(self.peek_byte() == Some(b'#') && keyword::is_quote_keyword_str(&name)) && self.at_fat_comma() {
             return Ok(Token::StrLit(name));
         }
@@ -2367,8 +2372,8 @@ impl Parser {
     /// Used by `lex_word` to autoquote keywords and identifiers at lex time.
     ///
     /// Uses the `lookahead()` mechanism so the scan is non-destructive: the cursor is restored to its pre-call position
-    /// regardless of the result.  This is critical because `skip_ws_and_comments` would otherwise permanently
-    /// consume bytes whose interpretation is position-dependent — `#` adjacent to a quote keyword is a delimiter, not a
+    /// regardless of the result.  This is critical because `skip_ws_and_comments` would otherwise permanently consume
+    /// bytes whose interpretation is position-dependent — `#` adjacent to a quote keyword is a delimiter, not a
     /// comment, and a newline between `v5` and `.26` separates two tokens rather than joining one v-string.
     fn at_fat_comma(&mut self) -> bool {
         let mut g = self.lookahead();
@@ -2387,13 +2392,12 @@ impl Parser {
     /// Scan one token from a string/regex body.
     ///
     /// In interpolating mode (called repeatedly via context stack): returns one sub-token per call — `ConstSegment`,
-    /// `InterpScalar`, `InterpScalarExprStart`, etc.  Returns `SublexEnd` at the body frame's virtual EOF, popping
-    /// the frame (§5.5).
+    /// `InterpScalar`, `InterpScalarExprStart`, etc.  Returns `SublexEnd` at the body frame's virtual EOF, popping the
+    /// frame (§5.5).
     ///
-    /// The body's end is the frame's bound (§5.4.6), not a delimiter in the stream, so this watches no close and
-    /// tracks no nesting depth: a nested or escaped delimiter is ordinary content.  `delim` is retained only to
-    /// unescape `\delim` (and `\open`/`\close` for paired delimiters); it is `None` for heredoc and `s///`
-    /// replacement bodies.
+    /// The body's end is the frame's bound (§5.4.6), not a delimiter in the stream, so this watches no close and tracks
+    /// no nesting depth: a nested or escaped delimiter is ordinary content.  `delim` is retained only to unescape
+    /// `\delim` (and `\open`/`\close` for paired delimiters); it is `None` for heredoc and `s///` replacement bodies.
     ///
     /// Escape handling is controlled by the flags:
     /// - `!raw && !interpolating`: literal escapes (`\\`→`\`, `\delim`→delim).  For `q//`, `'...'`.
@@ -2402,9 +2406,9 @@ impl Parser {
     /// - `regex`: detect `(?{...})` code blocks (future).
     fn lex_body(&mut self) -> Result<Spanned, ParseError> {
         // The body frame on top of the stack carries the mode, set when it was pushed (`LexContext::new` in the quote
-        // dispatch or `start_heredoc`).  Reading it here means callers thread nothing.  `delim` is kept only for
-        // escape processing (`\delim` → delim, `\open`/`\close` unescaping); the body ends at the frame's virtual
-        // EOF, never a delimiter in the stream.  `None` for heredoc / `s///` replacement.
+        // dispatch or `start_heredoc`).  Reading it here means callers thread nothing.  `delim` is kept only for escape
+        // processing (`\delim` → delim, `\open`/`\close` unescaping); the body ends at the frame's virtual EOF, never a
+        // delimiter in the stream.  `None` for heredoc / `s///` replacement.
         let (delim, interpolating, regex, raw) = {
             let Some(ctx) = self.context_stack.last() else {
                 return Err(ParseError::new("lex_body requires a body frame on the stack", Span::new(self.cursor as u32, self.cursor as u32)));
@@ -2420,8 +2424,8 @@ impl Parser {
             None => (None, None),
         };
 
-        // The first `peek_byte` auto-loads the next body line, consuming a pending virtual-EOF signal.  At the bound
-        // it returns `None`: the body is done — pop the frame (restoring the suspended parent line, re-narrowed to the
+        // The first `peek_byte` auto-loads the next body line, consuming a pending virtual-EOF signal.  At the bound it
+        // returns `None`: the body is done — pop the frame (restoring the suspended parent line, re-narrowed to the
         // enclosing bound) and emit `SublexEnd`.  Unterminated bodies were already caught by the up-front scan.
         let b = match self.peek_byte() {
             Some(b) => b,
@@ -2532,8 +2536,8 @@ impl Parser {
 
                     let safe_len = trigger_pos.unwrap_or(r.len());
                     if safe_len > 0 {
-                        // Bulk-copy safe bytes, NFC-normalizing raw source content immediately.  This ensures escape-
-                        // produced chars (pushed later) are never mixed with raw bytes before NFC.
+                        // Bulk-copy safe bytes, NFC-normalizing raw source content immediately.  This ensures
+                        // escape-produced chars (pushed later) are never mixed with raw bytes before NFC.
                         let safe = &r[..safe_len];
                         match std::str::from_utf8(safe) {
                             Ok(text) => {
@@ -2657,10 +2661,10 @@ impl Parser {
         Ok(Spanned { token: Token::ConstSegment(s), span: Span::new(start, self.span_pos()) })
     }
 
-    /// Scan a non-interpolating delimited body and return its content as a `String` — `q//`, `'...'`, `qw//`, and
-    /// each half of `tr///`.  Pushes a body frame via `start_delimited_body` (which finds the close and suspends the
-    /// parent past it), then drives `lex_body` to `SublexEnd`, concatenating the `ConstSegment` runs.  The frame pops
-    /// itself at the body's virtual EOF, so the cursor is left past the close — top-level or nested alike.
+    /// Scan a non-interpolating delimited body and return its content as a `String` — `q//`, `'...'`, `qw//`, and each
+    /// half of `tr///`.  Pushes a body frame via `start_delimited_body` (which finds the close and suspends the parent
+    /// past it), then drives `lex_body` to `SublexEnd`, concatenating the `ConstSegment` runs.  The frame pops itself
+    /// at the body's virtual EOF, so the cursor is left past the close — top-level or nested alike.
     ///
     /// `role` selects escape handling via `role.raw()` — soft (`\\`→`\`, `\delim`→delim) when false, raw passthrough
     /// (`\delim`→delim, else pass through) when true.  The role must be non-interpolating and non-regex, or the loop
@@ -2683,9 +2687,9 @@ impl Parser {
     /// Process a backslash escape inside a double-quoted string.  The backslash has already been consumed.
     fn process_escape(&mut self, s: &mut String, close: Option<char>) -> Result<(), ParseError> {
         match self.peek_byte() {
-            // A backslashed closing delimiter is the delimiter, taking precedence over any standard-escape meaning
-            // the character carries: with `n` as the delimiter, `qq na\nbn` is "anb", not "a<newline>b" (verified
-            // 5.38.2).  This arm therefore precedes every named escape below.
+            // A backslashed closing delimiter is the delimiter, taking precedence over any standard-escape meaning the
+            // character carries: with `n` as the delimiter, `qq na\nbn` is "anb", not "a<newline>b" (verified 5.38.2).
+            // This arm therefore precedes every named escape below.
             Some(b)
                 if close.is_some_and(|c| {
                     let mut buf = [0u8; 4];
@@ -2741,9 +2745,9 @@ impl Parser {
                 let mut val = 0u8;
                 if self.peek_byte() == Some(b'{') {
                     // \x{...} — braced hex escape, following 5.42.2 grok_bslash_x (each case verified against perl):
-                    // blanks are allowed next to the braces and underscores between digits; a non-hex character (or
-                    // a digit after trailing blanks) warns in perl, keeps the digits scanned so far, and consumes
-                    // through the closing brace; a missing closing brace is fatal; a value beyond UV_MAX is fatal.
+                    // blanks are allowed next to the braces and underscores between digits; a non-hex character (or a
+                    // digit after trailing blanks) warns in perl, keeps the digits scanned so far, and consumes through
+                    // the closing brace; a missing closing brace is fatal; a value beyond UV_MAX is fatal.
                     let escape_start = self.span_pos();
                     self.skip(1);
                     let mut n: u64 = 0;
@@ -2801,9 +2805,9 @@ impl Parser {
                     if too_large {
                         return Err(ParseError::new("Use of a code point above 0xFFFFFFFFFFFFFFFF is not allowed", Span::new(escape_start, self.span_pos())));
                     }
-                    // Surrogates and code points above U+10FFFF are legal in perl (warnings at most) but have no
-                    // Rust `char` representation; they are dropped until the extended-UTF-8 string representation
-                    // (design.md §2.3.2) lands.  The parser tests pin this gap.
+                    // Surrogates and code points above U+10FFFF are legal in perl (warnings at most) but have no Rust
+                    // `char` representation; they are dropped until the extended-UTF-8 string representation (design.md
+                    // §2.3.2) lands.  The parser tests pin this gap.
                     if n <= u64::from(u32::MAX)
                         && let Some(c) = char::from_u32(n as u32)
                     {
@@ -2856,11 +2860,11 @@ impl Parser {
                 }
             }
             Some(b'o') => {
-                // \o{NNN} — braced octal escape, following 5.42.2 grok_bslash_o (blank handling verified:
-                // `"\o{ 21 }"` is chr 17).  Braces are mandatory (`\o` without them is fatal, as is an empty or
-                // blank-only brace pair); blanks next to the braces and underscores between digits are allowed; a
-                // non-octal character consumes through the closing brace with the scanned digits as the value; a
-                // missing closing brace is fatal; a value beyond UV_MAX is fatal.
+                // \o{NNN} — braced octal escape, following 5.42.2 grok_bslash_o (blank handling verified: `"\o{ 21 }"`
+                // is chr 17).  Braces are mandatory (`\o` without them is fatal, as is an empty or blank-only brace
+                // pair); blanks next to the braces and underscores between digits are allowed; a non-octal character
+                // consumes through the closing brace with the scanned digits as the value; a missing closing brace is
+                // fatal; a value beyond UV_MAX is fatal.
                 let escape_start = self.span_pos();
                 self.skip(1);
                 if self.peek_byte() != Some(b'{') {
@@ -2951,8 +2955,7 @@ impl Parser {
             }
             Some(b'0'..=b'7') => {
                 // \NNN — octal escape (1–3 digits, no braces).  \0 is simply the zero-first-digit case and continues
-                // into following octal digits like any other: "\015\012" is CRLF, not NUL-15-NUL-12 (verified
-                // 5.38.2).
+                // into following octal digits like any other: "\015\012" is CRLF, not NUL-15-NUL-12 (verified 5.38.2).
                 let mut n = 0u32;
                 for _ in 0..3 {
                     if let Some(b) = self.peek_byte() {
@@ -3096,7 +3099,7 @@ impl Parser {
             return Ok(Spanned { token: Token::InterpScalar(full_name), span: Span::new(start, self.span_pos()) });
         }
 
-        // Bare $ not followed by a name — treat as literal
+        // Bare $ not followed by a name — treat as literal.
         Ok(Spanned { token: Token::ConstSegment("$".into()), span: Span::new(start, self.span_pos()) })
     }
 
@@ -3253,8 +3256,8 @@ impl Parser {
     ///
     /// For paired delimiters, reads the replacement delimiter, then pushes the replacement body via
     /// `start_delimited_body` (which finds the close and suspends the parent just past it — exactly where the flags
-    /// sit).  The flags decide the body's mode (`/e` → raw code, else interpolating string), but they follow the
-    /// close, so they are read off the parent-resume line and the frame's mode is set afterward, before any sublexing.
+    /// sit).  The flags decide the body's mode (`/e` → raw code, else interpolating string), but they follow the close,
+    /// so they are read off the parent-resume line and the frame's mode is set afterward, before any sublexing.
     /// Returns the captured flags.
     pub(crate) fn start_subst_replacement(&mut self, pattern_delim: char) -> Result<Option<String>, ParseError> {
         let extra = self.features.contains(Features::EXTRA_PAIRED_DELIMITERS);
@@ -3357,7 +3360,7 @@ impl Parser {
             }
             Some(b'=') => {
                 self.skip(1);
-                Token::Assign(AssignOp::AddEq)
+                Token::Assign(AssignOp::AddAssign)
             }
             _ => Token::Plus,
         }
@@ -3372,7 +3375,7 @@ impl Parser {
             }
             Some(b'=') => {
                 self.skip(1);
-                Token::Assign(AssignOp::SubEq)
+                Token::Assign(AssignOp::SubAssign)
             }
             Some(b'>') => {
                 self.skip(1);
@@ -3445,14 +3448,14 @@ impl Parser {
                 self.skip(1);
                 if self.peek_byte() == Some(b'=') {
                     self.skip(1);
-                    Token::Assign(AssignOp::PowEq)
+                    Token::Assign(AssignOp::PowAssign)
                 } else {
                     Token::Power
                 }
             }
             Some(b'=') => {
                 self.skip(1);
-                Token::Assign(AssignOp::MulEq)
+                Token::Assign(AssignOp::MulAssign)
             }
             _ => Token::Star,
         }
@@ -3463,7 +3466,7 @@ impl Parser {
             self.skip(2);
             if self.peek_byte() == Some(b'=') {
                 self.skip(1);
-                Token::Assign(AssignOp::DefinedOrEq)
+                Token::Assign(AssignOp::DefinedOrAssign)
             } else {
                 Token::DefinedOr
             }
@@ -3471,7 +3474,7 @@ impl Parser {
             self.skip(1);
             if self.peek_byte() == Some(b'=') {
                 self.skip(1);
-                Token::Assign(AssignOp::DivEq)
+                Token::Assign(AssignOp::DivAssign)
             } else {
                 Token::Slash
             }
@@ -3512,7 +3515,7 @@ impl Parser {
             }
             Some(b'=') => {
                 self.skip(1);
-                Token::Assign(AssignOp::ConcatEq)
+                Token::Assign(AssignOp::ConcatAssign)
             }
             _ => Token::Dot,
         }
@@ -3522,12 +3525,12 @@ impl Parser {
         self.skip(1); // consume first <
         match self.peek_byte() {
             Some(b'<') => {
-                // Always return ShiftLeft / ShiftLeftEq.  The parser handles heredoc detection in term position by
+                // Always return ShiftLeft / ShiftLeftAssign.  The parser handles heredoc detection in term position by
                 // calling lex_heredoc_after_shift_left.
                 self.skip(1);
                 if self.peek_byte() == Some(b'=') {
                     self.skip(1);
-                    Ok(Token::Assign(AssignOp::ShiftLeftEq))
+                    Ok(Token::Assign(AssignOp::ShiftLeftAssign))
                 } else {
                     Ok(Token::ShiftLeft)
                 }
@@ -3727,9 +3730,9 @@ impl Parser {
             self.skip(1);
         }
         if self.peek_byte() != Some(close) {
-            // The closing quote never appears on the marker line.  Perl fatals here (verified 5.38.2); the tag
-            // cannot continue onto the next line, and scanning past it would carry this line's offsets into later,
-            // shorter lines.
+            // The closing quote never appears on the marker line.  Perl fatals here (verified 5.38.2); the tag cannot
+            // continue onto the next line, and scanning past it would carry this line's offsets into later, shorter
+            // lines.
             return Err(ParseError::new("Unterminated delimiter for here document", self.span_from(start)));
         }
         let tag = String::from_utf8_lossy(self.line_slice(start)).into_owned();
@@ -3744,7 +3747,7 @@ impl Parser {
                 self.skip(1);
                 if self.peek_byte() == Some(b'=') {
                     self.skip(1);
-                    Token::Assign(AssignOp::ShiftRightEq)
+                    Token::Assign(AssignOp::ShiftRightAssign)
                 } else {
                     Token::ShiftRight
                 }
@@ -3772,7 +3775,7 @@ impl Parser {
                 self.skip(1);
                 Token::FatComma
             }
-            _ => Token::Assign(AssignOp::Eq),
+            _ => Token::Assign(AssignOp::Assign),
         }
     }
 
@@ -3798,7 +3801,7 @@ impl Parser {
                 self.skip(1);
                 if self.peek_byte() == Some(b'=') {
                     self.skip(1);
-                    Token::Assign(AssignOp::AndEq)
+                    Token::Assign(AssignOp::AndAssign)
                 } else {
                     Token::AndAnd
                 }
@@ -3807,14 +3810,14 @@ impl Parser {
                 self.skip(1);
                 if self.peek_byte() == Some(b'=') {
                     self.skip(1);
-                    Token::Assign(AssignOp::StringBitAndEq)
+                    Token::Assign(AssignOp::StringBitAndAssign)
                 } else {
                     Token::StringBitAnd
                 }
             }
             Some(b'=') => {
                 self.skip(1);
-                Token::Assign(AssignOp::BitAndEq)
+                Token::Assign(AssignOp::BitAndAssign)
             }
             _ => Token::BitAnd,
         }
@@ -3827,7 +3830,7 @@ impl Parser {
                 self.skip(1);
                 if self.peek_byte() == Some(b'=') {
                     self.skip(1);
-                    Token::Assign(AssignOp::OrEq)
+                    Token::Assign(AssignOp::OrAssign)
                 } else {
                     Token::OrOr
                 }
@@ -3836,14 +3839,14 @@ impl Parser {
                 self.skip(1);
                 if self.peek_byte() == Some(b'=') {
                     self.skip(1);
-                    Token::Assign(AssignOp::StringBitOrEq)
+                    Token::Assign(AssignOp::StringBitOrAssign)
                 } else {
                     Token::StringBitOr
                 }
             }
             Some(b'=') => {
                 self.skip(1);
-                Token::Assign(AssignOp::BitOrEq)
+                Token::Assign(AssignOp::BitOrAssign)
             }
             _ => Token::BitOr,
         }

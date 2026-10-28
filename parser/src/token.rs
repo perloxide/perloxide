@@ -19,27 +19,27 @@ pub struct Spanned {
 /// Assignment operator variant.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AssignOp {
-    Eq,             // =
-    AddEq,          // +=
-    SubEq,          // -=
-    MulEq,          // *=
-    DivEq,          // /=
-    ModEq,          // %=
-    PowEq,          // **=
-    ConcatEq,       // .=
-    AndEq,          // &&=
-    OrEq,           // ||=
-    DefinedOrEq,    // //=
-    LogicalXorEq,   // ^^=
-    BitAndEq,       // &=
-    BitOrEq,        // |=
-    BitXorEq,       // ^=
-    StringBitAndEq, // &.=
-    StringBitOrEq,  // |.=
-    StringBitXorEq, // ^.=
-    ShiftLeftEq,    // <<=
-    ShiftRightEq,   // >>=
-    RepeatEq,       // x=
+    Assign,             // =
+    AddAssign,          // +=
+    SubAssign,          // -=
+    MulAssign,          // *=
+    DivAssign,          // /=
+    ModAssign,          // %=
+    PowAssign,          // **=
+    ConcatAssign,       // .=
+    AndAssign,          // &&=
+    OrAssign,           // ||=
+    DefinedOrAssign,    // //=
+    LogicalXorAssign,   // ^^=
+    BitAndAssign,       // &=
+    BitOrAssign,        // |=
+    BitXorAssign,       // ^=
+    StringBitAndAssign, // &.=
+    StringBitOrAssign,  // |.=
+    StringBitXorAssign, // ^.=
+    ShiftLeftAssign,    // <<=
+    ShiftRightAssign,   // >>=
+    RepeatAssign,       // x=
 }
 
 /// Tokens emitted by the lexer.
@@ -237,9 +237,8 @@ pub enum Token {
     /// Start of regex: `m/`, `qr/`, bare `//`, or `s/`.
     RegexSublexBegin(RegexKind, char),
 
-    /// Empty regex `//` with optional flags — produced by `lex_term` when `DefinedOr` appears in term position.
-    /// Avoids setting up a sublex frame for an empty body.  Maps to the same `ExprKind::Regex` AST node as any
-    /// other match.
+    /// Empty regex `//` with optional flags — produced by `lex_term` when `DefinedOr` appears in term position.  Avoids
+    /// setting up a sublex frame for an empty body.  Maps to the same `ExprKind::Regex` AST node as any other match.
     EmptyRegex(Option<String>),
 
     /// `(?{` — embedded code block in a regex pattern.  Lexer switches to normal code mode until `}`.
@@ -320,9 +319,9 @@ pub enum Token {
     /// open).
     Readline(String, bool),
 
-    /// `=word` at column 0 — a POD command.  Position-independent: the lexer always emits this when `=` is at column
-    /// 0 followed by an ASCII letter.  In statement context the parser calls `skip_pod()` to consume the block; in
-    /// term/operator position, `lex_term`/`lex_operator` reinterpret it as `Assign(Eq)` and word gets re-lexed,
+    /// `=word` at column 0 — a POD command.  Position-independent: the lexer always emits this when `=` is at column 0
+    /// followed by an ASCII letter.  In statement context the parser calls `skip_pod()` to consume the block; in
+    /// term/operator position, `lex_term`/`lex_operator` reinterpret it as `Assign(Assign)` and word gets re-lexed,
     /// matching Perl's behavior where mid-expression `=word` is an assignment, not POD.
     PodCommand,
 }
@@ -467,7 +466,7 @@ impl Token {
                 | Token::At
                 | Token::Slash
                 | Token::DefinedOr
-                | Token::Assign(AssignOp::DivEq)
+                | Token::Assign(AssignOp::DivAssign)
         )
     }
 }
@@ -548,27 +547,27 @@ impl std::fmt::Display for Token {
 
             // Assignment
             Token::Assign(op) => match op {
-                AssignOp::Eq => write!(f, "="),
-                AssignOp::AddEq => write!(f, "+="),
-                AssignOp::SubEq => write!(f, "-="),
-                AssignOp::MulEq => write!(f, "*="),
-                AssignOp::DivEq => write!(f, "/="),
-                AssignOp::ModEq => write!(f, "%="),
-                AssignOp::PowEq => write!(f, "**="),
-                AssignOp::ConcatEq => write!(f, ".="),
-                AssignOp::AndEq => write!(f, "&&="),
-                AssignOp::OrEq => write!(f, "||="),
-                AssignOp::DefinedOrEq => write!(f, "//="),
-                AssignOp::LogicalXorEq => write!(f, "^^="),
-                AssignOp::BitAndEq => write!(f, "&="),
-                AssignOp::BitOrEq => write!(f, "|="),
-                AssignOp::BitXorEq => write!(f, "^="),
-                AssignOp::StringBitAndEq => write!(f, "&.="),
-                AssignOp::StringBitOrEq => write!(f, "|.="),
-                AssignOp::StringBitXorEq => write!(f, "^.="),
-                AssignOp::ShiftLeftEq => write!(f, "<<="),
-                AssignOp::ShiftRightEq => write!(f, ">>="),
-                AssignOp::RepeatEq => write!(f, "x="),
+                AssignOp::Assign => write!(f, "="),
+                AssignOp::AddAssign => write!(f, "+="),
+                AssignOp::SubAssign => write!(f, "-="),
+                AssignOp::MulAssign => write!(f, "*="),
+                AssignOp::DivAssign => write!(f, "/="),
+                AssignOp::ModAssign => write!(f, "%="),
+                AssignOp::PowAssign => write!(f, "**="),
+                AssignOp::ConcatAssign => write!(f, ".="),
+                AssignOp::AndAssign => write!(f, "&&="),
+                AssignOp::OrAssign => write!(f, "||="),
+                AssignOp::DefinedOrAssign => write!(f, "//="),
+                AssignOp::LogicalXorAssign => write!(f, "^^="),
+                AssignOp::BitAndAssign => write!(f, "&="),
+                AssignOp::BitOrAssign => write!(f, "|="),
+                AssignOp::BitXorAssign => write!(f, "^="),
+                AssignOp::StringBitAndAssign => write!(f, "&.="),
+                AssignOp::StringBitOrAssign => write!(f, "|.="),
+                AssignOp::StringBitXorAssign => write!(f, "^.="),
+                AssignOp::ShiftLeftAssign => write!(f, "<<="),
+                AssignOp::ShiftRightAssign => write!(f, ">>="),
+                AssignOp::RepeatAssign => write!(f, "x="),
             },
 
             // Punctuation
