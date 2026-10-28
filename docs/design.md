@@ -4372,13 +4372,25 @@ where it is in the grammar:
 PREC_MUL, assoc: Left }` (division).  The parser's own call stack determines which interpretation applies — no shared
 state needed.
 
-**`//` (defined-or vs empty regex).**  Same mechanism.  In `parse_term()`, `Token::DefinedOr` is treated as an empty
-regex (with optional flags like `//gi`).  In `lex_operator()`, it's the defined-or operator.  List operators that prefer
-defined-or stop argument collection before `//`, matching `toke.c`'s UNIDOR behavior.
+**`//` (defined-or vs empty regex).**  Same mechanism.  `lex_token()` produces `Token::DefinedOr` for `//` (and
+`Token::Assign(AssignOp::DefinedOrAssign)` for `//=`) in every position, and the parser decides what it is before any
+other code sees it.  In operator position it is the defined-or operator.  In term position `lex_term()` turns it into
+the empty pattern (with any adjacent flags, like `//gi`) before the term is parsed.  No code that parses an operator's
+arguments ever receives `DefinedOr`: either it was already decided to be an operator, and is not an argument, or it was
+converted to an empty pattern first.
 
-**`{` (block vs hash constructor).**  The parser always parses `{` as a block via `parse_block()`, then calls
-`try_reclassify_as_hash()` to check whether the block should be reinterpreted as a hash constructor.  This avoids the
-need for a `BraceDisposition` state and the unreliable byte-level heuristics that `toke.c` uses.
+The term-position reading has one exception: directly after an operator whose argument is optional and which prefers
+defined-or.  These are exactly the operators `toke.c` lexes with `UNIDOR` (`getc`, `pop`, `pos`, `readline`, `readpipe`,
+`readlink`, `shift`, `undef`, `umask`) and the file tests (`FTST`).  After one of them, `//`, `//=`, and `~~` while the
+smartmatch feature is enabled, are operators, so the operator takes no argument.  `stat`, `lstat` and every other
+optional-argument named unary read `//` as an empty pattern.  When such an operator is followed by parentheses, the
+preference also governs the first token inside them, through any further opening parentheses, so `pos(//)` is a syntax
+error while `stat(//)` is `stat(m//)`.  The parser makes this decision by which check it performs before calling
+`lex_term()`, never by recording an expectation state.  [fact:parsing.unidor-keywords] [fact:parsing.unidor-parens]
+[fact:parsing.stat-is-uni]
+
+**`{` (block vs hash constructor).**  Where the grammatical position does not decide it, `{` is classified exactly as
+`toke.c`'s `yyl_leftcurly` classifies it (§6.7).
 
 **`(` (prototype vs normal).**  After `sub name`, the parser explicitly calls `self.lexer.lex_body_str('(', true)` to
 scan the prototype as a raw string, bypassing normal tokenization.  No `Prototype` expect state needed.
@@ -4425,6 +4437,25 @@ the argument list (see §6.4).
 The symbol table lives on the `Parser` struct and is accessible to the lexer through parser method calls in the sections
 where both cooperate (e.g. `lex_word` produces `Token::Ident`, and the parser then consults the symbol table to decide
 how to parse the arguments).
+
+**Keyword overrides.**  Whether a user sub overrides a keyword is decided exactly as `toke.c` decides it
+(`yyl_keylookup` and `yyl_secondclass_keyword`), in every context.  A lexical sub (`my sub NAME`) overrides any keyword,
+strong or weak, outside operator position.  Otherwise a strong keyword is never overridden.  A weak keyword is
+overridden outside operator position only by a package sub that was imported (perl's `GvIMPORTED_CV`, which `use subs`
+and Exporter produce, as does any glob assignment made from another package) or by an imported `CORE::GLOBAL::` sub,
+except that `lock` is overridden by any sub.  A sub that is merely declared leaves the keyword in force, with perl's
+"Ambiguous call resolved as CORE::%s(), qualify as such or use &" warning (never for `x`).  The symbol table therefore
+records, per sub, whether it was imported, along with the `CORE::GLOBAL` stash and the lexical subs in scope.  In the
+interpreter those facts come from the live symbol table as `BEGIN` blocks and `use` statements execute (§4); a
+standalone parse can know only what it sees.  [fact:parsing.weak-override-import]
+
+**`CORE::` qualification.**  `CORE::NAME`, where NAME is a keyword, lexes as `Token::CoreKeyword(Keyword)`, a sibling of
+the unqualified `Token::Keyword(Keyword)`.  It is that keyword regardless of overrides and of feature gating, and it is
+never autoquoted (`CORE::lc => 1` calls `lc`).  Every part of the parser that accepts `Token::Keyword(k)` accepts
+`Token::CoreKeyword(k)` as the same keyword.  The AST records that the keyword was written with `CORE::`; treating the
+qualified and unqualified forms as the same operation is the responsibility of the compiler and any other AST consumer.
+`CORE::` followed by a word that is not a keyword is an error ("CORE::%s is not a keyword"), and `CORE::A::B` is an
+ordinary qualified name.  [fact:parsing.core-prefix]
 
 ### 5.4 Source Layer
 
@@ -5646,6 +5677,9 @@ sequence means something different at the start of an expression:
 | `<<TAG`   | `ShiftLeft`   | heredoc initiation    |
 | `-f`      | `Minus`       | `Filetest(b'f')`      |
 
+The table lists representative cases, not a closed set: `lex_term()` reproduces every interpretation `toke.c` makes in
+term position (`XTERM`), so a term perl reads there is never rejected or read differently.
+
 `lex_term()` subsumes several specialized callback methods that previously existed as separate API:
 
 - `lex_leading_dot_float()` — now handled internally when `.` is followed by a digit.
@@ -6637,6 +6671,13 @@ pre-consumed initial term.
 `:`, it's a label — parse the labeled statement.  If not, it's the start of an expression — wrap it as an `Expr` and
 pass it to `parse_expr_continuation`.
 
+**End of an expression statement.**  An expression statement ends at `;`, or without one only where the enclosing block
+closes or the input ends.  Any other token after a complete expression is a term where an operator was expected, which
+is a syntax error; it never begins another statement.  `toke.c` supplies a `;` token at both of those points, before the
+`}` that closes a block and at the end of the input; the parser instead accepts the unterminated final statement there.
+`toke.c` compiles an `s///e` replacement as the body of `do { }`, so the end of the replacement is the closing-brace
+case.  [fact:parsing.statement-terminator]
+
 **Fat comma autoquoting.**  Keywords consumed in `parse_term` check whether the next token is `FatComma`.  If so, the
 keyword is autoquoted as a string literal.  No speculative peek needed.
 
@@ -6667,10 +6708,14 @@ guess hash vs block.  This heuristic is fragile, cannot see past the current lin
 programmer intent in edge cases (e.g. `{@pairs}` at statement level is classified as a block even when a hash
 constructor was intended).
 
-**The implementation: parse as block, reclassify.**  The recursive descent parser is not constrained by LALR(1)
-token-driven dispatch.  The key insight is that hash constructor content is always valid as block content — a block
-containing a single expression statement.  The converse is not true: multi-statement or keyword-bearing content cannot
-be a hash.  This asymmetry enables a simple strategy:
+**The rule.**  By default PerlOxide classifies every `{` exactly as `toke.c` does, including where its scan disagrees
+with programmer intent and where it cannot see past the end of the current line.  A classification more accurate than
+`toke.c`'s is an extension: it applies only when explicitly enabled, never by default.
+
+**Parse as block, reclassify.**  The recursive descent parser is not constrained by LALR(1) token-driven dispatch.  The
+key insight is that hash constructor content is always valid as block content — a block containing a single expression
+statement.  The converse is not true: multi-statement or keyword-bearing content cannot be a hash.  This asymmetry
+enables a simple strategy:
 
 1. The lexer always emits `LeftBrace` for `{`.  There is no `HashBrace` token — the lexer never pre-decides brace
    meaning.
@@ -6680,8 +6725,9 @@ be a hash.  This asymmetry enables a simple strategy:
 
 3. In block position (`if (...) {`, `sub name {`, `eval {`), `parse_block` is called directly.  Also unambiguous.
 
-4. At statement level — the only ambiguous case — `parse_statement` always calls `parse_block`.  After the block is
-   parsed, the result is inspected by `try_reclassify_as_hash`:
+4. Where `toke.c` guesses — at statement level, and at the other positions `yyl_leftcurly` resolves by its scan, such as
+   the first argument of `map` and `grep` — the braces are parsed as a block.  After the block is parsed, the result is
+   inspected by `try_reclassify_as_hash`:
 
    - Empty block → empty hash (`{}`).
    - Multiple statements → block.
@@ -6689,14 +6735,9 @@ be a hash.  This asymmetry enables a simple strategy:
    - Any non-expression statement (`my`, `if`, `for`, labels, etc.) → block.
    - A single unterminated expression statement → candidate for reclassification.
 
-5. Reclassification of single-expression blocks uses AST-level heuristics, which have strictly more information than
-   Perl's byte-level scan:
-
-   - Expression contains a top-level `=>` (fat comma) → hash.
-   - Expression ends with fat comma or `}` follows fat comma → hash.
-   - Otherwise → block.
-
-   These rules replicate Perl's behavior for all common cases.
+5. Reclassification of a single-expression block reproduces `yyl_leftcurly`'s decision: the outcome depends on what that
+   scan would see in the source, not on the AST's fuller information.  An enabled extension may instead decide from the
+   AST.
 
 6. `parse_expr_statement` tracks whether a semicolon was consumed, since this is the primary signal distinguishing block
    from hash content.  The terminated/unterminated distinction is recorded and available to the reclassification logic.
@@ -6705,8 +6746,7 @@ be a hash.  This asymmetry enables a simple strategy:
 a no-op that places `{` in term position.  This works automatically: `+` is a prefix in `try_prefix`, which then sees
 `LeftBrace` in the forward phase and pushes a HashRef accumulator frame.  No special case needed.
 
-**Bug-for-bug compatibility.**  The reclassification heuristic is tuned to match Perl's behavior, not to be
-theoretically optimal.  Cases like `{@pairs}` at statement level will be classified as a block, matching Perl, even
+**Bug-for-bug compatibility.**  Cases like `{@pairs}` at statement level are classified as blocks, matching perl, even
 though a human might intend a hash constructor.  The `+{@pairs}` workaround applies identically.
 
 ---
