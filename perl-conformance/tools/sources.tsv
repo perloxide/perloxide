@@ -140,3 +140,8 @@ parse_09_keyword_classes.pl	toke.c	LOP\(OP_WARN,XTERM\);	yyl_word_or_keyword: wa
 parse_09_keyword_classes.pl	toke.c	LOP\(OP_GPBYNUMBER,XTERM\);	yyl_word_or_keyword: getprotobynumber is LOP
 parse_10_shift_array_argument.pl	perly.y	FUNC1 PERLY_PAREN_OPEN expr PERLY_PAREN_CLOSE	term: FUNC1 ( expr ) accepts any expression
 parse_10_shift_array_argument.pl	op.c	case OA_AVREF:	Perl_ck_fun: an array operand must be an rv2av or padav op; a hash, glob or constant is a bad type, anything else "Experimental %s on scalar is now forbidden"
+parse_11_unary_operand_extent.pl	perly.y	^%nonassoc UNIOP UNIOPSUB	%nonassoc UNIOP: the operand extends over the operators declared after it and ends before those declared before it
+parse_11_unary_operand_extent.pl	toke.c	return REPORT\( \*s==.\(. \? \(int\)FUNC1 : \(int\)UNIOP \);	UNI3: a ( after the operator and any whitespace or comments makes it FUNC1, whose operand ends at the )
+parse_11_unary_operand_extent.pl	toke.c	^ \* Skips comments as well\.	skipspace: the space skipped before that check includes comments and newlines
+parse_11_unary_operand_extent.pl	toke.c	^#define FTST\(f\)	FTST: a file test always returns UNIOP, never FUNC1
+parse_11_unary_operand_extent.pl	op.c	kid->op_private \|= OPpFT_STACKING;	Perl_ck_ftst: a file test whose operand is a file test is stacked

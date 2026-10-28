@@ -332,3 +332,12 @@ source.
 - `perly.y:1697` term: FUNC1 ( expr ) accepts any expression
 - `op.c:13781` Perl_ck_fun: an array operand must be an rv2av or padav op; a hash, glob or constant is a bad type,
   anything else "Experimental %s on scalar is now forbidden"
+
+## parse_11_unary_operand_extent.pl
+
+- `perly.y:169` %nonassoc UNIOP: the operand extends over the operators declared after it and ends before those declared
+  before it
+- `toke.c:294` UNI3: a ( after the operator and any whitespace or comments makes it FUNC1, whose operand ends at the )
+- `toke.c:2081` skipspace: the space skipped before that check includes comments and newlines
+- `toke.c:261` FTST: a file test always returns UNIOP, never FUNC1
+- `op.c:13695` Perl_ck_ftst: a file test whose operand is a file test is stacked

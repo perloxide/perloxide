@@ -129,8 +129,8 @@ channels are written to `results/check-diffs/<test>.<comparison>.<channel>.{expe
 | `perl-nondeterministic` | same as allocator-sensitive                                                                           | as above; fix the program if it was meant as a test.                                                                                                                             |
 | `skipped`               | none                                                                                                  | -                                                                                                                                                                                |
 
-The unthreaded stock 5.44.0 passes `check` against its own blessing with 52 PASS, 5 SMOKE and 4 SKIP (the four tests
-that require threads, which an implementation without them is not asked to run); the threaded stock passes all 56 and
+The unthreaded stock 5.44.0 passes `check` against its own blessing with 53 PASS, 5 SMOKE and 4 SKIP (the four tests
+that require threads, which an implementation without them is not asked to run); the threaded stock passes all 57 and
 smokes the same 5.  `tools/impl-wrong-seed.sh`, which forces `PERL_HASH_SEED=1`, fails exactly the lane-A tests whose
 seed-1 output differs from their seed-0 output.
 
@@ -205,6 +205,7 @@ that version's six builds, then commit `expected/`.  `check --target VERSION` re
 | `parse_08_unary_argument_start.pl`     | lane-A-eligible       |
 | `parse_09_keyword_classes.pl`          | lane-A-eligible       |
 | `parse_10_shift_array_argument.pl`     | lane-A-eligible       |
+| `parse_11_unary_operand_extent.pl`     | lane-A-eligible       |
 | `probe_01_face_trace.pl`               | lane-A-eligible       |
 | `threads_01_const_marks.pl`            | lane-A-eligible       |
 | `threads_02_shared_local.pl`           | lane-A-eligible       |

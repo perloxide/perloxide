@@ -1,0 +1,32 @@
+value: lc "A" . "B"
+    ('ab')
+value: lc("A") . "B"
+    ('aB')
+value: lc ("A") . "B"
+    ('aB')
+value: lc # comment\n("A") . "B"
+    ('aB')
+value: lc "A" eq "a" ? "lc first" : "eq first"
+    ('lc first')
+value: -e "." . "/nonexistent"
+    (undef)
+value: -e "." + 0
+    (undef)
+value: -e "." eq 1 ? "test first" : "eq first"
+    ('test first')
+value: -e(".") . "/nonexistent"
+    (undef)
+value: -e (".") . "/nonexistent"
+    (undef)
+value: -e -e "."
+    ('1')
+value: my @r = (stat "." . "/"); scalar @r
+    ('13')
+value: stat(".") . "/"
+    ('1/')
+value: stat # comment\n(".") . "/"
+    ('1/')
+value: my @r = (lstat "." . "/"); scalar @r
+    ('13')
+value: lstat(".") . "/"
+    ('1/')

@@ -18,6 +18,7 @@
     ('lc', '1')
     ('match')
     ('ne')
+    ('no match')
     ('true')
     ('x')
     ('x')
@@ -52,6 +53,7 @@ value: local $_ = '/nonexistent/perl-conformance'; -f * 2
 value: local $_ = '/nonexistent/perl-conformance'; -f . "x"
 value: local $_ = '/nonexistent/perl-conformance'; -f == 1 ? "eq" : "ne"
 value: local $_ = 'AB'; join ",", lc .. "ac"
+value: local $_ = 'AB'; lc !~ /ab/ ? "match" : "no match"
 value: local $_ = 'AB'; lc % 2
 value: local $_ = 'AB'; lc & 1
 value: local $_ = 'AB'; lc * 2

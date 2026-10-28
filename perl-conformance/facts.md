@@ -1123,11 +1123,22 @@ Entries:
   **` is `*main::*`), `%` a hash, `&` a call (`Undefined subroutine &main::1 called`), `<` a readline or glob (`lc < 1`
   is `Unterminated <> operator`, `lc <=>` the glob of `=`), `/` a pattern (`shift / 5` is `Search pattern not
   terminated`), `x` a bareword, and `-` and `+` a sign, with `Warning: Use of "lc" without parentheses is ambiguous`
-  when the sign is followed by whitespace; while `.`, `==`, `=~`, `eq`, `?`, `||`, `..`, `,`, `=` and `->` follow
+  when the sign is followed by whitespace; while `.`, `==`, `=~`, `!~`, `eq`, `?`, `||`, `..`, `,`, `=` and `->` follow
   `lc($_)`.  `lc ** 2`, `lc <=> 1` and `lc x 2` are therefore syntax errors at their last token, and `lc => 1` quotes
   `lc`.  After `shift`, an argument that is not an array fails the op check (`Type of arg 1 to shift must be array (not
   constant item)` for `shift + 1`).  A keyword followed by a single `:` at the start of a statement is a label (`lc:
   1`).  Probe `probes/corpus/parse_08_unary_argument_start.pl`. [5.44.0]
+- `parsing.unary-operand-extent`: The operand of a named unary without parentheses, of a file test, and of `stat` or
+  `lstat` extends over every operator `perly.y` declares after `%nonassoc UNIOP` (shift, additive, multiplicative,
+  binding, prefix unary, `**`, `++`, `--` and `->`) and ends before the rest: `lc "A" . "B"` is `ab`, `-e "." .
+  "/nonexistent"` tests `./nonexistent`, `-e "." + 0` tests `0`, `stat "." . "/"` stats `./`, while `lc "A" eq "a"` and
+  `-e "." eq 1` compare the result.  A named unary followed by `(` directly, after whitespace, or after a comment and a
+  newline (`skipspace` skips comments) is `FUNC1`, whose operand ends at the `)`: `lc("A") . "B"`, `lc ("A") . "B"` and
+  `lc # comment` then `("A") . "B"` on the next line are all `aB`, and `stat(".") . "/"` is `1/`, as is `lstat(".") .
+  "/"`.  A file test is never `FUNC1`, so a `(` after it begins its operand, which continues past the `)`: `-e(".") .
+  "/nonexistent"` and `-e (".") . "/nonexistent"` both test `./nonexistent`.  A file test whose operand is another file
+  test is stacked (`Perl_ck_ftst`), so `-e -e "."` is `-e "." && -e _`, not a test of the file named `1`.  Probe
+  `probes/corpus/parse_11_unary_operand_extent.pl`. [5.44.0]
 - `parsing.keyword-classes`: A keyword's syntactic class is the macro its case in `yyl_word_or_keyword` uses, which is
   not always what its prototype or `perlfunc` suggests.  `keys`, `values`, `each`, `tell`, `untie` and `write` are
   `UNI`: `(keys %h, 1)` is a two-element list and `keys %h < 3` compares the count.  `die`, `warn` and

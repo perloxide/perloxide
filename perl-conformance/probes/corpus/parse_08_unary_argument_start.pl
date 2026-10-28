@@ -2,7 +2,7 @@
 # begins the argument; otherwise the operator takes its default operand and the token is read again as an operator.  So
 # `*` and `**` begin a glob (`**` is `*main::*`), `%` a hash, `&` a call, `<` a readline or glob (`<=>` is the glob of
 # `=`), `/` a pattern, `x` a bareword, and `-` and `+` a unary sign (with an `ambiguous` warning when spaced), while
-# `.`, `==`, `=~`, `eq`, `?`, `||`, `..`, `,`, `=` and `->` end the operator.  `=>` quotes the word.  A keyword
+# `.`, `==`, `=~`, `!~`, `eq`, `?`, `||`, `..`, `,`, `=` and `->` end the operator.  `=>` quotes the word.  A keyword
 # followed by a single `:` at the start of a statement is a label.
 
 # Every case is a string eval run with Perl's default warnings (no `use warnings`, no `use strict`).  A `value` case is
@@ -43,3 +43,4 @@ value("local \@ARGV = (5); $_") for 'shift == 5 ? "eq" : "ne"', 'shift . "x"', '
     'shift < 6', 'shift / 5';
 value("local \$_ = '/nonexistent/perl-conformance'; $_") for '-f == 1 ? "eq" : "ne"', '-f . "x"', '-f * 2';
 value('lc: 1');
+value(q{local $_ = 'AB'; lc !~ /ab/ ? "match" : "no match"});

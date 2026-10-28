@@ -1,0 +1,32 @@
+    ('1')
+    ('1/')
+    ('1/')
+    ('1/')
+    ('13')
+    ('13')
+    ('aB')
+    ('aB')
+    ('aB')
+    ('ab')
+    ('lc first')
+    ('test first')
+    (undef)
+    (undef)
+    (undef)
+    (undef)
+value: -e "." + 0
+value: -e "." . "/nonexistent"
+value: -e "." eq 1 ? "test first" : "eq first"
+value: -e (".") . "/nonexistent"
+value: -e -e "."
+value: -e(".") . "/nonexistent"
+value: lc "A" . "B"
+value: lc "A" eq "a" ? "lc first" : "eq first"
+value: lc # comment\n("A") . "B"
+value: lc ("A") . "B"
+value: lc("A") . "B"
+value: lstat(".") . "/"
+value: my @r = (lstat "." . "/"); scalar @r
+value: my @r = (stat "." . "/"); scalar @r
+value: stat # comment\n(".") . "/"
+value: stat(".") . "/"
