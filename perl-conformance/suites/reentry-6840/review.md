@@ -388,7 +388,7 @@ interpreter crashes:
 ulimit -c 0
 perl reentry_matrix.pl > all-cases.jsonl
 perl continuation_probes.pl > continuations.jsonl
-python3 analyze_reentry.py all-cases.jsonl
+perl analyze_reentry.pl all-cases.jsonl
 ```
 
 Optional generator arguments select mode, input, action, and operation, in that order.  For example:
@@ -400,5 +400,5 @@ perl reentry_matrix.pl warn_tied junk12 untie nv
 
 The historical raw files split the first three modes into `reentry-VERSION.jsonl` and the fourth into
 `reentry-tied-warning-VERSION.jsonl`.  The current no-argument generator emits all four.  Each file begins with
-interpreter/build metadata.  `catalog_results.py` consumes those four saved versioned files and produces
+interpreter/build metadata.  `catalog_results.pl` consumes those four saved versioned files and produces
 `matrix_findings.json`; it compares complete case keys rather than assuming an arbitrary output ordering.
