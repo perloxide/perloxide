@@ -18174,6 +18174,66 @@ fn named_unary_then_bare_heredoc() {
     assert_eq!(parse_error("lc << 1;").message, "Use of bare << to mean <<\"\" is forbidden");
 }
 
+#[test]
+fn named_unary_then_negated_binding() {
+    let e = sole_expr("lc !~ /x/;");
+    assert!(matches!(&e.kind, ExprKind::BinOp(BinOp::NotBinding, lhs, _) if is_bare_builtin(lhs, "CORE::lc")), "expected lc() !~ /x/, got {:?}", e.kind);
+}
+
+// The operand of a named unary, a file test, `stat` or `lstat` extends over every operator that binds more tightly than
+// a named unary (`.`, `+`, `**`, `=~`, ...) and ends before relational and looser operators.  A file test has no
+// function-call form, so a `(` after it begins the operand.
+
+#[test]
+fn filetest_operand_extends_over_concatenation() {
+    let e = sole_expr("-s $f . \"x\";");
+    assert!(
+        matches!(&e.kind, ExprKind::Filetest('s', StatTarget::Expr(arg)) if matches!(arg.kind, ExprKind::BinOp(BinOp::Concat, _, _))),
+        "expected -s($f . \"x\"), got {:?}",
+        e.kind
+    );
+}
+
+#[test]
+fn filetest_operand_extends_over_addition() {
+    let e = sole_expr("-s $f + 1;");
+    assert!(
+        matches!(&e.kind, ExprKind::Filetest('s', StatTarget::Expr(arg)) if matches!(arg.kind, ExprKind::BinOp(BinOp::Add, _, _))),
+        "expected -s($f + 1), got {:?}",
+        e.kind
+    );
+}
+
+#[test]
+fn filetest_parentheses_begin_the_operand() {
+    let e = sole_expr("-f($x) . \"y\";");
+    assert!(
+        matches!(&e.kind, ExprKind::Filetest('f', StatTarget::Expr(arg)) if matches!(arg.kind, ExprKind::BinOp(BinOp::Concat, _, _))),
+        "expected -f(($x) . \"y\"), got {:?}",
+        e.kind
+    );
+}
+
+#[test]
+fn stat_operand_extends_over_concatenation() {
+    let e = sole_expr("stat $f . \"x\";");
+    assert!(
+        matches!(&e.kind, ExprKind::Stat(StatTarget::Expr(arg)) if matches!(arg.kind, ExprKind::BinOp(BinOp::Concat, _, _))),
+        "expected stat($f . \"x\"), got {:?}",
+        e.kind
+    );
+}
+
+#[test]
+fn lstat_operand_extends_over_concatenation() {
+    let e = sole_expr("lstat $f . \"x\";");
+    assert!(
+        matches!(&e.kind, ExprKind::Lstat(StatTarget::Expr(arg)) if matches!(arg.kind, ExprKind::BinOp(BinOp::Concat, _, _))),
+        "expected lstat($f . \"x\"), got {:?}",
+        e.kind
+    );
+}
+
 // A word followed by a single colon at the start of a statement is a label, even when the word is a keyword.
 
 #[test]
