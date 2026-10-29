@@ -58,9 +58,12 @@ from the string. `created_as_string` and `created_as_number` read the `Dual` as 
    `Ref` keeps its address for every later conversion (`SvROK` dispatches before the value flags in `sv_2iv_flags`,
    `sv_2nv_flags`, `sv_2pv_flags`) while the outer conversion still returns the number. On the float path `sv_2nv_flags`
    warns first and then reads `Atof` of the *current* PV, so no `Dual` is needed; if the handler made the scalar a
-   non-string, Perl reads a dropped COW buffer (a crash or `Atof(NULL)`): a window with no defined behavior, recorded in
-   `undefined.md` (W1, W2). The uninitialized-value path returns 0 regardless of the callback (`S_sv_2iuv_common`, undef
-   branch; `sv_2nv_flags`, undef branch).
+   number or `undef`, Perl parses the freed buffer (a crash), and if it made it a reference, the referent's SV head
+   through the shared slot (an unreliable result): windows with no defined behavior, recorded in `undefined.md` (W1,
+   W2).  A reference left by the handler while an infinite NV fills the IV slot gets `IsUV`, the same bit as the weak
+   reference flag, and Perl croaks `panic: del_backref` when it is freed (W3).  All three are bug
+   `warn-handler-continuation` (`../../perl-bugs.md`).  The uninitialized-value path returns 0 regardless of the
+   callback (`S_sv_2iuv_common`, undef branch; `sv_2nv_flags`, undef branch).
 2. **A non-C `LC_NUMERIC` radix in a `use locale` scope.** `grok_number_flags` and `my_atof3` accept
    `PL_numeric_radix_sv` as a decimal point in addition to `.` while `IN_LC(LC_NUMERIC)`; nothing else in the conversion
    chain consults the locale, and `sv_2pv_flags` never caches a float's string form. The parse result is cached in the
@@ -273,13 +276,6 @@ are partner-typed, and identically so on 5.38.2 and 5.44.0. The visible effect i
 against a fresh integer literal it gains public `IOK`; against a touched literal it gains nothing.  `ValueFlags.pm`
 carries `%PARTNER_TYPED` and `pp_add_partner_gate`.
 
-**§Verification.** The definition of "verified" for this area is the coverage table produced by `vf_suite.pl`
-(reports/suite/coverage.txt): per interpreter and lane — holder freshness, op set, depth, projection, transitions,
-states — with the four verdicts `match`, `open`, `version-divergent`, `diverges-defined`. At this bundle: handler matrix
-2,154 match / 150 diverges-defined (114 crash rows, 36 freed-buffer rows), locale 1,152, 12-op core depth 4 10,416,
-58-op set depth 3 295,858, copy check 3,099 and 3,084 — all with 0 open and 0 version-divergent on both interpreters.
-The random-walk lane is not yet part of the table.
-
 **`"0 but true"`.** Recognized by `Perl_grok_number_flags` (numeric.c): the exact ten-byte string is tested with
 `memEQs` before the general parse and returns `IS_NUMBER_IN_UV` with value 0, so it numifies to 0 with no warning and
 installs public `IOK`. It is not a warning exemption in `not_a_number`; the exemption is that the parse never reaches
@@ -310,10 +306,13 @@ rather than as a later cow-only row.
 
 **The key.** The projection key carries every field that decides a future observable, for every holder kind: the public
 and private value flags, `IsUV`, `UTF8`, `ROK`, `IsCOW`, the exact integer and NV slots, the string bytes, and `SvLEN` —
-on a `POK` holder as the buffer's length, on any other holder as the length of the stale buffer it still owns. COW and
-`LEN` are consumer-invisible at the state where they are observed but decide later transitions (whether an append
-forces, whether an assignment shares), so they are state even though they are not output. Every "model gap" the walk has
-found was, first, a field missing from this key.
+on a `POK` holder as the buffer's length, on any other holder as the length of the stale buffer it still owns, together
+with that holder's `SvCUR` whenever either is nonzero.  `pp_undef` frees the buffer and zeroes `SvLEN` but leaves
+`SvCUR`, and `Perl_sv_grow` sizes the next allocation from it (`CUR + CUR/4 + 16`), so a stale `CUR` with no buffer
+decides a later `LEN`; before it was in the key, two recipes reached one key with different `CUR` and observed different
+results (four conflicts on 5.44.0, none since). COW and `LEN` are consumer-invisible at the state where they are
+observed but decide later transitions (whether an append forces, whether an assignment shares), so they are state even
+though they are not output. Every "model gap" the walk has found was, first, a field missing from this key.
 
 **`undef $x` versus `$x = undef`.** `pp_undef` (pp.c, the scalar default arm) runs `sv_force_normal_flags(sv,
 SV_COW_DROP_PV|SV_IMMEDIATE_UNREF)` and then, for a body with a PV, `SvPV_free`, `SvPV_set(sv, NULL)`, `SvLEN_set(sv,
@@ -325,8 +324,11 @@ a later `sv_setsv_flags` reads on the destination side.
 5.38.2 and 5.44.0 — `PERL_UNWARANTED_CHUMMINESS_WITH_MALLOC` is undefined and `SvLEN` is exactly what `Perl_sv_grow`
 computes; the model's `LEN` arithmetic holds under that condition and no other.
 
-**Verification.** The definition of "verified" for this area is the coverage table produced by `vf_suite.pl`
-(reports/suite/coverage.txt): per interpreter and lane — holder freshness, op set, depth, projection, transitions,
-states — with `match`, `open`, `version-divergent` (path-based: from the first step whose reference observations differ,
-computed by `verdiv_paths.pl`), and `diverges-defined`; the model follows 5.44.0, and every 5.38.2 divergence found so
-far is one rule, the unrounded first allocation before `expected_size` and `SvPV_shrink_to_cur` at `SvCUR + 1`.
+**Verification.** "Verified" for this area is `reports/coverage.txt`, which `generators/vf_gen.pl` writes from every
+version's run: per lane -- the transition recipes `core2`, `full1`, `walk6` and `locale1`, their union `transitions`,
+the handler `matrix` and the `copy` check -- and per version, the rows observed, the states, `match` and `open` for the
+model against perl, and the matrix's undefined rows (W1 and W2, `../../undefined.md`) or the transitions' conflicts.  A
+conflict is two recipes observing different results for one (start, state, op): a key that does not determine the next
+state, which the key must rule out whatever the model does.  The model follows 5.44.0; an open row on another version is
+a model gap or a change in perl since that tag, and `perl-conformance replay ValueFlags/transitions --target V` lists
+the open rows of any version.

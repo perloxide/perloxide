@@ -47,8 +47,8 @@ line, with the flag set and the value as the suite prints them):
   bytes, the `UTF8` flag, the value flags and the locale radix in effect, so a cached number is recomputable from the
   string except in the three `Dual` cases (a `__WARN__` handler that mutates the scalar mid-conversion, a non-C radix,
   and `"-0"` reached integer-first), each its own entry below.  `Perl_sv_2iv_flags`, `Perl_sv_2nv_flags`,
-  `Perl_sv_2pv_flags`, `S_sv_2iuv_common`.  The lanes of `models/ValueFlags/reports/coverage.txt` (matrix, locale,
-  core1, full1, walk1, copy); `probes/research/value-model/22_flags_synth.pl` (25 states synthesized from kind plus
+  `Perl_sv_2pv_flags`, `S_sv_2iuv_common`.  The lanes of `models/ValueFlags/reports/coverage.txt` (matrix, locale1,
+  core2, full1, walk6, copy); `probes/research/value-model/22_flags_synth.pl` (25 states synthesized from kind plus
   cache marks, 25 matched); the public-without-private assertion in `probes/corpus/flags_matrix.pl` never fires.
   [5.44.0]
 - `value-flags.string-numeric-use`: Numeric use of a string classifies it with `grok_number` and caches the result in
@@ -193,14 +193,15 @@ line, with the flag set and the value as the suite prints them):
   warns first and parses the *current* string, so no `Dual` arises; the same strip runs there.  A number whose only
   value flags are private stringifies as uninitialized (`sv_2pv_flags` dispatches on `SvPOKp`, then public `SvIOK`, then
   public `SvNOK`, else `report_uninit`) while `defined` is true and numeric use returns the number.  A handler that
-  changes the scalar's kind on the float path, and a reference holder reaching `non_preserve` with an infinite NV, are
-  windows with no defined behavior (`undefined.md`, W1-W3).  `S_sv_2iuv_common`, `S_sv_setnv`, `S_not_a_number`,
-  `Perl_sv_2nv_flags`, `Perl_sv_2pv_flags`.  The matrix lane of `models/ValueFlags/reports/coverage.txt` (2,304 rows,
-  150 excluded as undefined); `suites/reentry-matrix`; `probes/corpus/num_01_warn_handler.pl` (a, b),
-  `probes/corpus/num_02_stale_cache.pl`; `probes/corpus/value_03_handler_reassign_by_path.pl` (lane A: the integer path
-  installs the pre-handler 3 under the handler's `"49"`, the float paths read 49);
-  `probes/research/value-model/10_num_warnmut.pl`, `17_warnmut_rows.pl` (`str+nv` 99, `str+iv` 12, `num` with the empty
-  stringification), `18_warnmut_matrix.pl`. [5.44.0]
+  changes the scalar's kind on the float path opens windows with no defined behavior (`undefined.md`, W1 and W2), and a
+  reference holder reaching `non_preserve` with an infinite NV gets `IsUV`, the weak-reference bit, and panics when
+  freed (W3); all three are bug `warn-handler-continuation` (`perl-bugs.md`).  `S_sv_2iuv_common`, `S_sv_setnv`,
+  `S_sv_2iuv_non_preserve`, `S_not_a_number`, `Perl_sv_2nv_flags`, `Perl_sv_2pv_flags`.  The matrix lane of
+  `models/ValueFlags/reports/coverage.txt` (2,304 rows: 108 W1 crashes and 36 W2 reads undefined, 6 recording the W3
+  panic); `suites/reentry-matrix`; `probes/corpus/num_01_warn_handler.pl` (a, b), `probes/corpus/num_02_stale_cache.pl`;
+  `probes/corpus/value_03_handler_reassign_by_path.pl` (lane A: the integer path installs the pre-handler 3 under the
+  handler's `"49"`, the float paths read 49); `probes/research/value-model/10_num_warnmut.pl`, `17_warnmut_rows.pl`
+  (`str+nv` 99, `str+iv` 12, `num` with the empty stringification), `18_warnmut_matrix.pl`. [5.44.0]
 - `value-flags.negative-zero-order`: `"-0"` converted on the integer path stores IV 0, a later float conversion derives
   NV 0.0 from the IV (`sv_2nv_flags`, `SvIOKp` branch), and `%g` prints `0` forever; converted float-first it stores
   −0.0 and `%g` prints `-0` forever, while `+ 0` prints `0` in both orders because the integer slot wins in `pp_add`.
@@ -274,8 +275,8 @@ line, with the flag set and the value as the suite prints them):
   next string assignment where a fresh holder shares the literal, so which arm a given assignment takes depends on the
   holder's history.  `Perl_leave_scope` (`SAVEt_CLEARSV`), `Perl_sv_setsv_flags`.
   `probes/research/value-model/14_pad_reuse.pl`, `19_closure_rearm.pl` (`a1_ne_a2`, `a2_eq_a3`),
-  `probes/research/value-flags/p2.pl`; the holder-freshness column of `models/ValueFlags/reports/coverage.txt` (every
-  lane runs on a fresh holder for this reason). [5.44.0]
+  `probes/research/value-flags/p2.pl`; every recipe of `models/ValueFlags/generators/vf_gen.pl` runs each sequence on a
+  fresh package holder for this reason. [5.44.0]
 
 ## `local` and the save stack [save-stack]
 

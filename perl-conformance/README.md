@@ -12,26 +12,27 @@ implementation's own documentation.
 
 ## Layout
 
-| Path                    | Contents                                                                                                                                                |
-|-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `profile.md`            | the build and environment the facts are relative to: Perl version, widths, allocator, hash function, locale, libc                                       |
-| `status.md`             | one row per model and suite: what is verified, on which Perls, under which key generation, and what is open                                             |
-| `undefined.md`          | windows where `perl` itself crashes, reads freed memory, or otherwise has no defined behavior; facts only                                               |
-| `unsupported-perls.md`  | observations from Perls that are not supported versions, kept in one place and resting on nothing                                                       |
-| `supported-versions`    | the supported versions, oldest first; the last is the harness's and the suites' default target                                                          |
-| `facts.md`              | the prose index of every fact, by area, each linked to the probe or model row that demonstrates it                                                      |
-| `harness.md`            | how the harness works: the builds and families, hash modes, verdict lanes, blessing and `check`; its decisions                                          |
+| Path                    | Contents                                                                                                                                                              |
+|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `profile.md`            | the build and environment the facts are relative to: Perl version, widths, allocator, hash function, locale, libc                                                     |
+| `status.md`             | one row per model and suite: what is verified, on which Perls, under which key generation, and what is open                                                           |
+| `undefined.md`          | windows where `perl` itself crashes, reads freed memory, or otherwise has no defined behavior; facts only                                                             |
+| `perl-bugs.md`          | bugs in `perl` itself, each with the versions it affects (read by the harness) and the windows of `undefined.md` it opens                                             |
+| `unsupported-perls.md`  | observations from Perls that are not supported versions, kept in one place and resting on nothing                                                                     |
+| `supported-versions`    | the supported versions, oldest first; the last is the harness's and the suites' default target                                                                        |
+| `facts.md`              | the prose index of every fact, by area, each linked to the probe or model row that demonstrates it                                                                    |
+| `harness.md`            | how the harness works: the builds and families, hash modes, verdict lanes, blessing and `check`; its decisions                                                        |
 | `bin/perl-conformance`  | the driver: `run`, `verdict`, `bless`, `selftest`, `gaps`, `check`; `explain` and `cite-check` for the fact index; `table` and `replay` for a model's factored tables |
-| `lib/`, `probe-lib/`    | the harness modules (`Perl::Conformance::*`) and, kept apart so a probe sees only it, the probe API (`::Probe`)                                         |
-| `tools/`                | source validation, the citation table and its generator, the blessed-output lint, the destruction-order predictor                                       |
-| `locales/`              | sources of the locales the harness compiles for the locale probes                                                                                       |
-| `perl-conformance.conf` | one `[VERSION]` section of six build paths per supported version                                                                                        |
-| `sources.md`            | the Perl source behind each corpus probe's rule, generated from `tools/sources.tsv`                                                                     |
-| `perls/`                | the build script for a supported Perl's six builds, with the allocator patches; the structure-size tool                                                 |
-| `probes/`               | one program per fact: `corpus/` (harness-run, blessed per build and hash mode) and `research/` (as recorded)                                            |
-| `models/<NAME>/`        | executable transcriptions of one area of the C, with their generators, tables, reports, and section text                                                |
-| `suites/`               | scenario suites from the design research, with blessed outputs                                                                                          |
-| `measurements/`         | benchmarks and graph walks from the design research: costs on a particular machine, not facts about Perl                                                |
+| `lib/`, `probe-lib/`    | the harness modules (`Perl::Conformance::*`) and, kept apart so a probe sees only it, the probe API (`::Probe`)                                                       |
+| `tools/`                | source validation, the citation table and its generator, the blessed-output lint, the destruction-order predictor                                                     |
+| `locales/`              | sources of the locales the harness compiles for the locale probes                                                                                                     |
+| `perl-conformance.conf` | one `[VERSION]` section of six build paths per supported version                                                                                                      |
+| `sources.md`            | the Perl source behind each corpus probe's rule, generated from `tools/sources.tsv`                                                                                   |
+| `perls/`                | the build script for a supported Perl's six builds, with the allocator patches; the structure-size tool                                                               |
+| `probes/`               | one program per fact: `corpus/` (harness-run, blessed per build and hash mode) and `research/` (as recorded)                                                          |
+| `models/<NAME>/`        | executable transcriptions of one area of the C, with their generators, tables, reports, and section text                                                              |
+| `suites/`               | scenario suites from the design research, with blessed outputs                                                                                                        |
+| `measurements/`         | benchmarks and graph walks from the design research: costs on a particular machine, not facts about Perl                                                              |
 
 ## Rules
 

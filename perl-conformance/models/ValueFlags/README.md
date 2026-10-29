@@ -357,3 +357,58 @@ ValueFlags.pm and Observe.pm (the models, in ../../lib/Perl/Conformance/Model/),
 merge_starts.pl, verdiv_paths.pl, dependencies.md, reports/ (coverage.txt and the lane reports behind it), section.md.
 The Harness routines live in ValueFlags.pm under package Perl::Conformance::Model::ValueFlags::Harness (a separate
 VF/Harness.pm split is straightforward and not yet done).
+
+## Pass 22 (2026-10-28) -- the audit; one driver; a new baseline
+
+Every count stated in an earlier pass, and the lane reports behind them (`core1`, `core2`, `full1`, `walk1`), is
+retired: those counts could not be reproduced from the committed model, for the reasons below.  The baseline is
+`reports/coverage.txt` as `generators/vf_gen.pl` now writes it.
+
+Key: a non-string holder now shows its buffer's `B:cur/len` whenever either is nonzero (it was shown only with a nonzero
+`LEN`).  `pp_undef` frees the buffer and zeroes `SvLEN` but leaves `SvCUR`, and `Perl_sv_grow` sizes the next allocation
+from it (`CUR + CUR/4 + 16`); the four recipe conflicts on 5.44.0 were two paths reaching one key with different stale
+`CUR`.  Observer: `consumers()` loads its own modules (an import hook had loaded them only when the full projection was
+already selected at import time), and `LEN` stays exact.
+
+Model: `ValueFlags.pm` is consolidated to one routine per C function.  It had grown 17 compile-time redefinitions (the
+last one won) and about 40 runtime wrappers applied in file order, so the code that ran for a routine was spread over up
+to four places; the pass-21 note about the order of the wrappers no longer applies.  The consolidated file replays the
+transitions, matrix and copy tables of 5.44.0 and 5.38.2 byte for byte as the old one did, and a differential run of
+every routine over 12,000 random five-op sequences (both radixes, `$DESIGN_DEFINED` on and off) differs only in the dead
+`t_iv`/`t_nv`/`t_pv` bookkeeping, which is gone.  The 2,030 `core2` rows on 5.44.0 that are open on the body type alone
+remain; `upgrade` and its callers are now readable in one place.
+
+Driver: `generators/vf_gen.pl` replaces `vf_suite.pl`, `merge_starts.pl` and `verdiv_paths.pl`.  It runs the transition
+recipes `core2` (the 13-op core at depth 2), `full1` (58 ops at depth 1), `walk6` (125 seeded walks of 6 ops per start)
+and `locale1` (the radix ops under the harness's compiled comma-radix locale), the handler matrix and the copy check,
+and merges each into a factored table across versions (`reports/transitions.tsv`, `matrix.tsv`, `copy.tsv`;
+`../../lib/Perl/Conformance/Table.pm`).  A transition records the recipe that reached its from-state in the run that
+observed it (the shortest when several did); it had recorded the first recipe to reach the from-state by any path, which
+a key that missed a field could not replay.  `REPLAY=1` replays the model against a table with no perl, which is what
+`perl-conformance replay ValueFlags/...` runs.  The locale recipe's copy op is `copyf`: each of its ops runs in an eval
+block of its own, so the copy's temporary is freed before the observation, unlike the core's `copy`, and the two are
+different ops in one table.
+
+Matrix: the generator runs each child itself and records how it ended.  A child killed by `SIGSEGV` is `CRASH`; a child
+that printed its row and then croaked `panic: MESSAGE` keeps the row and records MESSAGE in the new `panic` field; any
+other ending (a timeout, another signal, another nonzero exit) stops the run, to be looked at before it is given a form.
+The old test, an exit status of 124 or more, read a croak's leftover `errno`: the six `Infx` reference rows that panic
+(W3) were "crashes" or not depending on what the process happened to have done last.  A result read through the W2
+window is marked by the child (`0?`) from what it observed -- the handler made a string holder a reference during the
+outer NV conversion -- and the table records `?` when the model agrees the row is undefined and the run's version is one
+`../../perl-bugs.md` lists for bug `warn-handler-continuation`; a run on a listed version whose results show the bug
+absent stops (exit 3) with nothing recorded.  W3 is that bug's deterministic window: `SVf_IVisUV` and `SVprv_WEAKREF`
+are one bit, so the reference left with `IsUV` is weak and croaks `panic: del_backref, svp=0` when freed; the model
+predicts it.  The matrix's model setup had started the `12U` input without `UTF8` and kept `UTF8` across the handler's
+assignments; with both fixed, its 44 flag rows (open since the key gained `UTF8` in pass 10) close.
+
+Baseline (`reports/coverage.txt`; every 5.44.0 build agrees with the stock build on every row of all three tables, so
+they cost the tables nothing): the union of the transition recipes is 40,415 transitions over 2,839 states on 5.44.0,
+6,898 open, and 40,321 over 2,817 on 5.38.2, 9,794 open; 0 conflicts on every version.  Of the open rows on 5.44.0,
+2,030 are `core2`'s body-type rows.  The matrix is 2,160 / 0 with 144 undefined (108 W1 crashes, 36 W2 reads) and 6 W3
+panics recorded and predicted, on every version.  The copy check is 3,096 states on 5.44.0 and 3,081 on 5.38.2 with 0
+consumer differences.  Between 5.38.2 and 5.44.0, 36,496 transitions are the same row with the same result; 264 are the
+same row differing only in `LEN`, and 2,991 more differ only in that their from-state's name carries a different `LEN`;
+122 differ otherwise (`sv_setiv` on an NV body leaves PVNV on 5.38.2 and IV on 5.44.0; 5.44.0 undoes an OOK offset on
+assignment where 5.38.2 keeps it); the rest were reached by one version's enumeration only.  5.38.2 adds 234 KB to the
+1.5 MB transitions table and 93 KB to the copy table.
