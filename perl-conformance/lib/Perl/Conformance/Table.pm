@@ -364,6 +364,7 @@ sub diff {
     for my $row ($self->rows) {
         my $key = join("\t", @$row);
         my ($a, $b) = ($self->{cells}{$va}{$key}, $self->{cells}{$vb}{$key});
+        next if !defined $a && !defined $b;
         next if defined $a && defined $b && $a eq $b;
         push @out, [ $row, $a // '(absent)', $b // '(absent)' ];
     }
