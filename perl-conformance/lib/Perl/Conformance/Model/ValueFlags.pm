@@ -492,7 +492,7 @@ sub sv_backoff { my $h=shift; if ($h->{ook}) { $h->{len} += $h->{ook}; $h->{ook}
 for my $name (qw(assign_string assign_integer assign_number)) { no strict 'refs'; my $f = \&{"Perl::Conformance::Model::ValueFlags::Harness::$name"}; *{"Perl::Conformance::Model::ValueFlags::Harness::$name"} = sub { my $h=shift; my %t = map { $_=>$h->{$_} } grep { /^t_/ } keys %$h; sv_backoff($h); $f->($h); $h->{$_} ||= $t{$_} for keys %t } }
 { my $s = \&sv_set_undef; *sv_set_undef = sub { my $h=shift; my %t = map { $_=>$h->{$_} } grep { /^t_/ } keys %$h; $s->($h); $h->{$_} ||= $t{$_} for keys %t } }
 # The model-side key: value flags | slots | stale buffer | body type | CowREFCNT | OOK offset -- the mirror of Perl::Conformance::Model::ValueFlags::Observe::key.
-sub Perl::Conformance::Model::ValueFlags::Harness::KeyTail { my $h=shift; my $b = ($h->{kind} ne 'S' && ($h->{len}//0)) ? "|B:" . length($h->{pv}//'') . "/$h->{len}" : ""; my $c = $h->{cow} ? "|C:" . ($h->{cow_refcnt}//0) : ""; my $o = $h->{ook} ? "|O:$h->{ook}" : ""; return $b . "|T:" . body_type($h) . $c . $o }
+sub Perl::Conformance::Model::ValueFlags::Harness::KeyTail { my $h=shift; my $b = ($h->{kind} ne 'S' && (($h->{len}//0) || length($h->{pv}//''))) ? "|B:" . length($h->{pv}//'') . "/" . ($h->{len}//0) : ""; my $c = $h->{cow} ? "|C:" . ($h->{cow_refcnt}//0) : ""; my $o = $h->{ook} ? "|O:$h->{ook}" : ""; return $b . "|T:" . body_type($h) . $c . $o }
 1;
 package Perl::Conformance::Model::ValueFlags;
 no warnings 'redefine';
