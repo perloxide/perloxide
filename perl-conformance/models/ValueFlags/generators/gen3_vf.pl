@@ -1,7 +1,10 @@
 #!/usr/bin/perl
-our $ROOT = $ENV{MODEL_ROOT} || '.';
+our $ROOT = $ENV{MODEL_ROOT} || '.'; our $WORK = $ENV{MODEL_WORK} || "$ROOT/work"; mkdir $WORK unless -d $WORK;
 # BFS over (start value, op sequence): records every (state, op) -> state transition observed on the reference perl via
 # B::FLAGS plus a side-effect-free value fingerprint, then replays the same recipes through ValueFlags.pm and reports mismatches.
+# Every observed edge goes to $WORK/edges.$TAG.tsv as start, from-state, op, to-state and the recipe that reached the
+# from-state in the sequence that observed the edge (`-` when it is the start).  With REPLAY_EDGES=FILE the edges are
+# read from FILE, in that form, instead of running perl, and only the model side runs.
 use strict; use warnings;
 use FindBin; use lib "$FindBin::Bin/../../../lib";
 use Perl::Conformance::Model::ValueFlags; use Perl::Conformance::Model::ValueFlags::Observe;
@@ -25,9 +28,9 @@ my @ops = (iv=>q{my $t = $x | 0;}, nv=>q{my $t = sprintf "%.17g", $x;}, str=>q{m
   local=>q{{ local $x = 5; }}, asgs=>q{$x = "10";}, asgi=>q{$x = 10;}, asgn=>q{$x = 3.5;}, asgu=>q{$x = undef;}, undefx=>q{undef $x;}, chopl=>q{substr($x, 0, 1, "");});
 my %opcode = @ops; my @opnames = map { $ops[$_*2] } 0..$#ops/2; if ($ENV{OPS}) { my %k = map { $_=>1 } split /,/, $ENV{OPS}; @opnames = grep { $k{$_} } @opnames }
 my $PROJ = $ENV{PROJ} || "flags"; my $head = Perl::Conformance::Model::ValueFlags::Observe::child_head($PROJ);
-my (%edges, %rep, %full); my $SEP = "\x01"; my %startkey;
+my (%edges, %evia, %rep, %full); my $SEP = "\x01"; my %startkey;
 my $WALK = $ENV{WALK}; my $SEED = $ENV{SEED} // 20260924; srand($SEED) if $WALK;
-for my $c (@only) {
+for my $c ($ENV{REPLAY_EDGES} ? () : @only) {
   my @frontier = ([]); my %seen;
   for my $d (0..$DEPTH) {
     my $code = $head; my @seqs;
@@ -36,15 +39,20 @@ for my $c (@only) {
       my $body = join "", map {; my $o=$_; $opcode{$o} . " { my \$k = Perl::Conformance::Model::ValueFlags::Observe::key(\\\$x); print Perl::Conformance::Model::ValueFlags::Observe::record(" . scalar(@seqs) . ", \"$o\", \\\$x, undef, \$k); } " } @seq;
       $code .= "{ package B" . scalar(@seqs) . "; our \$x = $starts{$c}; { my \$k = Perl::Conformance::Model::ValueFlags::Observe::key(\\\$x); print Perl::Conformance::Model::ValueFlags::Observe::record(" . scalar(@seqs) . ", \"START\", \\\$x, undef, \$k); } eval { $body 1 } or print \"" . scalar(@seqs) . "\\tCROAK\\t\", (\$@ =~ s/ at .*//sr), \"\\n\"; print \"" . scalar(@seqs) . "\\tCONSUMERS\\t-\\t\", (\$Perl::Conformance::Model::ValueFlags::Observe::PROJ eq \"full\" ? Perl::Conformance::Model::ValueFlags::Observe::consumers(\\\$x) : \"-\"), \"\\n\"; }\n" } }
     last unless @seqs; last if $WALK && $d > 0;
-    open my $fh, '>', "$ROOT/child2_${TAG}_$c.pl" or die; print $fh $code; close $fh;
-    my $out = `timeout 600 $PERL $ROOT/child2_${TAG}_$c.pl 2>/dev/null`; utf8::decode($out);
+    open my $fh, '>', "$WORK/child2_${TAG}_$c.pl" or die; print $fh $code; close $fh;
+    my $out = `timeout 600 $PERL $WORK/child2_${TAG}_$c.pl 2>/dev/null`; utf8::decode($out);
     my %lines; for (split /\n/, $out) { my ($i,$op,$st,@obs) = split /\t/, $_, -1; next if $op eq "CROAK" || $op eq "CONSUMERS"; $startkey{$c} = $st if $op eq "START"; $full{"$i\t$op\t$st"} = join("\t",@obs) if @obs; push @{$lines{$i}}, [$op,$st] }
     my @next;
     for my $i (1..@seqs) { my $seq = $seqs[$i-1]; my $steps = $lines{$i} or next; my $prev = $steps->[0][1];
-      for my $k (1..$#$steps) { my ($op,$st) = @{$steps->[$k]}; $edges{"$c$SEP$prev$SEP$op"} //= $st; my $key="$c$SEP$st";
+      for my $k (1..$#$steps) { my ($op,$st) = @{$steps->[$k]}; my $ek = "$c$SEP$prev$SEP$op"; unless (exists $edges{$ek}) { $edges{$ek} = $st; $evia{$ek} = [ @$seq[0..$k-2] ] } my $key="$c$SEP$st";
         if (!$seen{$key}++) { $rep{$key} = [ @$seq[0..$k-1] ]; push @next, $rep{$key} } $prev = $st } }
     @frontier = @next;
   }
+}
+if (my $file = $ENV{REPLAY_EDGES}) {
+  open my $in, '<:utf8', $file or die "cannot read $file: $!\n"; my %st;
+  while (<$in>) { chomp; my ($c,$from,$op,$to,$via) = split /\t/, $_, -1; $edges{"$c$SEP$from$SEP$op"} = $to; $evia{"$c$SEP$from$SEP$op"} = [ $via eq q{-} ? () : split /,/, $via ]; $rep{"$c$SEP$from"} //= $evia{"$c$SEP$from$SEP$op"}; $st{$c} = 1 }
+  close $in; @only = sort keys %st;
 }
 sub mstart { my $c=shift;
   return Perl::Conformance::Model::ValueFlags::Harness::integer(10) if $c eq 'i10'; return Perl::Conformance::Model::ValueFlags::Harness::integer(9223372036854775807) if $c eq 'iMax'; return Perl::Conformance::Model::ValueFlags::Harness::number(3.0) if $c eq 'f3';
@@ -63,8 +71,10 @@ my %mop = (iv=>\&Perl::Conformance::Model::ValueFlags::sv_2iv_flags, nv=>\&Perl:
 my ($n,$bad)=(0,0); my @mis;
 for my $e (sort keys %edges) { my ($c,$from,$op) = split /$SEP/, $e, 3; my $to = $edges{$e};
   next if $op eq "CROAK" || $op eq "CONSUMERS";   # a croak is the block's terminal observation, not a transition
-  my $recipe = $rep{"$c$SEP$from"} // []; my $h = Perl::Conformance::Model::ValueFlags::Harness::SeedBody(mstart($c)); for my $o (@$recipe, $op) { eval { $mop{$o}->($h,$quiet); Perl::Conformance::Model::ValueFlags::body_type($h); 1 } or do { die $@ unless $@ =~ /^croak/ } }
+  my $recipe = $evia{$e} // []; my $h = Perl::Conformance::Model::ValueFlags::Harness::SeedBody(mstart($c)); for my $o (@$recipe, $op) { eval { $mop{$o}->($h,$quiet); Perl::Conformance::Model::ValueFlags::body_type($h); 1 } or do { die $@ unless $@ =~ /^croak/ } }
   my $m = Perl::Conformance::Model::ValueFlags::Harness::FlagsProjection($h)."|".mfp($h); $n++;
   if ($m ne $to) { $bad++; push @mis, sprintf "%-8s %-44s --%-5s--> perl: %-44s model: %s   [recipe: %s]", $c, $from, $op, $to, $m, join(",",@$recipe) } }
-print "oracle=$PERL projection=$PROJ " . ($WALK ? "walks=$WALK seed=$SEED " : "") . "depth=$DEPTH starts=".scalar(@only)." transitions=$n model_mismatches=$bad states=".scalar(keys %rep)."\n"; print "$_\n" for @mis;
-{ open my $s, ">", "$ROOT/starts.$TAG.txt" or die; print $s "$_\t$startkey{$_}\n" for sort keys %startkey; close $s } open my $t, '>', "$ROOT/transitions.$TAG.txt" or die; for my $e (sort keys %edges) { my ($c,$from,$op)=split /$SEP/,$e,3; print $t "$c\t$from\t$op\t$edges{$e}\n" } close $t;
+print "perl=$PERL projection=$PROJ " . ($WALK ? "walks=$WALK seed=$SEED " : "") . "depth=$DEPTH starts=".scalar(@only)." transitions=$n model_mismatches=$bad states=".scalar(keys %rep)."\n"; print "$_\n" for @mis;
+exit 0 if $ENV{REPLAY_EDGES};
+open my $ob, '>:utf8', "$WORK/edges.$TAG.tsv" or die; for my $e (sort keys %edges) { my ($c,$from,$op)=split /$SEP/,$e,3; next if $op eq "CROAK" || $op eq "CONSUMERS"; my $via = $evia{$e}; print $ob join("\t", $c, $from, $op, $edges{$e}, ($via && @$via ? join(",", @$via) : '-')), "\n" } close $ob;
+{ open my $s, ">", "$WORK/starts.$TAG.txt" or die; print $s "$_\t$startkey{$_}\n" for sort keys %startkey; close $s } open my $t, '>', "$WORK/transitions.$TAG.txt" or die; for my $e (sort keys %edges) { my ($c,$from,$op)=split /$SEP/,$e,3; print $t "$c\t$from\t$op\t$edges{$e}\n" } close $t;
