@@ -2531,6 +2531,11 @@ impl Parser {
             // Named unary keywords
             Token::Keyword(kw) if keyword::is_named_unary(kw) => self.parse_named_unary(kw, span),
 
+            // sort/map/grep with optional block, and print/say with optional filehandle.  These are list operators too,
+            // so they must be matched before the general list-operator arm.
+            Token::Keyword(kw) if keyword::is_block_list_op(kw) => self.parse_block_list_op(kw, span),
+            Token::Keyword(kw) if keyword::is_print_op(kw) => self.parse_print_op(kw, span),
+
             // List operators
             Token::Keyword(kw) if keyword::is_list_op(kw) => self.parse_list_op(kw, span),
 
@@ -2561,12 +2566,6 @@ impl Parser {
                 }
                 Ok(Expr::new(ExprKind::Translit(from, to, flags), span))
             }
-
-            // sort/map/grep with optional block
-            Token::Keyword(kw) if keyword::is_block_list_op(kw) => self.parse_block_list_op(kw, span),
-
-            // print/say with optional filehandle
-            Token::Keyword(kw) if keyword::is_print_op(kw) => self.parse_print_op(kw, span),
 
             // Filetest operators: -e, -f, -d, etc. (lexed as single token)
             Token::Filetest(test_byte) => self.parse_filetest(test_byte, span),

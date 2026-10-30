@@ -249,11 +249,11 @@ impl Parser {
 
     /// Check whether the given bytes form an active keyword.  Returns true for unconditional keywords (print, grep,
     /// etc.) and for feature-gated keywords whose feature is currently enabled.  Returns false for feature-gated
-    /// keywords whose feature is off (they are just barewords in that case).  Also returns true for quote-like
-    /// operators (q, qq, qr, qx, m, s, tr, y) which are not in the keyword table but must still prevent apostrophe
-    /// consumption in `scan_ident`.
+    /// keywords whose feature is off (they are just barewords in that case).  This includes the quote-like operators
+    /// (q, qq, qr, qx, m, s, tr, y), which must prevent apostrophe consumption in `scan_ident`.  Bytes that are not
+    /// valid UTF-8 cannot name a keyword.
     fn is_active_keyword(&self, name: &[u8]) -> bool {
-        keyword::lookup_keyword(name, self.features).is_some()
+        std::str::from_utf8(name).is_ok_and(|name| keyword::lookup_keyword(name, self.features).is_some())
     }
 
     /// Decode the UTF-8 character starting at the current position.  Returns `(char, byte_length)` on success, `None`
@@ -2343,7 +2343,7 @@ impl Parser {
         }
 
         // Keywords — lookup_keyword handles feature gating internally.
-        if let Some(kw) = keyword::lookup_keyword(name.as_bytes(), self.features) {
+        if let Some(kw) = keyword::lookup_keyword(&name, self.features) {
             return Ok(Token::Keyword(kw));
         }
 
