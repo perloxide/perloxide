@@ -18249,6 +18249,38 @@ fn label_named_like_a_keyword() {
     );
 }
 
+// The condition of a block `while` may be empty, and is then true, as the middle test of `for (;;)` is.  The conditions
+// of `if`, `unless`, `elsif` and `until` are required, and an empty one is a syntax error.
+
+#[test]
+fn while_empty_condition_is_an_infinite_loop() {
+    let prog = match try_parse("while () { last; }") {
+        Ok(prog) => prog,
+        Err(e) => panic!("expected while () to parse, got error: {}", e.message),
+    };
+    assert!(matches!(prog.statements.as_slice(), [Statement { kind: StmtKind::While(_), .. }]), "expected a while loop, got {:?}", prog.statements);
+}
+
+#[test]
+fn if_empty_condition_is_a_syntax_error() {
+    assert_syntax_error("if () { 1 }");
+}
+
+#[test]
+fn unless_empty_condition_is_a_syntax_error() {
+    assert_syntax_error("unless () { 1 }");
+}
+
+#[test]
+fn elsif_empty_condition_is_a_syntax_error() {
+    assert_syntax_error("if ($x) { 1 } elsif () { 2 }");
+}
+
+#[test]
+fn until_empty_condition_is_a_syntax_error() {
+    assert_syntax_error("until () { 1 }");
+}
+
 // Keyword classes follow toke.c: `keys`, `values`, `each`, `tell`, `untie` and `write` are named unaries, and `die`,
 // `warn` and `getprotobynumber` are list operators.
 
