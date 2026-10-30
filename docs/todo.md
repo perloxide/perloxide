@@ -112,13 +112,14 @@ In PerlOxide's terms: an argument follows if and only if, after the defined-or c
 - **Keyword table: the indirect object.**  Whether the table records what each `list_op(indirect)` keyword may take
   first (a filehandle for `print`, `printf` and `say`; a block or sub name for `sort`; a block for `map` and `grep`; a
   program block for `exec` and `system`), or leaves that to those keywords' parsers.
-- **Keyword table: `special`.**  Whether `special` stays one value, meaning "dispatched by name", or splits the way
-  `toke.c` does (block-introducing keywords, statement and modifier keywords, `eval` and `evalbytes`, keywords with
-  their own lexing).
+- **Keyword table: `special`.**  `statement` has been split from it (§5.7.2).  Whether the rest stays one value or
+  splits further: keywords that begin a term (`do`, `eval`, `local`, `not`), clauses of another statement (`else`,
+  `elsif`, `catch`, `finally`, `continue`), and `__DATA__` and `__END__`.
 - **Keyword table: the parser's dispatch lists.**  Whether `is_block_list_op` and `is_print_op` become columns or stay
-  in the parser as facts about PerlOxide's parser rather than about perl.  `is_statement_keyword` is a second copy of
-  `parse_statement`'s match arms, kept in step only by an `unreachable!` that panics when they disagree; the proposal is
-  to remove it and let the match fall through to expression parsing.
+  in the parser as facts about PerlOxide's parser rather than about perl.  `is_statement_keyword` reads the `statement`
+  value, but `parse_statement` still names each of those keywords in its own match arm, and an `unreachable!` panics if
+  a keyword is marked `statement` without one.  The alternative is to match on the token before consuming it, so that an
+  unmatched keyword falls through to expression parsing and the predicate is not needed.
 - **Keyword table: checking it against `toke.c`.**  How the syntax column is checked against the macro each keyword's
   case uses in `toke.c`: a test over a checked-in record, or a tool that extracts the macros from a perl source tree.
 - **Which layer reports op-tree check errors.**  "Can't modify ...", "Too many arguments for ...", "Type of arg 1 to ...

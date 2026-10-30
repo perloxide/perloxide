@@ -5572,7 +5572,9 @@ keywords! {
     Print     => +"print"               list_op(indirect)
     Say       => +"say"       [SAY]     list_op(indirect)
     Q         => +"q"                   quote
-    If        => +"if"                  special
+    If        => +"if"                  statement
+    My        => +"my"                  statement(term)
+    Do        => +"do"                  special
 }
 ```
 
@@ -5599,7 +5601,14 @@ A row is `Variant => ±"name" [FEATURE] syntax(modifier)`:
 | `loop_exit`               | `LOOPX`              | an optional label or operand, at the lowest precedence        |
 | `operator`                | the word operators   | nothing: an infix operator, read in operator position         |
 | `quote`                   | `TERM(sublex_start)` | a delimited body that the lexer scans                         |
-| `special`                 | everything else      | its own grammar, parsed by its own function in the parser     |
+| `statement`               | its own token        | its own grammar, dispatched at the start of a statement       |
+| `statement(term)`         | its own token        | the same in some forms; otherwise the keyword begins a term   |
+| `special`                 | everything else      | its own grammar, read where its construct calls for it       |
+
+The modifier in `statement(term)` marks `my`, `our`, `state`, `sub` and `method`, which begin a statement of their own
+only in some forms (`my sub NAME`, `sub NAME`) and begin a term otherwise.  It generates the same value as `statement`:
+the parser consumes the keyword at the start of a statement before it can see which form follows, so the statement
+handler for these keywords also parses the term form.
 
 The map is a `phf` perfect-hash map keyed by `&str`.  The lexer holds a scanned word as a `String`, so the lookup
 validates nothing; the one caller with raw bytes, the apostrophe check in `scan_ident`, converts them first, and bytes
