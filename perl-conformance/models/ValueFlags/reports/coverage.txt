@@ -3,49 +3,56 @@ core2        5.38.2                         11849    2644      8715    3134  -
 full1        5.38.2                         25719    3708     19815    5904  -
 walk6        5.38.2                         11638    2946      9237    2401  -
 locale1      5.38.2                           504      80       369     135  -
-transitions  5.38.2                         40321    2817     30527    9794  conflicts 0
+pinned       5.38.2                           562     204       108     454  -
+transitions  5.38.2                         40631    2902     30535   10096  conflicts 0
 matrix       5.38.2                          2304       -      2160       0  144
 copy         5.38.2                          3081    3081      3081       0  -
 core2        5.44.0                         11914    2678      9884    2030  -
 full1        5.44.0                         25719    3750     21462    4257  -
 walk6        5.44.0                         11643    2956      9882    1761  -
 locale1      5.44.0                           504      80       369     135  -
-transitions  5.44.0                         40415    2839     33517    6898  conflicts 0
+pinned       5.44.0                           570     223       140     430  -
+transitions  5.44.0                         40822    2934     33551    7271  conflicts 0
 matrix       5.44.0                          2304       -      2160       0  144
 copy         5.44.0                          3096    3096      3096       0  -
 core2        5.44.0-descending              11914    2678      9884    2030  -
 full1        5.44.0-descending              25719    3750     21462    4257  -
 walk6        5.44.0-descending              11643    2956      9882    1761  -
 locale1      5.44.0-descending                504      80       369     135  -
-transitions  5.44.0-descending              40415    2839     33517    6898  conflicts 0
+pinned       5.44.0-descending                570     223       140     430  -
+transitions  5.44.0-descending              40822    2934     33551    7271  conflicts 0
 matrix       5.44.0-descending               2304       -      2160       0  144
 copy         5.44.0-descending               3096    3096      3096       0  -
 core2        5.44.0-noreuse                 11914    2678      9884    2030  -
 full1        5.44.0-noreuse                 25719    3750     21462    4257  -
 walk6        5.44.0-noreuse                 11643    2956      9882    1761  -
 locale1      5.44.0-noreuse                   504      80       369     135  -
-transitions  5.44.0-noreuse                 40415    2839     33517    6898  conflicts 0
+pinned       5.44.0-noreuse                   570     223       140     430  -
+transitions  5.44.0-noreuse                 40822    2934     33551    7271  conflicts 0
 matrix       5.44.0-noreuse                  2304       -      2160       0  144
 copy         5.44.0-noreuse                  3096    3096      3096       0  -
 core2        5.44.0-threads                 11914    2678      9884    2030  -
 full1        5.44.0-threads                 25719    3750     21462    4257  -
 walk6        5.44.0-threads                 11643    2956      9882    1761  -
 locale1      5.44.0-threads                   504      80       369     135  -
-transitions  5.44.0-threads                 40415    2839     33517    6898  conflicts 0
+pinned       5.44.0-threads                   570     223       140     430  -
+transitions  5.44.0-threads                 40822    2934     33551    7271  conflicts 0
 matrix       5.44.0-threads                  2304       -      2160       0  144
 copy         5.44.0-threads                  3096    3096      3096       0  -
 core2        5.44.0-threads-descending      11914    2678      9884    2030  -
 full1        5.44.0-threads-descending      25719    3750     21462    4257  -
 walk6        5.44.0-threads-descending      11643    2956      9882    1761  -
 locale1      5.44.0-threads-descending        504      80       369     135  -
-transitions  5.44.0-threads-descending      40415    2839     33517    6898  conflicts 0
+pinned       5.44.0-threads-descending        570     223       140     430  -
+transitions  5.44.0-threads-descending      40822    2934     33551    7271  conflicts 0
 matrix       5.44.0-threads-descending       2304       -      2160       0  144
 copy         5.44.0-threads-descending       3096    3096      3096       0  -
 core2        5.44.0-threads-noreuse         11914    2678      9884    2030  -
 full1        5.44.0-threads-noreuse         25719    3750     21462    4257  -
 walk6        5.44.0-threads-noreuse         11643    2956      9882    1761  -
 locale1      5.44.0-threads-noreuse           504      80       369     135  -
-transitions  5.44.0-threads-noreuse         40415    2839     33517    6898  conflicts 0
+pinned       5.44.0-threads-noreuse           570     223       140     430  -
+transitions  5.44.0-threads-noreuse         40822    2934     33551    7271  conflicts 0
 matrix       5.44.0-threads-noreuse          2304       -      2160       0  144
 copy         5.44.0-threads-noreuse          3096    3096      3096       0  -
 

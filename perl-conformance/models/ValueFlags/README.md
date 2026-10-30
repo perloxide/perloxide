@@ -402,13 +402,32 @@ are one bit, so the reference left with `IsUV` is weak and croaks `panic: del_ba
 predicts it.  The matrix's model setup had started the `12U` input without `UTF8` and kept `UTF8` across the handler's
 assignments; with both fixed, its 44 flag rows (open since the key gained `UTF8` in pass 10) close.
 
+Exploration: `generators/vf_explore.pl` runs perl and the model further than the blessed recipes -- a breadth-first
+search to depth 2 (every op on every one of the 16,932 states it reaches, 219,198 transitions, twelve minutes) and
+seeded walks of ten ops -- stores no table, and reports only the mismatch signatures (an op and the key fields on which
+perl and the model differ) that the blessed tables do not show, each with its shortest path.  Those paths are the
+`pinned` recipe (`generators/pinned.tsv`): the blessed tables grow by the paths, not by the search.  Its first run on
+5.44.0 found 429 signatures, 263 of them new (192 at depth 2, 71 only on walks of four to ten ops), no conflict with the
+blessed table, and no split in the 32 behavior classes of the 59 ops (ops that reach the same state from every state;
+`bool`, `local` and `not` never change it).  The classes are reported for what they say about shared conversion paths;
+they cannot narrow the search, which already visits each state once and applies every op to it.  Depth is a recipe's ops
+before the observed op: depth 1 observes two-op sequences.
+
+Tables: `transitions.tsv` and `matrix.tsv` use the nested layout (each start and state, or each input and handler
+action, written once above its lines), `copy.tsv` the flat one.  `DIFF=A,B perl generators/vf_gen.pl` sorts the
+transitions of two versions into rows with the same result, rows differing only in `LEN`, states renamed only by `LEN`,
+other differences, and rows one version has alone; allocation policy is the `LEN`-only kinds, and stays exact in the
+tables (a table that stored rows derived from another version's would need a frozen allocation simulator to expand it,
+for 14 KB of gzipped 5.38.2).
+
 Baseline (`reports/coverage.txt`; every 5.44.0 build agrees with the stock build on every row of all three tables, so
-they cost the tables nothing): the union of the transition recipes is 40,415 transitions over 2,839 states on 5.44.0,
-6,898 open, and 40,321 over 2,817 on 5.38.2, 9,794 open; 0 conflicts on every version.  Of the open rows on 5.44.0,
-2,030 are `core2`'s body-type rows.  The matrix is 2,160 / 0 with 144 undefined (108 W1 crashes, 36 W2 reads) and 6 W3
-panics recorded and predicted, on every version.  The copy check is 3,096 states on 5.44.0 and 3,081 on 5.38.2 with 0
-consumer differences.  Between 5.38.2 and 5.44.0, 36,496 transitions are the same row with the same result; 264 are the
-same row differing only in `LEN`, and 2,991 more differ only in that their from-state's name carries a different `LEN`;
-122 differ otherwise (`sv_setiv` on an NV body leaves PVNV on 5.38.2 and IV on 5.44.0; 5.44.0 undoes an OOK offset on
-assignment where 5.38.2 keeps it); the rest were reached by one version's enumeration only.  5.38.2 adds 234 KB to the
-1.5 MB transitions table and 93 KB to the copy table.
+they cost the tables nothing): the union of the transition recipes is 40,822 transitions over 2,934 states on 5.44.0,
+7,271 open, and 40,631 over 2,902 on 5.38.2, 10,096 open; 0 conflicts on every version.  Of the open rows on 5.44.0,
+2,030 are `core2`'s body-type rows and 430 lie on the pinned paths, which were chosen for being open.  The matrix is
+2,160 / 0 with 144 undefined (108 W1 crashes, 36 W2 reads) and 6 W3 panics recorded and predicted, on every version.
+The copy check is 3,096 states on 5.44.0 and 3,081 on 5.38.2 with 0 consumer differences.  Between 5.38.2 and 5.44.0
+(`DIFF`), 36,634 transitions are the same row with the same result; 279 are the same row differing only in `LEN`, and
+3,114 more differ only in that their from-state's name carries a different `LEN`; 132 differ otherwise (`sv_setiv` on an
+NV body leaves PVNV on 5.38.2 and IV on 5.44.0; 5.44.0 undoes an OOK offset on assignment where 5.38.2 keeps it); the
+rest were reached by one version's enumeration only.  5.38.2 adds 164 KB to the 985 KB transitions table and 93 KB to
+the copy table.

@@ -3,6 +3,7 @@ core2: perl=/opt/perlbrew/perls/perl-5.44.0-threads/bin/perl projection=full dep
 full1: perl=/opt/perlbrew/perls/perl-5.44.0-threads/bin/perl projection=full depth=1 starts=24 transitions=25719 model_mismatches=4257 states=3750
 walk6: perl=/opt/perlbrew/perls/perl-5.44.0-threads/bin/perl projection=full walks=125 seed=20260924 depth=6 starts=24 transitions=11643 model_mismatches=1761 states=2956
 locale1: perl=/opt/perlbrew/perls/perl-5.44.0-threads/bin/perl depth=1 transitions=504 model_mismatches=135 states=80
-transitions: union of the recipes: transitions=40415 states=2839 model_mismatches=6898 conflicts=0
+pinned: perl=/opt/perlbrew/perls/perl-5.44.0-threads/bin/perl projection=full paths=263 starts=17 transitions=570 model_mismatches=430 states=223
+transitions: union of the recipes: transitions=40822 states=2934 model_mismatches=7271 conflicts=0
 matrix: rows=2304 values_ok=2160 values_bad=0 flag_mismatch_on_value_ok_rows=0 crash=108 panic=6 ub_rows=144
 copy: perl=/opt/perlbrew/perls/perl-5.44.0-threads/bin/perl depth=2 states=3096 copy_differs=1668 (cow=591, cur=770, flags=108, len=1077, pv=1077, src_cow=591) consumer_copy_vs_original_differs=0
