@@ -18,14 +18,14 @@ keywords! {
     __DATA__         => +"__DATA__"                         special
     __END__          => +"__END__"                          special
     __SUB__          => -"__SUB__"           [CURRENT_SUB]  nullary
-    ADJUST           => +"ADJUST"            [CLASS]        special
-    AUTOLOAD         => +"AUTOLOAD"                         special
-    BEGIN            => +"BEGIN"                            special
-    UNITCHECK        => +"UNITCHECK"                        special
-    DESTROY          => +"DESTROY"                          special
-    END              => +"END"                              special
-    INIT             => +"INIT"                             special
-    CHECK            => +"CHECK"                            special
+    ADJUST           => +"ADJUST"            [CLASS]        statement
+    AUTOLOAD         => +"AUTOLOAD"                         statement
+    BEGIN            => +"BEGIN"                            statement
+    UNITCHECK        => +"UNITCHECK"                        statement
+    DESTROY          => +"DESTROY"                          statement
+    END              => +"END"                              statement
+    INIT             => +"INIT"                             statement
+    CHECK            => +"CHECK"                            statement
     Abs              => -"abs"                              named_unary
     Accept           => -"accept"                           list_op
     Alarm            => -"alarm"                            named_unary
@@ -46,7 +46,7 @@ keywords! {
     Chown            => -"chown"                            list_op
     Chr              => -"chr"                              named_unary
     Chroot           => -"chroot"                           named_unary
-    Class            => -"class"             [CLASS]        special
+    Class            => -"class"             [CLASS]        statement
     Close            => -"close"                            named_unary
     Closedir         => -"closedir"                         named_unary
     Cmp              => -"cmp"                              operator
@@ -56,8 +56,8 @@ keywords! {
     Crypt            => -"crypt"                            list_op
     Dbmclose         => -"dbmclose"                         named_unary
     Dbmopen          => -"dbmopen"                          list_op
-    Default          => +"default"           [SWITCH]       special
-    Defer            => +"defer"             [DEFER]        special
+    Default          => +"default"           [SWITCH]       statement
+    Defer            => +"defer"             [DEFER]        statement
     Defined          => +"defined"                          named_unary
     Delete           => +"delete"                           named_unary
     Die              => -"die"                              named_unary
@@ -85,14 +85,14 @@ keywords! {
     Exp              => -"exp"                              named_unary
     Fc               => -"fc"                [FC]           named_unary
     Fcntl            => -"fcntl"                            list_op
-    Field            => -"field"             [CLASS]        special
+    Field            => -"field"             [CLASS]        statement
     Fileno           => -"fileno"                           named_unary
     Finally          => +"finally"           [TRY]          special
     Flock            => -"flock"                            list_op
-    For              => +"for"                              special
-    Foreach          => +"foreach"                          special
+    For              => +"for"                              statement
+    Foreach          => +"foreach"                          statement
     Fork             => -"fork"                             nullary
-    Format           => +"format"                           special
+    Format           => +"format"                           statement
     Formline         => -"formline"                         list_op
     Ge               => -"ge"                               operator
     Getc             => -"getc"                             named_unary(defined_or)
@@ -121,14 +121,14 @@ keywords! {
     Getservent       => -"getservent"                       nullary
     Getsockname      => -"getsockname"                      named_unary
     Getsockopt       => -"getsockopt"                       list_op
-    Given            => +"given"             [SWITCH]       special
+    Given            => +"given"             [SWITCH]       statement
     Glob             => +"glob"                             list_op
     Gmtime           => -"gmtime"                           named_unary
     Goto             => +"goto"                             loop_exit
     Grep             => +"grep"                             list_op(indirect)
     Gt               => -"gt"                               operator
     Hex              => -"hex"                              named_unary
-    If               => +"if"                               special
+    If               => +"if"                               statement
     Index            => -"index"                            list_op
     Int              => -"int"                              named_unary
     Ioctl            => -"ioctl"                            list_op
@@ -151,25 +151,25 @@ keywords! {
     Lt               => -"lt"                               operator
     M                => +"m"                                quote
     Map              => +"map"                              list_op(indirect)
-    Method           => -"method"            [CLASS]        special
+    Method           => -"method"            [CLASS]        statement(term)
     Mkdir            => -"mkdir"                            list_op
     Msgctl           => -"msgctl"                           list_op
     Msgget           => -"msgget"                           list_op
     Msgrcv           => -"msgrcv"                           list_op
     Msgsnd           => -"msgsnd"                           list_op
-    My               => +"my"                               special
+    My               => +"my"                               statement(term)
     Ne               => -"ne"                               operator
     Next             => +"next"                             loop_exit
-    No               => +"no"                               special
+    No               => +"no"                               statement
     Not              => -"not"                              special
     Oct              => -"oct"                              named_unary
     Open             => -"open"                             list_op
     Opendir          => -"opendir"                          list_op
     Or               => -"or"                               operator
     Ord              => -"ord"                              named_unary
-    Our              => +"our"                              special
+    Our              => +"our"                              statement(term)
     Pack             => -"pack"                             list_op
-    Package          => +"package"                          special
+    Package          => +"package"                          statement
     Pipe             => -"pipe"                             list_op
     Pop              => -"pop"                              named_unary(defined_or)
     Pos              => +"pos"                              named_unary(defined_or)
@@ -236,9 +236,9 @@ keywords! {
     Sqrt             => -"sqrt"                             named_unary
     Srand            => -"srand"                            named_unary
     Stat             => -"stat"                             named_unary
-    State            => +"state"             [STATE]        special
+    State            => +"state"             [STATE]        statement(term)
     Study            => +"study"                            named_unary
-    Sub              => +"sub"                              special
+    Sub              => +"sub"                              statement(term)
     Substr           => -"substr"                           list_op
     Symlink          => -"symlink"                          list_op
     Syscall          => -"syscall"                          list_op
@@ -254,19 +254,19 @@ keywords! {
     Time             => -"time"                             nullary
     Times            => -"times"                            nullary
     Tr               => +"tr"                               quote
-    Try              => +"try"               [TRY]          special
+    Try              => +"try"               [TRY]          statement
     Truncate         => -"truncate"                         list_op
     Uc               => -"uc"                               named_unary
     Ucfirst          => -"ucfirst"                          named_unary
     Umask            => -"umask"                            named_unary(defined_or)
     Undef            => +"undef"                            named_unary(defined_or)
-    Unless           => +"unless"                           special
+    Unless           => +"unless"                           statement
     Unlink           => -"unlink"                           list_op
     Unpack           => -"unpack"                           list_op
     Unshift          => -"unshift"                          list_op
     Untie            => -"untie"                            list_op
-    Until            => +"until"                            special
-    Use              => +"use"                              special
+    Until            => +"until"                            statement
+    Use              => +"use"                              statement
     Utime            => -"utime"                            list_op
     Values           => -"values"                           list_op
     Vec              => -"vec"                              list_op
@@ -274,8 +274,8 @@ keywords! {
     Waitpid          => -"waitpid"                          list_op
     Wantarray        => -"wantarray"                        nullary
     Warn             => -"warn"                             named_unary
-    When             => +"when"              [SWITCH]       special
-    While            => +"while"                            special
+    When             => +"when"              [SWITCH]       statement
+    While            => +"while"                            statement
     Write            => -"write"                            list_op
     X                => -"x"                                operator
     Xor              => -"xor"                              operator
@@ -326,7 +326,15 @@ pub enum Syntax {
     /// Quote-like operator whose delimited body the lexer scans: `q`, `qq`, `qw`, `qr`, `qx`, `m`, `s`, `tr`, `y`.
     Quote,
 
-    /// Grammar of its own, dispatched by name: `if`, `my`, `sub`, `do`, `eval`, `use`, `not`, ...
+    /// Grammar of its own, dispatched by name at the start of a statement: `if`, `while`, `package`, `BEGIN`, ...  The
+    /// table writes `statement(term)` for `my`, `our`, `state`, `sub` and `method`, which begin a statement of their
+    /// own only in some forms (`my sub NAME`, `sub NAME`) and are otherwise terms; the modifier records that and does
+    /// not change the value.
+    Statement,
+
+    /// Grammar of its own, read where its construct calls for it: `do`, `eval`, `local` and `not` begin a term; `else`,
+    /// `elsif`, `catch`, `finally` and `continue` are clauses of another statement; `__DATA__` and `__END__` end the
+    /// program.
     Special,
 }
 
@@ -394,42 +402,9 @@ pub fn is_print_op(kw: Keyword) -> bool {
     matches!(kw, Keyword::Print | Keyword::Say | Keyword::Printf)
 }
 
-/// Keywords that have dedicated statement-level handlers in the parser.  These are consumed before dispatching, so they
-/// need the fat comma check at the statement level rather than in parse_term.
+/// Does this keyword have a dedicated handler at the start of a statement (`Syntax::Statement`)?
 pub fn is_statement_keyword(kw: Keyword) -> bool {
-    matches!(
-        kw,
-        Keyword::ADJUST
-            | Keyword::AUTOLOAD
-            | Keyword::BEGIN
-            | Keyword::UNITCHECK
-            | Keyword::DESTROY
-            | Keyword::END
-            | Keyword::INIT
-            | Keyword::CHECK
-            | Keyword::Class
-            | Keyword::Default
-            | Keyword::Defer
-            | Keyword::Field
-            | Keyword::For
-            | Keyword::Foreach
-            | Keyword::Format
-            | Keyword::Given
-            | Keyword::If
-            | Keyword::Method
-            | Keyword::My
-            | Keyword::No
-            | Keyword::Our
-            | Keyword::Package
-            | Keyword::State
-            | Keyword::Sub
-            | Keyword::Try
-            | Keyword::Unless
-            | Keyword::Until
-            | Keyword::Use
-            | Keyword::When
-            | Keyword::While
-    )
+    kw.syntax() == Syntax::Statement
 }
 
 /// Is this keyword "strong" (`+` in regen/keywords.pl)?
@@ -499,6 +474,12 @@ macro_rules! keyword_syntax {
     };
     (quote) => {
         Syntax::Quote
+    };
+    (statement) => {
+        Syntax::Statement
+    };
+    (statement(term)) => {
+        Syntax::Statement
     };
     (special) => {
         Syntax::Special
