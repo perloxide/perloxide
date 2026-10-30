@@ -174,3 +174,20 @@ Simplifications of the existing parser that change no behavior.
   `PostfixKind`, `parse_statement` maps six phase keywords to `PhaserKind` one arm at a time, and `parse_statement` and
   `parse_term` each map `my`, `our` and `state` to `DeclScope`.  `TryFrom<Keyword>` for each of those enums replaces the
   repetition.
+
+## Panics
+
+Production code must not panic: a failure is returned as an error.  Both crates deny `clippy::unwrap_used` and
+`clippy::expect_used` outside tests, which covers only `unwrap` and `expect`.
+
+- **Explicit panics.**  Outside tests, `parser` has 41 `unreachable!` (36 in `parser.rs`, 5 in `lexer.rs`) and `core`
+  has 2 `unreachable!` and 3 `panic!` (one of them in `Display for Value`).  Each one either becomes an error or is
+  removed by restructuring the code so the impossible case cannot be written, as with a match on a value that was
+  already matched to reach it.  Whether `debug_assert!` (12 uses, panicking only in debug builds) is allowed is a design
+  question; the `assert!` uses are all `const` and are checked at compile time.
+- **Implicit panics.**  Indexing and slicing out of range, arithmetic overflow (a panic in debug builds, wrapping in
+  release builds), division by zero, `RefCell` borrows, and standard library calls that panic on a bad argument
+  (`split_at`, `Vec::remove`, `copy_from_slice`, ...).  These have not been counted.
+- **Enforcement.**  Which further lints the crates deny once the code is clean: `clippy::panic`, `clippy::unreachable`,
+  `clippy::todo`, `clippy::unimplemented`, `clippy::indexing_slicing`, `clippy::arithmetic_side_effects`.  The last two
+  flag far more code than the others.
