@@ -325,10 +325,11 @@ a later `sv_setsv_flags` reads on the destination side.
 computes; the model's `LEN` arithmetic holds under that condition and no other.
 
 **Verification.** "Verified" for this area is `reports/coverage.txt`, which `generators/vf_gen.pl` writes from every
-version's run: per lane -- the transition recipes `core2`, `full1`, `walk6` and `locale1`, their union `transitions`,
-the handler `matrix` and the `copy` check -- and per version, the rows observed, the states, `match` and `open` for the
-model against perl, and the matrix's undefined rows (W1 and W2, `../../undefined.md`) or the transitions' conflicts.  A
-conflict is two recipes observing different results for one (start, state, op): a key that does not determine the next
-state, which the key must rule out whatever the model does.  The model follows 5.44.0; an open row on another version is
-a model gap or a change in perl since that tag, and `perl-conformance replay ValueFlags/transitions --target V` lists
-the open rows of any version.
+version's run: per lane -- the transition recipes `core2`, `full1`, `walk6`, `locale1` and `pinned`, their union
+`transitions`, the handler `matrix` and the `copy` check -- and per version, the rows observed, the states, `match` and
+`open` for the model against perl, and the matrix's undefined rows (W1 and W2, `../../undefined.md`) or the transitions'
+conflicts.  A conflict is two recipes observing different results for one (start, state, op): a key that does not
+determine the next state, which the key must rule out whatever the model does.  The model follows 5.44.0; an open row on
+another version is a model gap or a change in perl since that tag, and `perl-conformance replay ValueFlags/transitions
+--target V` lists the open rows of any version.  Exploration beyond the recipes (`generators/vf_explore.pl`) stores
+nothing: a mismatch it finds that the blessed tables do not show becomes a path of the `pinned` recipe.

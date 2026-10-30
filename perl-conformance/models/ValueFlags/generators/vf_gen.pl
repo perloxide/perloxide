@@ -4,6 +4,7 @@
 #
 #   PERL_CONFORMANCE_PERL=/path/to/perl TAG=<version> perl generators/vf_gen.pl
 #   REPLAY=1 TAG=<version> TABLE=transitions|matrix|copy perl generators/vf_gen.pl
+#   DIFF=<version>,<version> perl generators/vf_gen.pl
 #
 # Three tables, one per kind of observation (`../../README.md`, Tables and replay):
 #
@@ -18,9 +19,11 @@
 #                            and the consumers' output on each; folded over start.
 #
 # The transition recipes (each gen3_vf.pl or gen4_vf.pl with the given environment) are the lanes: core2 (the 13-op
-# core at depth 2), full1 (all 58 ops at depth 1), walk6 (125 seeded random walks of 6 ops from each start) and locale1
-# (the radix ops under the harness's comma-radix locale, depth 1).  The handler matrix is gen_vf.pl and the copy check
-# gen_copycheck.pl at depth 2.  Two recipes that observe the same (start, state, op) with different results are a
+# core at depth 2), full1 (all 59 ops at depth 1), walk6 (125 seeded random walks of 6 ops from each start), locale1
+# (the radix ops under the harness's comma-radix locale, depth 1) and pinned (the paths in generators/pinned.tsv, each
+# the shortest path vf_explore.pl found to a mismatch the other recipes do not show; absent while the file lists
+# none).  At depth N every sequence of up to N ops is followed by every op, so depth 1 observes two-op sequences.  The
+# handler matrix is gen_vf.pl and the copy check gen_copycheck.pl at depth 2.  Two recipes that observe the same (start, state, op) with different results are a
 # CONFLICT: the key does not determine the next state, which is a key audit failure, never a model gap.
 #
 # A run whose TAG is a version (a perlbrew build name such as 5.44.0 or 5.44.0-threads) merges into the three tables,
@@ -44,11 +47,15 @@ my @RECIPES = (
     [ full1   => 'gen3_vf.pl', { DEPTH => 1, PROJ => 'full' } ],
     [ walk6   => 'gen3_vf.pl', { WALK => 125, DEPTH => 6, SEED => 20260924, PROJ => 'full' } ],
     [ locale1 => 'gen4_vf.pl', { DEPTH => 1 } ],
+    (grep { !/^\s*(?:#|\z)/ } do { open my $p, '<', "$GEN/pinned.tsv" or die "cannot read $GEN/pinned.tsv: $!\n"; <$p> })
+        ? [ pinned => 'gen3_vf.pl', { PATHS => "$GEN/pinned.tsv", PROJ => 'full' } ] : (),
 );
 my %LOCALE_START = map { $_ => 1 } qw(c35 d35 c35x e35 c15 f35 abc c0);
 my %TABLE = (
-    transitions => { axes => [qw(start state op)], folded => 'op', fields => [qw(to via)], separator => '^' },
-    matrix      => { axes => [qw(input repl then outer)], folded => 'outer', fields => [qw(result str add or nv flags calls defined panic)], separator => '/' },
+    transitions => { axes => [qw(start state op)], folded => 'op', fields => [qw(to via)], separator => '^',
+                     layout => 'nested' },
+    matrix      => { axes => [qw(input repl then outer)], folded => 'outer',
+                     fields => [qw(result str add or nv flags calls defined panic)], separator => '/', layout => 'nested' },
     copy        => { axes => [qw(start state)], folded => 'start', fields => [qw(recipe copy original_after consumers consumers_original)], separator => '^' },
 );
 
@@ -75,10 +82,16 @@ sub recipe_length {
     return scalar @ops;
 }
 
+# A table as declared in %TABLE, with every version already recorded in reports/<name>.tsv; a recorded table written in
+# another layout is carried over into the declared one.
 sub load_table {
     my ($name) = @_;
     my $path = "$ROOT/reports/$name.tsv";
-    return -e $path ? Perl::Conformance::Table->load($path) : Perl::Conformance::Table->new(%{ $TABLE{$name} });
+    my $t = Perl::Conformance::Table->new(%{ $TABLE{$name} });
+    return $t unless -e $path;
+    my $old = Perl::Conformance::Table->load($path);
+    $t->merge($_, $old->cells($_)) for @{ $old->{versions} };
+    return $t;
 }
 
 # The model against a set of edges ({ "start\tstate\top" => [to, via] }): split by which generator knows the ops on
@@ -140,6 +153,55 @@ sub copy_fields {
     my ($px, $rec) = @_;
     my ($recipe, $pc, $px2, $cc, $co) = map { Perl::Conformance::Table::unescape($_) } split /\t/, $rec, -1;
     return [ $recipe, ($pc eq '=' ? $px : $pc), ($px2 eq '=' ? $px : $px2), $cc, ($co eq '=' ? $cc : $co) ];
+}
+
+# DIFF=A,B: how the transitions of two versions differ, by kind.  A row the two share has the same result, or results
+# that differ only in LEN (L:n on a string, the /n of B:cur/n on any other holder), or results that differ otherwise.  A
+# row only one version has is counted by whether the other has the same (start, state, op) once every LEN in the state
+# is blanked, with the same LEN-blind result (a state renamed by its LEN alone) or another; else it has no partner.
+# Allocation policy is LEN-only by construction, so these counts show how much of a version difference is policy.
+if (my $pair = $ENV{DIFF}) {
+    my ($va, $vb) = split /,/, $pair;
+    die "DIFF=<version>,<version>\n" unless defined $vb;
+    my $t = Perl::Conformance::Table->load("$ROOT/reports/transitions.tsv");
+    my ($ca, $cb) = ($t->cells($va), $t->cells($vb));
+    my $to = sub {
+        my ($k, $rec) = @_;
+        my ($x) = map { Perl::Conformance::Table::unescape($_) } split /\t/, $rec, -1;
+        return $x eq '=' ? (split /\t/, $k)[1] : $x;
+    };
+    my $blind = sub { my ($s) = @_; $s =~ s/\|L:\d+/|L:_/g; $s =~ s/\|B:(\d+)\/\d+/|B:$1\/_/g; return $s };
+    my %n;
+    for my $k (keys %$ca) {
+        next unless exists $cb->{$k};
+        my ($x, $y) = ($to->($k, $ca->{$k}), $to->($k, $cb->{$k}));
+        $n{ $x eq $y ? 'same row, same result' : $blind->($x) eq $blind->($y) ? 'same row, LEN only'
+            : 'same row, otherwise' }++;
+    }
+    my %only;
+    for ([ $va, $ca, $cb ], [ $vb, $cb, $ca ]) {
+        my ($v, $mine, $theirs) = @$_;
+        for my $k (keys %$mine) {
+            next if exists $theirs->{$k};
+            my ($c, $from, $op) = split /\t/, $k;
+            $only{$v}{ join "\t", $c, $blind->($from), $op }{ $blind->($to->($k, $mine->{$k})) }++;
+        }
+    }
+    for my $k (keys %{ $only{$va} }) {
+        my $theirs = $only{$vb}{$k};
+        my $rows = 0;
+        $rows += $_ for values %{ $only{$va}{$k} };
+        my $kind = !$theirs ? "only $va, no partner"
+            : join(' ', sort keys %{ $only{$va}{$k} }) eq join(' ', sort keys %$theirs) ? 'renamed state, LEN only'
+            : 'renamed state, otherwise';
+        $n{$kind} += $rows;
+    }
+    for my $k (keys %{ $only{$vb} }) {
+        next if $only{$va}{$k};
+        $n{"only $vb, no partner"} += $_ for values %{ $only{$vb}{$k} };
+    }
+    printf "%-32s %d\n", $_, $n{$_} for sort keys %n;
+    exit 0;
 }
 
 if ($REPLAY) {
