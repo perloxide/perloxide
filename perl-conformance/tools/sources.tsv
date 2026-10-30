@@ -145,3 +145,7 @@ parse_11_unary_operand_extent.pl	toke.c	return REPORT\( \*s==.\(. \? \(int\)FUNC
 parse_11_unary_operand_extent.pl	toke.c	^ \* Skips comments as well\.	skipspace: the space skipped before that check includes comments and newlines
 parse_11_unary_operand_extent.pl	toke.c	^#define FTST\(f\)	FTST: a file test always returns UNIOP, never FUNC1
 parse_11_unary_operand_extent.pl	op.c	kid->op_private \|= OPpFT_STACKING;	Perl_ck_ftst: a file test whose operand is a file test is stacked
+parse_12_empty_condition.pl	perly.y	^texpr	texpr: an empty condition is the constant 1, used by the block while and the middle test of a C-style for
+parse_12_empty_condition.pl	perly.y	expr\[body\] KW_WHILE condition	sideff: a statement modifier takes an ordinary expression, with no empty form
+parse_12_empty_condition.pl	perly.y	^mexpr	mexpr: the condition of if, unless and elsif is a required expression
+parse_12_empty_condition.pl	perly.y	^iexpr	iexpr: the condition of until is a required expression

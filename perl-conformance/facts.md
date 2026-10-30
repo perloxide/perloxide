@@ -1155,3 +1155,10 @@ Entries:
   a hash, a glob and a constant fail with `Type of arg 1 to shift must be array (not hash dereference)`, `(not
   ref-to-glob cast)` and `(not constant item)`.  `shift @a ? "true" : "false"` is `(shift @a) ? ...`.  Probe
   `probes/corpus/parse_10_shift_array_argument.pl`. [5.44.0]
+- `parsing.empty-condition`: The condition of a block `while`, and the middle test of a C-style `for`, may be empty, and
+  an empty one is true (`texpr` in `perly.y` supplies the constant 1), so `while () { ... }` and `for (;;) { ... }` loop
+  until left, as does `for (my $i = 0; ; $i++) { ... }`.  A statement modifier takes an ordinary expression with no
+  empty form, so in `STMT while ();` the condition is the empty list, which is false, and the statement never runs, like
+  `STMT if ();`, while `STMT unless ();` runs once.  The conditions of block `if`, `unless`, `elsif` (`mexpr`) and
+  `until` (`iexpr`) are required: `if () { 1 }`, `unless () { 1 }`, `if (1) { 1 } elsif () { 2 }` and `until () { 1 }`
+  are each `syntax error ... near "() "`.  Probe `probes/corpus/parse_12_empty_condition.pl`. [5.44.0]

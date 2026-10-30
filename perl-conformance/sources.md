@@ -341,3 +341,11 @@ source.
 - `toke.c:2081` skipspace: the space skipped before that check includes comments and newlines
 - `toke.c:261` FTST: a file test always returns UNIOP, never FUNC1
 - `op.c:13695` Perl_ck_ftst: a file test whose operand is a file test is stacked
+
+## parse_12_empty_condition.pl
+
+- `perly.y:998` texpr: an empty condition is the constant 1, used by the block while and the middle test of a C-style
+  for
+- `perly.y:943` sideff: a statement modifier takes an ordinary expression, with no empty form
+- `perly.y:1011` mexpr: the condition of if, unless and elsif is a required expression
+- `perly.y:1006` iexpr: the condition of until is a required expression

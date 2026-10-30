@@ -1,0 +1,20 @@
+value: my $n = 0; while () { last if ++$n == 3 } $n
+    ('3')
+value: my $n = 0; for (;;) { last if ++$n == 4 } $n
+    ('4')
+value: my $n = 0; for (my $i = 0; ; $i++) { last if ++$n == 2 } $n
+    ('2')
+value: my $c = 0; $c++ while (); $c
+    ('0')
+value: my $c = 0; $c++ if (); $c
+    ('0')
+value: my $c = 0; $c++ unless (); $c
+    ('1')
+value: if () { 1 }
+    error: syntax error at (eval 7) line 1, near "() "\nExecution of (eval 7) aborted due to compilation errors.
+value: unless () { 1 }
+    error: syntax error at (eval 8) line 1, near "() "\nExecution of (eval 8) aborted due to compilation errors.
+value: if (1) { 1 } elsif () { 2 }
+    error: syntax error at (eval 9) line 1, near "() "\nExecution of (eval 9) aborted due to compilation errors.
+value: until () { 1 }
+    error: syntax error at (eval 10) line 1, near "() "\nExecution of (eval 10) aborted due to compilation errors.
