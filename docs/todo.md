@@ -16,12 +16,13 @@ listed after the tasks.
   the input is a syntax error (`1 2;`, `foo 0;`, `say 1;` without its feature); the end of an `s///e` replacement counts
   as its closing `}` [fact:parsing.statement-terminator].  Today `finish_expr_stmt` accepts the statement unterminated
   and the next term starts a new statement, which also hides most of the other divergences below.
-- **Keyword classes.**  Derive each keyword's class from the macro its case uses in `toke.c`'s `yyl_word_or_keyword`
-  (`FUN0`, `UNI`, `UNIDOR`, `LOP`, ...) and pin the table with a test.  The predicates in `keyword.rs` disagree for
-  `keys`, `values`, `each`, `tell`, `untie` and `write` (`UNI` in `toke.c`, list operators here), for `die`, `warn` and
-  `getprotobynumber` (`LOP` in `toke.c`, named unaries here), and `readpipe` (`UNIDOR`) is missing from the
-  defined-or-preferring set [fact:parsing.keyword-classes].  The strong/weak split already matches `regen/keywords.pl`
-  for all 266 keywords.
+- **Keyword classes.**  Each row of the keyword table (§5.7.2) is to give the syntax `toke.c` gives the keyword.  Ten
+  rows still give the parser's earlier classification instead: `keys`, `values`, `each`, `tell`, `untie` and `write` are
+  `list_op` where `toke.c` has `UNI`, `die`, `warn` and `getprotobynumber` are `named_unary` where it has `LOP`, and
+  `readpipe` is `named_unary` where it has `UNIDOR` [fact:parsing.keyword-classes].  `require` is `named_unary`, though
+  `toke.c` gives it a grammar of its own: a forced module name or version, and its own precedence, `KW_REQUIRE`.
+  Whether that difference is observable needs a probe.  The strong/weak split matches `regen/keywords.pl` for all 266
+  keywords.
 - **`undef` takes an argument.**  `undef $x` parses today as `undef; $x;`.
 - **Optional-argument unaries.**  Decide whether an argument follows by perl's rule (below) rather than by the list of
   stop tokens in `parse_named_unary`.  This fixes `shift == 1`, `lc . "x"`, `lc =~ /x/`, `lc !~ /x/`, `-f == 1`, `lc ..
@@ -60,6 +61,7 @@ listed after the tasks.
 - **Error messages.**  These tests compare perl's message body ("syntax error", "CORE::nosuch is not a keyword", ...).
 - **Test names.**  About 400 of the tests in `parser_tests.rs` carry the prefix `parse_`, which says nothing in a file
   of parser tests.  Name each by its subject instead, as the tests for this work are (`named_unary_*`, `core_*`,
+  `override_*`).
 
 ### Perl's rule for whether an optional argument follows
 
@@ -85,13 +87,40 @@ In PerlOxide's terms: an argument follows if and only if, after the defined-or c
 
 ### Design discussions
 
-- **Optional-argument unaries from first principles.**  How the parser should structure this decision, the call form,
-  and argument parsing as an `ExprFrame` instead of recursion, using the rule above.
+- **Optional-argument unaries from first principles.**  The redesign of named unaries, file tests and `stat`/`lstat`,
+  using the rule above and the syntax column of the keyword table (§5.7.2).  Its open questions:
+  - *Term start.*  How "can this token begin a term?" is answered: a separate predicate kept beside `try_prefix` and
+    `parse_term`, or the term parsers reporting "not a term" before consuming anything, so that the set of tokens that
+    begin a term is defined in one place.
+  - *Iteration.*  Parsing the operand of a named unary, file test, `stat` or `lstat` as an `ExprFrame` at named-unary
+    precedence instead of by recursion: pushed as optional, and popped as the bare operator if the next token cannot
+    begin a term.
+  - *Call form.*  A `Paren`-like frame for `NAME(...)` that allows an empty list, with the defined-or check applied to
+    the first token after each `(`; file tests have no call form.
+  - *`_` as a stat target.*  Whether `_` is parsed as an ordinary term and mapped to the stat cache afterwards, as perl
+    does, and whether `StatTarget` stays.
+  - *AST shape.*  One node for a named unary that records the keyword, whether it was written `CORE::NAME`, and whether
+    its operand is the default, empty parentheses (`NAME()`, which perl marks `OPf_SPECIAL`) or an expression; whether
+    `Filetest`, `Stat` and `Lstat` fold into it.  This settles the two items below.
+  - *Scope.*  Whether list operators (whose `at_args_end` is also a stop list) and subs whose prototype makes them
+    nullary or unary (`FUNC0SUB`, `UNIOPSUB`) take the same "does an argument begin?" rule in this redesign.
 - **The AST form of `CORE::`.**  How the AST records that a keyword was written `CORE::NAME`.  (B::Deparse does not show
   this: it prints `CORE::` only where its own analysis of the symbol table and features calls for it, so `CORE::print 1`
   deparses as `print 1`.)
 - **`NAME()` versus `NAME`.**  Perl builds the two differently (`FUNC1 ( )` sets `OPf_SPECIAL`), and the difference is
   observable for `eof()` versus `eof`.  How the AST records it.
+- **Keyword table: the indirect object.**  Whether the table records what each `list_op(indirect)` keyword may take
+  first (a filehandle for `print`, `printf` and `say`; a block or sub name for `sort`; a block for `map` and `grep`; a
+  program block for `exec` and `system`), or leaves that to those keywords' parsers.
+- **Keyword table: `special`.**  Whether `special` stays one value, meaning "dispatched by name", or splits the way
+  `toke.c` does (block-introducing keywords, statement and modifier keywords, `eval` and `evalbytes`, keywords with
+  their own lexing).
+- **Keyword table: the parser's dispatch lists.**  Whether `is_block_list_op` and `is_print_op` become columns or stay
+  in the parser as facts about PerlOxide's parser rather than about perl.  `is_statement_keyword` is a second copy of
+  `parse_statement`'s match arms, kept in step only by an `unreachable!` that panics when they disagree; the proposal is
+  to remove it and let the match fall through to expression parsing.
+- **Keyword table: checking it against `toke.c`.**  How the syntax column is checked against the macro each keyword's
+  case uses in `toke.c`: a test over a checked-in record, or a tool that extracts the macros from a perl source tree.
 - **Which layer reports op-tree check errors.**  "Can't modify ...", "Too many arguments for ...", "Type of arg 1 to ...
   must be ..." and "Experimental shift on scalar is now forbidden" come from perl's op checks after a successful parse.
   The tests for them accept either the parse or the exact message.
@@ -119,11 +148,28 @@ In PerlOxide's terms: an argument follows if and only if, after the defined-or c
 
 - Cross every keyword class with a fixed set of following tokens and compare the parse with perl's mechanically.
 - Audit the existing parser tests against perl; each verified fact is also a candidate probe for `perl-conformance/`.
+- Audit the parsers of the `special` keywords against perl, one handling step at a time: the checks for `{` and `(`,
+  names and versions, attributes, blocks and parenthesized heads, statement modifiers, constructs that must follow or
+  lie inside another, declarations, and effects on the rest of the parse.
+- `elseif`: perl warns "elseif should be elsif" where the parser stops with that message as an error.  What perl does
+  after the warning needs a probe.
 
-## perl-conformance
+## Parser refactoring
 
-- Add probes for the parsing facts above, observed through `eval STRING`, `$@` and `$SIG{__WARN__}` rather than
-  `B::Deparse` so any implementation can run them, and a `[parsing]` area in `facts.md` with the slugs
-  `parsing.unidor-keywords`, `parsing.unidor-parens`, `parsing.stat-is-uni`, `parsing.filetest-letters`,
-  `parsing.core-prefix` and `parsing.weak-override-import`, plus proposed `parsing.statement-terminator`,
-  `parsing.unary-argument-start` and `parsing.keyword-classes`.
+Simplifications of the existing parser that change no behavior.
+
+- **Conditionals and loops.**  `parse_if_stmt`, `parse_unless_stmt`, `parse_while_stmt` and `parse_until_stmt` have the
+  same form, `KEYWORD ( condition ) block`, and differ only in two answers: negated or not, and conditional or loop.
+  The second answer chooses the trailing clause (an `elsif`/`else` chain or a `continue` block) and the first, with it,
+  whether the condition may be empty (only for `while`).  One function taking the two answers replaces all four;
+  `parse_given` and `parse_when` follow the same pattern with no trailing clause.  Whether the AST likewise has one
+  conditional node and one loop node, each with a `negated` flag, is a design question.
+- **Shared helpers.**  A name that is an identifier or a keyword (`package`, `class`, `method`, ...); an optional
+  version (duplicated in `package` and `class`); a block form or a statement form ended by `;` (`package`, `class`); an
+  optional trailing clause introduced by a keyword (`continue`, `else`, `finally`); a comma-separated list
+  (`parse_list_op`, `parse_block_list_op`, `&name(...)`, slices); and the operator kinds of `field` initializers and
+  signature defaults.
+- **Keyword-to-variant maps.**  `maybe_postfix_control` repeats one body for six keywords that differ only in their
+  `PostfixKind`, `parse_statement` maps six phase keywords to `PhaserKind` one arm at a time, and `parse_statement` and
+  `parse_term` each map `my`, `our` and `state` to `DeclScope`.  `TryFrom<Keyword>` for each of those enums replaces the
+  repetition.

@@ -5557,6 +5557,58 @@ must be indented to match the terminator — it sits at *virtual* column 0 (post
 **Consequence for the whitespace skipper.**  Because POD is a token (`EqOrPod`) handled by the parser, it is not a
 whitespace-skipping concern.  The lexer has a single `skip_ws_and_comments` that skips whitespace and comments only.
 
+### 5.7.2 The Keyword Table
+
+Everything recorded about each keyword lives in one table in `keyword.rs`: a single invocation of the declarative
+`keywords!` macro, one row per keyword, from which the macro generates the `Keyword` enum, the name-to-keyword map, and
+the accessors `name()`, `strength()`, `feature()` and `syntax()`.  No other list of keywords is kept; a per-keyword fact
+that more than one part of the lexer or parser needs becomes a column of this table.
+
+```rust
+keywords! {
+    Lc        => -"lc"                  named_unary
+    Shift     => -"shift"               named_unary(defined_or)
+    Join      => -"join"                list_op
+    Print     => +"print"               list_op(indirect)
+    Say       => +"say"       [SAY]     list_op(indirect)
+    Q         => +"q"                   quote
+    If        => +"if"                  special
+}
+```
+
+A row is `Variant => ±"name" [FEATURE] syntax(modifier)`:
+
+- **`+` or `-`** is the keyword's strength, strong or weak, written as Perl's own `regen/keywords.pl` writes it so the
+  two compare line for line.  It decides whether a sub can override the keyword (§5.3).
+- **The name** is a string literal.  `phf_map!` accepts only literal keys, and a declarative macro cannot turn an
+  identifier into a string literal.
+- **`[FEATURE]`**, when present, names the `Features` flag that must be enabled for the name to be a keyword at all;
+  with the feature off, the name is an ordinary identifier.
+- **The syntax word** says how the parser reads what follows the keyword.  Each value is the syntax `toke.c` gives the
+  keyword, named for what it does rather than for the `toke.c` macro:
+
+| Syntax                    | `toke.c`             | What follows the keyword                                      |
+|---------------------------|----------------------|---------------------------------------------------------------|
+| `nullary`                 | `FUN0`, `FUN0OP`     | nothing; optional empty parentheses                           |
+| `named_unary`             | `UNI`                | `NAME(...)`, or an optional operand at named-unary precedence |
+| `named_unary(defined_or)` | `UNIDOR`             | the same, but `//`, `//=` and `~~` are operators              |
+| `list_op`                 | `LOP` with `XTERM`   | `NAME(...)`, or a list at list-operator precedence            |
+| `list_op(indirect)`       | `LOP` with `XREF`    | the same, but the list may begin with an indirect object      |
+| `list_op(no_call_form)`   | `OLDLOP`             | a list; a `(` begins its first element (`return`)             |
+| `block_list_op`           | `BLKLOP`             | a required block, then a list (`any`, `all`)                  |
+| `loop_exit`               | `LOOPX`              | an optional label or operand, at the lowest precedence        |
+| `operator`                | the word operators   | nothing: an infix operator, read in operator position         |
+| `quote`                   | `TERM(sublex_start)` | a delimited body that the lexer scans                         |
+| `special`                 | everything else      | its own grammar, parsed by its own function in the parser     |
+
+The map is a `phf` perfect-hash map keyed by `&str`.  The lexer holds a scanned word as a `String`, so the lookup
+validates nothing; the one caller with raw bytes, the apostrophe check in `scan_ident`, converts them first, and bytes
+that are not UTF-8 cannot name a keyword.
+
+The table's notation is PerlOxide's own and serves readability: rows align on screen, a feature gate stands out on the
+few rows that have one, and a single `macro_rules!` repetition parses it, because no token at the gate's position can
+also begin the syntax word.  It may change for implementation reasons as long as it stays as readable.
+
 ### 5.8 Unicode Support
 
 Under `use utf8`, Perl source is UTF-8 encoded and identifiers may use Unicode letters.  The lexer implements full
