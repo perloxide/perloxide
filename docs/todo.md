@@ -48,8 +48,8 @@ listed after the tasks.
   [fact:parsing.unary-argument-start].
 - **Empty conditions.**  A block `while` with an empty condition is an infinite loop, as `for (;;)` is, and an empty
   `if`, `unless`, `elsif` or `until` condition is a syntax error [fact:parsing.empty-condition].  Today `while ()` is
-  rejected, and the other four are rejected with the parser's own message instead of `syntax error`.  `WhileStmt` has
-  no way to record an empty condition yet.
+  rejected, and the other four are rejected with the parser's own message instead of `syntax error`.
+  `WhileStmt.condition` becomes an `Option<Expr>`, as `ForStmt.condition` is (§6.6).
 - **Indirect objects.**  `foo bar` with neither word declared is `bar->foo`; the current heuristic requires a
   capitalized class name.  The exact rules are `S_intuit_method`'s.
 - **`CORE::`.**  Add `Token::CoreKeyword(Keyword)` (§5.3), its errors, and `dump` ("dump() must be written as

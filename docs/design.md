@@ -6686,6 +6686,13 @@ followed by `;`, this is C-style `for` — the expression becomes the initialize
 list-style — the expression is the first element of the iteration list.  The already-parsed expression is kept in both
 cases.
 
+**Empty loop conditions.**  The condition of a block `while` and the middle test of a C-style `for` may be empty, and an
+empty one is true [fact:parsing.empty-condition].  The AST records the absence rather than a substituted constant:
+`WhileStmt.condition`, like `ForStmt.condition`, is an `Option<Expr>`, and `None` is a loop that runs until it is left.
+Perl's own parser substitutes the constant `1`, so its op tree for `while ()` is identical to the one for `while (1)`,
+and B::Deparse prints the latter; PerlOxide keeps the source form, and the compiler treats `None` as true.  Statement
+modifiers and the conditions of `if`, `unless`, `elsif` and `until` have no empty form.
+
 **Print filehandle detection.**  After `print` or `say`, the parser consumes the first token.  If it is a bareword
 followed by something that looks like a term (not `,` or `)` or `;`), it is treated as a filehandle.  If it is a scalar
 variable followed by a clear term-start, same treatment.  Otherwise, the consumed token is the first argument — passed
